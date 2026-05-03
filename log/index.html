@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brian Health">
+<title>Brian — Health Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+–bg: #0a0a0f;
+–surface: #13131a;
+–surface2: #1c1c26;
+–border: #2a2a38;
+–accent: #4fffb0;
+–accent2: #a78bfa;
+–accent3: #fb923c;
+–text: #e8e8f0;
+–muted: #6b6b80;
+–danger: #f87171;
+–safe-top: env(safe-area-inset-top, 0px);
+–safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100vh;
+overscroll-behavior: none;
+}
+
+/* HEADER */
+.header {
+position: sticky;
+top: 0;
+z-index: 100;
+background: var(–bg);
+border-bottom: 1px solid var(–border);
+padding: calc(var(–safe-top) + 12px) 16px 12px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+.header-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+.header-date { font-family: ‘DM Mono’, monospace; font-size: 11px; color: var(–accent); }
+.header-right { display: flex; gap: 8px; }
+
+/* TABS */
+.tabs {
+display: flex;
+background: var(–surface);
+border-bottom: 1px solid var(–border);
+overflow-x: auto;
+scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+flex: 1;
+min-width: 80px;
+padding: 12px 8px;
+text-align: center;
+font-size: 11px;
+font-weight: 600;
+letter-spacing: 0.5px;
+color: var(–muted);
+cursor: pointer;
+border-bottom: 2px solid transparent;
+transition: all 0.2s;
+white-space: nowrap;
+}
+.tab.active { color: var(–accent); border-bottom-color: var(–accent); }
+
+/* CONTENT */
+.content { padding: 16px 16px calc(var(–safe-bot) + 80px); max-width: 600px; margin: 0 auto; }
+
+/* SECTION */
+.section { margin-bottom: 20px; }
+.section-label {
+font-family: ‘DM Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1.5px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 8px;
+padding-left: 2px;
+}
+
+/* CARD */
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+overflow: hidden;
+}
+
+/* SUPPLEMENT ROW */
+.supp-row {
+display: flex;
+align-items: center;
+padding: 14px 16px;
+border-bottom: 1px solid var(–border);
+gap: 12px;
+cursor: pointer;
+transition: background 0.15s;
+position: relative;
+}
+.supp-row:last-child { border-bottom: none; }
+.supp-row:active { background: var(–surface2); }
+.supp-row.logged { background: rgba(79,255,176,0.04); }
+
+.check-circle {
+width: 26px;
+height: 26px;
+border-radius: 50%;
+border: 2px solid var(–border);
+flex-shrink: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: all 0.2s;
+}
+.supp-row.logged .check-circle {
+border-color: var(–accent);
+background: var(–accent);
+}
+.check-circle svg { display: none; }
+.supp-row.logged .check-circle svg { display: block; }
+
+.supp-info { flex: 1; min-width: 0; }
+.supp-name { font-size: 14px; font-weight: 600; line-height: 1.2; }
+.supp-dose { font-family: ‘DM Mono’, monospace; font-size: 11px; color: var(–muted); margin-top: 2px; }
+.supp-time {
+font-family: ‘DM Mono’, monospace;
+font-size: 11px;
+color: var(–accent);
+flex-shrink: 0;
+}
+
+/* DAILY DOZEN */
+.dozen-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1px;
+background: var(–border);
+border-radius: 12px;
+overflow: hidden;
+}
+.dozen-item {
+background: var(–surface);
+padding: 14px 14px;
+display: flex;
+flex-direction: column;
+gap: 8px;
+cursor: pointer;
+transition: background 0.15s;
+}
+.dozen-item:active { background: var(–surface2); }
+.dozen-item.logged { background: rgba(79,255,176,0.05); }
+.dozen-top { display: flex; align-items: center; justify-content: space-between; }
+.dozen-name { font-size: 13px; font-weight: 600; }
+.dozen-emoji { font-size: 18px; }
+.dozen-qty-row { display: flex; align-items: center; gap: 8px; }
+.qty-btn {
+width: 28px; height: 28px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+color: var(–text);
+font-size: 16px;
+display: flex; align-items: center; justify-content: center;
+cursor: pointer;
+flex-shrink: 0;
+transition: background 0.15s;
+}
+.qty-btn:active { background: var(–border); }
+.qty-display {
+font-family: ‘DM Mono’, monospace;
+font-size: 14px;
+font-weight: 500;
+min-width: 28px;
+text-align: center;
+color: var(–accent);
+}
+.qty-display.zero { color: var(–muted); }
+
+/* WATER */
+.water-row {
+display: flex;
+align-items: center;
+padding: 16px;
+gap: 12px;
+}
+.water-icon { font-size: 24px; flex-shrink: 0; }
+.water-label { flex: 1; font-size: 14px; font-weight: 600; }
+.water-controls { display: flex; align-items: center; gap: 10px; }
+.water-qty {
+font-family: ‘DM Mono’, monospace;
+font-size: 20px;
+font-weight: 500;
+color: var(–accent2);
+min-width: 60px;
+text-align: center;
+}
+.water-unit { font-family: ‘DM Mono’, monospace; font-size: 11px; color: var(–muted); }
+
+/* QUICK LOG BUTTONS */
+.quick-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.quick-btn {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 6px 14px;
+font-family: ‘DM Mono’, monospace;
+font-size: 12px;
+color: var(–muted);
+cursor: pointer;
+transition: all 0.15s;
+}
+.quick-btn:active { background: var(–border); color: var(–text); }
+
+/* PLUNGE */
+.plunge-btn {
+width: 100%;
+padding: 20px;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+cursor: pointer;
+transition: all 0.2s;
+}
+.plunge-btn.logged {
+border-color: #60a5fa;
+background: rgba(96,165,250,0.06);
+}
+.plunge-left { display: flex; align-items: center; gap: 14px; }
+.plunge-icon { font-size: 28px; }
+.plunge-label { font-size: 16px; font-weight: 700; }
+.plunge-sub { font-family: ‘DM Mono’, monospace; font-size: 11px; color: var(–muted); margin-top: 2px; }
+.plunge-status {
+font-family: ‘DM Mono’, monospace;
+font-size: 12px;
+color: var(–muted);
+}
+.plunge-btn.logged .plunge-status { color: #60a5fa; }
+
+/* LOG TAB */
+.log-entry {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+margin-bottom: 10px;
+overflow: hidden;
+}
+.log-header {
+padding: 10px 14px;
+background: var(–surface2);
+display: flex;
+align-items: center;
+justify-content: space-between;
+border-bottom: 1px solid var(–border);
+}
+.log-type {
+font-family: ‘DM Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+text-transform: uppercase;
+}
+.log-ts { font-family: ‘DM Mono’, monospace; font-size: 10px; color: var(–muted); }
+.log-body { padding: 10px 14px; font-family: ‘DM Mono’, monospace; font-size: 12px; line-height: 1.6; color: var(–text); }
+
+/* MODAL */
+.modal-overlay {
+position: fixed; inset: 0;
+background: rgba(0,0,0,0.7);
+backdrop-filter: blur(4px);
+z-index: 200;
+display: flex;
+align-items: flex-end;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 20px 20px 0 0;
+padding: 20px 20px calc(var(–safe-bot) + 20px);
+width: 100%;
+transform: translateY(100%);
+transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle {
+width: 36px; height: 4px;
+background: var(–border);
+border-radius: 2px;
+margin: 0 auto 18px;
+}
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.modal-dose { font-family: ‘DM Mono’, monospace; font-size: 12px; color: var(–accent); margin-bottom: 18px; }
+
+.field-label {
+font-family: ‘DM Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 6px;
+}
+.field-group { margin-bottom: 16px; }
+.field-row { display: flex; gap: 10px; }
+
+input[type=“date”], input[type=“time”], input[type=“text”], input[type=“number”], textarea {
+width: 100%;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 14px;
+color: var(–text);
+font-family: ‘DM Mono’, monospace;
+font-size: 14px;
+outline: none;
+-webkit-appearance: none;
+transition: border-color 0.2s;
+}
+input:focus, textarea:focus { border-color: var(–accent); }
+textarea { resize: none; height: 70px; }
+
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-primary {
+flex: 1;
+background: var(–accent);
+color: #000;
+border: none;
+border-radius: 12px;
+padding: 16px;
+font-family: ‘Syne’, sans-serif;
+font-size: 15px;
+font-weight: 700;
+cursor: pointer;
+transition: opacity 0.15s;
+}
+.btn-primary:active { opacity: 0.8; }
+.btn-cancel {
+background: var(–surface2);
+color: var(–muted);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 16px 20px;
+font-family: ‘Syne’, sans-serif;
+font-size: 15px;
+font-weight: 600;
+cursor: pointer;
+}
+
+/* SAVE BAR */
+.save-bar {
+position: fixed;
+bottom: 0;
+left: 0; right: 0;
+background: var(–bg);
+border-top: 1px solid var(–border);
+padding: 12px 16px calc(var(–safe-bot) + 12px);
+display: flex;
+gap: 10px;
+z-index: 100;
+}
+.btn-export {
+flex: 1;
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 14px;
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+}
+.btn-export:active { background: var(–surface2); }
+.btn-save {
+flex: 2;
+background: var(–accent);
+border: none;
+border-radius: 12px;
+padding: 14px;
+color: #000;
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+}
+.btn-save:active { opacity: 0.85; }
+
+/* ADD ITEM */
+.add-item-row {
+display: flex;
+align-items: center;
+padding: 12px 16px;
+gap: 10px;
+cursor: pointer;
+color: var(–muted);
+font-size: 13px;
+font-weight: 600;
+border-top: 1px solid var(–border);
+transition: color 0.15s;
+}
+.add-item-row:active { color: var(–accent); }
+
+/* PROGRESS BAR */
+.progress-wrap { margin-bottom: 20px; }
+.progress-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.progress-title { font-size: 13px; font-weight: 600; }
+.progress-pct { font-family: ‘DM Mono’, monospace; font-size: 12px; color: var(–accent); }
+.progress-bar-bg { height: 4px; background: var(–surface2); border-radius: 2px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(–accent); border-radius: 2px; transition: width 0.4s ease; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+.tag {
+display: inline-block;
+font-family: ‘DM Mono’, monospace;
+font-size: 10px;
+padding: 2px 7px;
+border-radius: 4px;
+margin-left: 6px;
+vertical-align: middle;
+}
+.tag-interim { background: rgba(251,146,60,0.15); color: var(–accent3); }
+.tag-optional { background: rgba(167,139,250,0.15); color: var(–accent2); }
+
+.copy-toast {
+position: fixed;
+bottom: 90px;
+left: 50%;
+transform: translateX(-50%) translateY(20px);
+background: var(–accent);
+color: #000;
+font-family: ‘DM Mono’, monospace;
+font-size: 12px;
+font-weight: 500;
+padding: 10px 20px;
+border-radius: 20px;
+opacity: 0;
+transition: all 0.3s;
+pointer-events: none;
+white-space: nowrap;
+z-index: 300;
+}
+.copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Brian Health</div>
+    <div class="header-date" id="headerDate"></div>
+  </div>
+  <div class="header-right">
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:right;line-height:1.4;" id="headerStats"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('supps')">💊 Supps</div>
+  <div class="tab" onclick="switchTab('dozen')">🥦 Dozen</div>
+  <div class="tab" onclick="switchTab('water')">💧 Water</div>
+  <div class="tab" onclick="switchTab('plunge')">🧊 Plunge</div>
+  <div class="tab" onclick="switchTab('log')">📋 Log</div>
+</div>
+
+<!-- SUPPLEMENTS -->
+
+<div id="page-supps" class="page active">
+  <div class="content">
+
+```
+<div class="section">
+  <div class="section-label">Morning Water Protocol</div>
+  <div class="card" id="morning-water-group"></div>
+</div>
+
+<div class="section">
+  <div class="section-label">Breakfast Stack</div>
+  <div class="card" id="breakfast-group"></div>
+</div>
+
+<div class="section">
+  <div class="section-label">Lunch</div>
+  <div class="card" id="lunch-group"></div>
+</div>
+
+<div class="section">
+  <div class="section-label">Bedtime Stack</div>
+  <div class="card" id="bedtime-group"></div>
+</div>
+
+<div class="section">
+  <div class="section-label">Ad-hoc / One-off</div>
+  <div class="card" id="adhoc-group">
+    <div class="add-item-row" onclick="openAddItem()">
+      <span style="font-size:18px">＋</span> Add supplement
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- DAILY DOZEN -->
+
+<div id="page-dozen" class="page">
+  <div class="content">
+    <div class="progress-wrap">
+      <div class="progress-header">
+        <span class="progress-title">Daily Dozen Progress</span>
+        <span class="progress-pct" id="dozenPct">0 / 12</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="dozenBar" style="width:0%"></div></div>
+    </div>
+    <div class="dozen-grid" id="dozenGrid"></div>
+  </div>
+</div>
+
+<!-- WATER -->
+
+<div id="page-water" class="page">
+  <div class="content">
+    <div class="section">
+      <div class="section-label">Today's Water</div>
+      <div class="card">
+        <div class="water-row">
+          <div class="water-icon">💧</div>
+          <div style="flex:1">
+            <div class="water-label">Water Intake</div>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:2px;">Target: 80–100 oz</div>
+          </div>
+          <div class="water-controls">
+            <div class="qty-btn" onclick="adjustWater(-8)">−</div>
+            <div>
+              <div class="water-qty" id="waterQty">0</div>
+              <div class="water-unit">oz</div>
+            </div>
+            <div class="qty-btn" onclick="adjustWater(8)">＋</div>
+          </div>
+        </div>
+        <div style="padding:0 16px 14px;">
+          <div class="quick-btns">
+            <div class="quick-btn" onclick="logWaterQuick(8)">+8 oz</div>
+            <div class="quick-btn" onclick="logWaterQuick(16)">+16 oz</div>
+            <div class="quick-btn" onclick="logWaterQuick(20)">+20 oz</div>
+            <div class="quick-btn" onclick="logWaterQuick(32)">+32 oz</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">Water Log</div>
+      <div class="card" id="waterLog" style="padding:14px 16px;font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);">
+        No entries yet
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLUNGE -->
+
+<div id="page-plunge" class="page">
+  <div class="content">
+    <div class="section">
+      <div class="section-label">Pool Plunge</div>
+      <div class="plunge-btn" id="plungeBtn" onclick="togglePlunge()">
+        <div class="plunge-left">
+          <div class="plunge-icon">🧊</div>
+          <div>
+            <div class="plunge-label">Cold Plunge</div>
+            <div class="plunge-sub">Tap to log tonight's plunge</div>
+          </div>
+        </div>
+        <div class="plunge-status" id="plungeStatus">—</div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:20px;">
+      <div class="section-label">Duration & Notes</div>
+      <div class="card" style="padding:14px 16px;">
+        <div class="field-group">
+          <div class="field-label">Duration (minutes)</div>
+          <input type="number" id="plungeDuration" placeholder="e.g. 5" style="width:100%">
+        </div>
+        <div class="field-group" style="margin-bottom:0">
+          <div class="field-label">Notes</div>
+          <textarea id="plungeNotes" placeholder="Temp, how you felt..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+
+<div id="page-log" class="page">
+  <div class="content">
+    <div class="section">
+      <div class="section-label">Today's Entries</div>
+      <div id="logEntries"><div style="color:var(--muted);font-family:'DM Mono',monospace;font-size:12px;padding:20px 0;text-align:center;">No entries yet today</div></div>
+    </div>
+    <div class="section">
+      <div class="section-label">Markdown Preview</div>
+      <div class="card" style="padding:14px 16px;">
+        <pre id="mdPreview" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);white-space:pre-wrap;line-height:1.7;overflow-x:auto;">Log entries will appear here</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE BAR -->
+
+<div class="save-bar">
+  <button class="btn-export" onclick="copyMarkdown()">
+    <span>📋</span> Copy MD
+  </button>
+  <button class="btn-save" onclick="saveEntry()">
+    <span>✓</span> Save All
+  </button>
+</div>
+
+<!-- SUPPLEMENT MODAL -->
+
+<div class="modal-overlay" id="suppModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modalSuppName"></div>
+    <div class="modal-dose" id="modalSuppDose"></div>
+    <div class="field-row">
+      <div class="field-group" style="flex:1">
+        <div class="field-label">Date</div>
+        <input type="date" id="modalDate">
+      </div>
+      <div class="field-group" style="flex:1">
+        <div class="field-label">Time</div>
+        <input type="time" id="modalTime">
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Notes (optional)</div>
+      <textarea id="modalNotes" placeholder="Skipped, modified dose..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmSupp()">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ITEM MODAL -->
+
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Supplement</div>
+    <div style="height:8px"></div>
+    <div class="field-group">
+      <div class="field-label">Name</div>
+      <input type="text" id="addItemName" placeholder="Supplement name">
+    </div>
+    <div class="field-group">
+      <div class="field-label">Dose</div>
+      <input type="text" id="addItemDose" placeholder="e.g. 500mg, 2 caps">
+    </div>
+    <div class="field-row">
+      <div class="field-group" style="flex:1">
+        <div class="field-label">Date</div>
+        <input type="date" id="addItemDate">
+      </div>
+      <div class="field-group" style="flex:1">
+        <div class="field-label">Time</div>
+        <input type="time" id="addItemTime">
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field-label">Notes</div>
+      <textarea id="addItemNotes" placeholder="Why you're adding this..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeAddItem()">Cancel</button>
+      <button class="btn-primary" onclick="confirmAddItem()">Add & Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="copy-toast" id="toast">Copied to clipboard ✓</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────
+const SUPPLEMENTS = {
+  'morning-water': [
+    { id: 'water-am', name: 'Morning Water', dose: '14 oz + Himalayan Salt 0.125 tsp', defaultTime: '06:30' },
+    { id: 'hydrogen-tab', name: 'Hydrogen Tab', dose: '1 tab', defaultTime: '06:30', tag: 'optional' },
+  ],
+  breakfast: [
+    { id: 'slow-mag-am', name: 'Slow Mag', dose: '1 tablet (~71.5mg Mg Chloride)', defaultTime: '07:30' },
+    { id: 'glycinate-am', name: 'Mg Glycinate', dose: '1 tablet (~100mg)', defaultTime: '07:30' },
+    { id: 'puregenomics-b', name: 'PureGenomics B-Complex', dose: '1 capsule', defaultTime: '07:30', tag: 'interim' },
+    { id: 'd3k2', name: 'Thorne D3/K2', dose: '6 drops (3,000 IU D3 + MK-4)', defaultTime: '07:30' },
+    { id: 'dha-xtra', name: 'DHA Xtra', dose: '2 softgels', defaultTime: '07:30' },
+    { id: 'creatine', name: 'Creatine', dose: '5g', defaultTime: '07:30' },
+    { id: 'ezetimibe', name: 'Ezetimibe', dose: 'Standard dose', defaultTime: '07:30' },
+    { id: 'pterostilbene', name: 'Pterostilbene', dose: '50mg', defaultTime: '07:30' },
+  ],
+  lunch: [
+    { id: 'glycinate-lunch', name: 'Mg Glycinate', dose: '3 tablets (~300mg)', defaultTime: '12:30' },
+  ],
+  bedtime: [
+    { id: 'slow-mag-pm', name: 'Slow Mag', dose: '3 tablets (~214.5mg Mg Chloride)', defaultTime: '22:00' },
+    { id: 'magtein', name: 'Magtein (Mg L-Threonate)', dose: '1g (~75mg)', defaultTime: '22:00' },
+    { id: 'liposomal-c', name: 'Liposomal C', dose: '500mg', defaultTime: '22:00' },
+    { id: 'apigenin', name: 'Apigenin', dose: '50mg', defaultTime: '22:00' },
+    { id: 'glycine', name: 'Glycine', dose: '3–5g', defaultTime: '22:00' },
+    { id: 'rosuvastatin', name: 'Rosuvastatin', dose: '2.5mg', defaultTime: '22:00' },
+  ]
+};
+
+const DAILY_DOZEN = [
+  { id: 'beans', name: 'Beans', emoji: '🫘' },
+  { id: 'berries', name: 'Berries', emoji: '🫐' },
+  { id: 'other-fruit', name: 'Other Fruit', emoji: '🍎' },
+  { id: 'cruciferous', name: 'Cruciferous', emoji: '🥦' },
+  { id: 'greens', name: 'Greens', emoji: '🥬' },
+  { id: 'other-veg', name: 'Other Veg', emoji: '🥕' },
+  { id: 'flaxseed', name: 'Flaxseed', emoji: '🌾' },
+  { id: 'nuts', name: 'Nuts', emoji: '🥜' },
+  { id: 'spices', name: 'Spices', emoji: '🌿' },
+  { id: 'whole-grains', name: 'Whole Grains', emoji: '🌽' },
+  { id: 'beverages', name: 'Beverages', emoji: '🍵' },
+  { id: 'exercise', name: 'Exercise', emoji: '🏊' },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────
+let state = {
+  loggedSupps: {},   // { id: { date, time, notes, loggedAt } }
+  dozen: {},         // { id: qty }
+  water: 0,
+  waterLog: [],      // [ { qty, time, date } ]
+  plunge: null,      // { time, date, duration, notes }
+  adhocItems: [],    // [ { name, dose, date, time, notes, loggedAt } ]
+};
+
+let activeModal = null;
+let currentSuppId = null;
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+function init() {
+  loadState();
+  renderHeader();
+  renderSupplements();
+  renderDailyDozen();
+  renderWaterLog();
+  renderPlunge();
+  renderLog();
+}
+
+function now() {
+  return new Date();
+}
+function todayStr() {
+  return now().toISOString().slice(0,10);
+}
+function timeStr(d) {
+  d = d || now();
+  return d.toTimeString().slice(0,5);
+}
+function fmtDateTime(dateStr, timeStr) {
+  return `${dateStr} ${timeStr}`;
+}
+
+// ─── HEADER ───────────────────────────────────────────────────────────
+function renderHeader() {
+  const d = now();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('headerDate').textContent =
+    `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()} · ${timeStr(d)}`;
+
+  const totalSupps = Object.values(SUPPLEMENTS).flat().length;
+  const loggedCount = Object.keys(state.loggedSupps).length;
+  const dozenCount = Object.values(state.dozen).filter(v => v > 0).length;
+  document.getElementById('headerStats').textContent =
+    `💊 ${loggedCount}/${totalSupps}  🥦 ${dozenCount}/12`;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'log') { renderLog(); }
+}
+
+// ─── SUPPLEMENTS ─────────────────────────────────────────────────────
+function renderSupplements() {
+  const groupMap = {
+    'morning-water': 'morning-water-group',
+    'breakfast': 'breakfast-group',
+    'lunch': 'lunch-group',
+    'bedtime': 'bedtime-group',
+  };
+  for (const [group, elId] of Object.entries(groupMap)) {
+    const el = document.getElementById(elId);
+    el.innerHTML = '';
+    SUPPLEMENTS[group].forEach(s => {
+      el.appendChild(makeSuppRow(s));
+    });
+  }
+  renderAdhoc();
+}
+
+function makeSuppRow(s) {
+  const logged = state.loggedSupps[s.id];
+  const div = document.createElement('div');
+  div.className = 'supp-row' + (logged ? ' logged' : '');
+  div.id = 'supp-row-' + s.id;
+  div.onclick = () => openSuppModal(s);
+
+  let tagHtml = '';
+  if (s.tag === 'interim') tagHtml = '<span class="tag tag-interim">interim</span>';
+  if (s.tag === 'optional') tagHtml = '<span class="tag tag-optional">optional</span>';
+
+  div.innerHTML = `
+    <div class="check-circle">
+      <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+        <path d="M1 5L4.5 8.5L11 1" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="supp-info">
+      <div class="supp-name">${s.name}${tagHtml}</div>
+      <div class="supp-dose">${s.dose}</div>
+    </div>
+    <div class="supp-time">${logged ? logged.time : s.defaultTime}</div>
+  `;
+  return div;
+}
+
+function renderAdhoc() {
+  const el = document.getElementById('adhoc-group');
+  el.innerHTML = '';
+  state.adhocItems.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'supp-row logged';
+    div.innerHTML = `
+      <div class="check-circle">
+        <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
+          <path d="M1 5L4.5 8.5L11 1" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="supp-info">
+        <div class="supp-name">${item.name}</div>
+        <div class="supp-dose">${item.dose || '—'}</div>
+      </div>
+      <div class="supp-time">${item.time}</div>
+    `;
+    el.appendChild(div);
+  });
+  const addRow = document.createElement('div');
+  addRow.className = 'add-item-row';
+  addRow.onclick = openAddItem;
+  addRow.innerHTML = '<span style="font-size:18px">＋</span> Add supplement';
+  el.appendChild(addRow);
+}
+
+// ─── SUPP MODAL ───────────────────────────────────────────────────────
+function openSuppModal(s) {
+  currentSuppId = s.id;
+  document.getElementById('modalSuppName').textContent = s.name;
+  document.getElementById('modalSuppDose').textContent = s.dose;
+  const existing = state.loggedSupps[s.id];
+  document.getElementById('modalDate').value = existing ? existing.date : todayStr();
+  document.getElementById('modalTime').value = existing ? existing.time : (s.defaultTime || timeStr());
+  document.getElementById('modalNotes').value = existing ? (existing.notes || '') : '';
+  openModal('suppModal');
+}
+
+function confirmSupp() {
+  const date = document.getElementById('modalDate').value;
+  const time = document.getElementById('modalTime').value;
+  const notes = document.getElementById('modalNotes').value;
+  state.loggedSupps[currentSuppId] = {
+    date, time, notes,
+    loggedAt: new Date().toISOString()
+  };
+  saveState();
+  closeModal();
+  renderSupplements();
+  renderHeader();
+  renderLog();
+}
+
+// ─── ADD ITEM ─────────────────────────────────────────────────────────
+function openAddItem() {
+  document.getElementById('addItemName').value = '';
+  document.getElementById('addItemDose').value = '';
+  document.getElementById('addItemDate').value = todayStr();
+  document.getElementById('addItemTime').value = timeStr();
+  document.getElementById('addItemNotes').value = '';
+  openModal('addItemModal');
+}
+function closeAddItem() { closeModal(); }
+function confirmAddItem() {
+  const name = document.getElementById('addItemName').value.trim();
+  if (!name) return;
+  state.adhocItems.push({
+    name,
+    dose: document.getElementById('addItemDose').value,
+    date: document.getElementById('addItemDate').value,
+    time: document.getElementById('addItemTime').value,
+    notes: document.getElementById('addItemNotes').value,
+    loggedAt: new Date().toISOString()
+  });
+  saveState();
+  closeModal();
+  renderAdhoc();
+  renderLog();
+}
+
+// ─── DAILY DOZEN ─────────────────────────────────────────────────────
+function renderDailyDozen() {
+  const grid = document.getElementById('dozenGrid');
+  grid.innerHTML = '';
+  let complete = 0;
+  DAILY_DOZEN.forEach(item => {
+    const qty = state.dozen[item.id] || 0;
+    if (qty > 0) complete++;
+    const div = document.createElement('div');
+    div.className = 'dozen-item' + (qty > 0 ? ' logged' : '');
+    div.innerHTML = `
+      <div class="dozen-top">
+        <div class="dozen-name">${item.name}</div>
+        <div class="dozen-emoji">${item.emoji}</div>
+      </div>
+      <div class="dozen-qty-row">
+        <div class="qty-btn" onclick="adjustDozen('${item.id}',-0.5,event)">−</div>
+        <div class="qty-display ${qty === 0 ? 'zero' : ''}" id="dozen-qty-${item.id}">${qty}</div>
+        <div class="qty-btn" onclick="adjustDozen('${item.id}',0.5,event)">＋</div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+  document.getElementById('dozenPct').textContent = `${complete} / 12`;
+  document.getElementById('dozenBar').style.width = `${(complete/12)*100}%`;
+  renderHeader();
+}
+
+function adjustDozen(id, delta, e) {
+  e.stopPropagation();
+  const current = state.dozen[id] || 0;
+  state.dozen[id] = Math.max(0, Math.round((current + delta) * 10) / 10);
+  saveState();
+  renderDailyDozen();
+}
+
+// ─── WATER ────────────────────────────────────────────────────────────
+function adjustWater(delta) {
+  state.water = Math.max(0, state.water + delta);
+  document.getElementById('waterQty').textContent = state.water;
+  saveState();
+}
+function logWaterQuick(oz) {
+  const entry = { qty: oz, time: timeStr(), date: todayStr() };
+  state.waterLog.push(entry);
+  state.water += oz;
+  document.getElementById('waterQty').textContent = state.water;
+  saveState();
+  renderWaterLog();
+}
+function renderWaterLog() {
+  const el = document.getElementById('waterLog');
+  if (state.waterLog.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;">No entries yet</div>';
+    return;
+  }
+  el.innerHTML = state.waterLog.map(e =>
+    `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+      <span>${e.date} ${e.time}</span>
+      <span style="color:var(--accent2)">+${e.qty} oz</span>
+    </div>`
+  ).join('') + `<div style="display:flex;justify-content:space-between;padding:8px 0 0;font-weight:600;">
+    <span>Total</span><span style="color:var(--accent)">${state.water} oz</span>
+  </div>`;
+}
+
+// ─── PLUNGE ───────────────────────────────────────────────────────────
+function togglePlunge() {
+  if (state.plunge) {
+    state.plunge = null;
+  } else {
+    const duration = document.getElementById('plungeDuration').value;
+    const notes = document.getElementById('plungeNotes').value;
+    state.plunge = {
+      time: timeStr(),
+      date: todayStr(),
+      duration: duration || null,
+      notes: notes || null,
+      loggedAt: new Date().toISOString()
+    };
+  }
+  saveState();
+  renderPlunge();
+  renderLog();
+}
+function renderPlunge() {
+  const btn = document.getElementById('plungeBtn');
+  const status = document.getElementById('plungeStatus');
+  if (state.plunge) {
+    btn.classList.add('logged');
+    status.textContent = `✓ ${state.plunge.time}`;
+  } else {
+    btn.classList.remove('logged');
+    status.textContent = '—';
+  }
+}
+
+// ─── LOG / MARKDOWN ───────────────────────────────────────────────────
+function renderLog() {
+  renderLogEntries();
+  renderMarkdown();
+}
+
+function renderLogEntries() {
+  const el = document.getElementById('logEntries');
+  const entries = getEntriesForDisplay();
+  if (entries.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:20px 0;text-align:center;">No entries yet today</div>';
+    return;
+  }
+  el.innerHTML = entries.map(e => `
+    <div class="log-entry">
+      <div class="log-header">
+        <span class="log-type" style="color:${e.color}">${e.type}</span>
+        <span class="log-ts">${e.eventDate} ${e.eventTime} · logged ${e.loggedAt}</span>
+      </div>
+      <div class="log-body">${e.detail}</div>
+    </div>
+  `).join('');
+}
+
+function getEntriesForDisplay() {
+  const entries = [];
+  for (const [id, data] of Object.entries(state.loggedSupps)) {
+    const supp = Object.values(SUPPLEMENTS).flat().find(s => s.id === id);
+    if (supp) {
+      entries.push({
+        type: 'SUPPLEMENT',
+        color: 'var(--accent)',
+        eventDate: data.date,
+        eventTime: data.time,
+        loggedAt: new Date(data.loggedAt).toTimeString().slice(0,5),
+        detail: `${supp.name} · ${supp.dose}${data.notes ? '\n' + data.notes : ''}`
+      });
+    }
+  }
+  state.adhocItems.forEach(item => {
+    entries.push({
+      type: 'ADHOC SUPP',
+      color: 'var(--accent3)',
+      eventDate: item.date,
+      eventTime: item.time,
+      loggedAt: new Date(item.loggedAt).toTimeString().slice(0,5),
+      detail: `${item.name}${item.dose ? ' · ' + item.dose : ''}${item.notes ? '\n' + item.notes : ''}`
+    });
+  });
+  if (state.water > 0) {
+    entries.push({
+      type: 'WATER',
+      color: 'var(--accent2)',
+      eventDate: todayStr(),
+      eventTime: '—',
+      loggedAt: '—',
+      detail: `${state.water} oz total`
+    });
+  }
+  if (state.plunge) {
+    entries.push({
+      type: 'PLUNGE',
+      color: '#60a5fa',
+      eventDate: state.plunge.date,
+      eventTime: state.plunge.time,
+      loggedAt: new Date(state.plunge.loggedAt).toTimeString().slice(0,5),
+      detail: `Cold plunge${state.plunge.duration ? ' · ' + state.plunge.duration + ' min' : ''}${state.plunge.notes ? '\n' + state.plunge.notes : ''}`
+    });
+  }
+  return entries.sort((a,b) => a.eventTime.localeCompare(b.eventTime));
+}
+
+function generateMarkdown() {
+  const date = todayStr();
+  let md = `## ${date}\n\n`;
+
+  // Supplements table
+  const suppEntries = [];
+  for (const [id, data] of Object.entries(state.loggedSupps)) {
+    const supp = Object.values(SUPPLEMENTS).flat().find(s => s.id === id);
+    if (supp) suppEntries.push({ time: data.time, name: supp.name, dose: supp.dose, notes: data.notes || '', event_date: data.date, logged_at: data.loggedAt });
+  }
+  state.adhocItems.forEach(item => {
+    suppEntries.push({ time: item.time, name: item.name, dose: item.dose || '', notes: item.notes || '', event_date: item.date, logged_at: item.loggedAt });
+  });
+  suppEntries.sort((a,b) => a.time.localeCompare(b.time));
+
+  if (suppEntries.length > 0) {
+    md += `### Supplements\n`;
+    md += `| logged_at | event_date | event_time | item | dose | notes |\n`;
+    md += `|-----------|------------|------------|------|------|-------|\n`;
+    suppEntries.forEach(e => {
+      const la = new Date(e.logged_at);
+      md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${e.event_date} | ${e.time} | ${e.name} | ${e.dose} | ${e.notes} |\n`;
+    });
+    md += '\n';
+  }
+
+  // Daily Dozen
+  const dozenEntries = DAILY_DOZEN.filter(d => (state.dozen[d.id] || 0) > 0);
+  if (dozenEntries.length > 0 || Object.values(state.dozen).some(v => v === 0)) {
+    md += `### Daily Dozen\n`;
+    md += `| item | servings |\n|------|----------|\n`;
+    DAILY_DOZEN.forEach(d => {
+      md += `| ${d.name} | ${state.dozen[d.id] || 0} |\n`;
+    });
+    md += '\n';
+  }
+
+  // Water
+  if (state.water > 0) {
+    md += `### Water\n`;
+    md += `| logged_at | event_date | event_time | qty_oz |\n`;
+    md += `|-----------|------------|------------|--------|\n`;
+    state.waterLog.forEach(e => {
+      md += `| — | ${e.date} | ${e.time} | ${e.qty} |\n`;
+    });
+    md += `| **TOTAL** | ${date} | — | **${state.water}** |\n\n`;
+  }
+
+  // Plunge
+  if (state.plunge) {
+    md += `### Pool Plunge\n`;
+    md += `| logged_at | event_date | event_time | duration_min | notes |\n`;
+    md += `|-----------|------------|------------|--------------|-------|\n`;
+    const la = new Date(state.plunge.loggedAt);
+    md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${state.plunge.date} | ${state.plunge.time} | ${state.plunge.duration || '—'} | ${state.plunge.notes || '—'} |\n\n`;
+  }
+
+  return md.trim();
+}
+
+function renderMarkdown() {
+  document.getElementById('mdPreview').textContent = generateMarkdown();
+}
+
+function copyMarkdown() {
+  const md = generateMarkdown();
+  navigator.clipboard.writeText(md).then(() => {
+    showToast('Copied to clipboard ✓');
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = md;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Copied ✓');
+  });
+}
+
+function saveEntry() {
+  saveState();
+  showToast('Saved ✓');
+  renderLog();
+  renderHeader();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─── MODAL HELPERS ───────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  activeModal = id;
+}
+function closeModal() {
+  if (activeModal) {
+    document.getElementById(activeModal).classList.remove('open');
+    activeModal = null;
+  }
+}
+document.addEventListener('click', e => {
+  if (activeModal && e.target.classList.contains('modal-overlay')) closeModal();
+});
+
+// ─── PERSISTENCE ──────────────────────────────────────────────────────
+function saveState() {
+  try {
+    const key = 'brian-health-' + todayStr();
+    localStorage.setItem(key, JSON.stringify(state));
+  } catch(e) {}
+}
+function loadState() {
+  try {
+    const key = 'brian-health-' + todayStr();
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      state = { ...state, ...JSON.parse(saved) };
+    }
+  } catch(e) {}
+}
+
+// ─── CLOCK TICK ───────────────────────────────────────────────────────
+setInterval(renderHeader, 30000);
+
+init();
+</script>
+
+</body>
+</html>
