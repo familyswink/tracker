@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Daily Tracker">
+<meta name="color-scheme" content="dark">
 <title>Daily Tracker</title>
 <style>
 :root {
@@ -33,8 +34,10 @@
 
 - { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
+html { background: #080810; color-scheme: dark; }
+
 html, body {
-background: var(–bg);
+background: #080810;
 color: var(–text);
 font-family: -apple-system, BlinkMacSystemFont, ‘SF Pro Display’, ‘Helvetica Neue’, sans-serif;
 min-height: 100dvh;
@@ -101,7 +104,7 @@ scrollbar-width: none;
 .tabs::-webkit-scrollbar { display: none; }
 .tab {
 flex: 1;
-min-width: 70px;
+min-width: 65px;
 display: flex;
 flex-direction: column;
 align-items: center;
@@ -115,7 +118,7 @@ cursor: pointer;
 border-bottom: 2px solid transparent;
 transition: all 0.2s;
 white-space: nowrap;
-padding: 0 4px;
+padding: 0 6px;
 }
 .tab-icon { font-size: 16px; }
 .tab.active { color: var(–green); border-bottom-color: var(–green); }
