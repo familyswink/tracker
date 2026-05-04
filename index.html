@@ -1,1 +1,2410 @@
-https://github.com/familyswink/Health/new/main
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Tracker">
+<title>Daily Tracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Clash+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+–bg: #080810;
+–surface: #10101e;
+–surface2: #181828;
+–surface3: #202035;
+–border: #2c2c45;
+–border2: #3a3a55;
+–green: #00e5a0;
+–green-dim: rgba(0,229,160,0.12);
+–blue: #4d9fff;
+–blue-dim: rgba(77,159,255,0.12);
+–orange: #ff8c42;
+–orange-dim: rgba(255,140,66,0.12);
+–red: #ff5252;
+–yellow: #ffd166;
+–text: #e8e8f5;
+–text2: #a0a0c0;
+–muted: #5a5a7a;
+–safe-top: env(safe-area-inset-top, 0px);
+–safe-bot: env(safe-area-inset-bottom, 0px);
+–tab-h: 56px;
+–header-h: 64px;
+}
+
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Syne’, sans-serif;
+min-height: 100dvh;
+overscroll-behavior: none;
+-webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ── */
+.header {
+position: fixed;
+top: 0; left: 0; right: 0;
+z-index: 50;
+height: calc(var(–safe-top) + var(–header-h));
+padding-top: var(–safe-top);
+background: var(–bg);
+border-bottom: 1px solid var(–border);
+display: flex;
+align-items: center;
+padding-left: 16px;
+padding-right: 16px;
+gap: 12px;
+}
+.header-title {
+font-size: 20px;
+font-weight: 800;
+letter-spacing: -0.5px;
+flex: 1;
+}
+.header-title span { color: var(–green); }
+
+.global-dt {
+display: flex;
+align-items: center;
+gap: 6px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 7px 12px;
+cursor: pointer;
+transition: border-color 0.2s;
+}
+.global-dt.modified { border-color: var(–orange); }
+.global-dt-text {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–text2);
+line-height: 1.3;
+}
+.global-dt.modified .global-dt-text { color: var(–orange); }
+.global-dt-icon { font-size: 14px; }
+
+/* ── TABS ── */
+.tabs {
+position: fixed;
+top: calc(var(–safe-top) + var(–header-h));
+left: 0; right: 0;
+z-index: 49;
+height: var(–tab-h);
+background: var(–surface);
+border-bottom: 1px solid var(–border);
+display: flex;
+overflow-x: auto;
+scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+flex: 1;
+min-width: 70px;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 2px;
+font-size: 10px;
+font-weight: 700;
+letter-spacing: 0.3px;
+color: var(–muted);
+cursor: pointer;
+border-bottom: 2px solid transparent;
+transition: all 0.2s;
+white-space: nowrap;
+padding: 0 4px;
+}
+.tab-icon { font-size: 16px; }
+.tab.active { color: var(–green); border-bottom-color: var(–green); }
+
+/* ── CONTENT ── */
+.content {
+padding-top: calc(var(–safe-top) + var(–header-h) + var(–tab-h) + 16px);
+padding-bottom: calc(var(–safe-bot) + 80px);
+padding-left: 14px;
+padding-right: 14px;
+max-width: 600px;
+margin: 0 auto;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── SECTION HEADER ── */
+.section-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 8px;
+margin-top: 20px;
+}
+.section-header:first-child { margin-top: 0; }
+.section-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1.5px;
+color: var(–muted);
+text-transform: uppercase;
+}
+.section-goal {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–text2);
+}
+.section-goal.met { color: var(–green); }
+
+.tab-actions {
+display: flex;
+gap: 8px;
+margin-bottom: 14px;
+}
+.btn-sm {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+padding: 8px 14px;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–text2);
+cursor: pointer;
+transition: all 0.15s;
+white-space: nowrap;
+}
+.btn-sm:active { background: var(–surface3); color: var(–text); }
+.btn-sm.accent { border-color: var(–green); color: var(–green); }
+
+/* ── CARD ── */
+.card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+overflow: hidden;
+margin-bottom: 10px;
+}
+
+/* ── SUPPLEMENT ROW ── */
+.supp-row {
+display: flex;
+align-items: center;
+padding: 13px 14px;
+border-bottom: 1px solid var(–border);
+gap: 12px;
+cursor: pointer;
+transition: background 0.15s;
+}
+.supp-row:last-child { border-bottom: none; }
+.supp-row:active { background: var(–surface2); }
+.supp-row.logged { background: var(–green-dim); }
+
+.check-box {
+width: 24px; height: 24px;
+border-radius: 6px;
+border: 2px solid var(–border2);
+flex-shrink: 0;
+display: flex; align-items: center; justify-content: center;
+transition: all 0.2s;
+}
+.supp-row.logged .check-box {
+background: var(–green);
+border-color: var(–green);
+}
+.check-box svg { display: none; }
+.supp-row.logged .check-box svg { display: block; }
+
+.supp-info { flex: 1; min-width: 0; }
+.supp-name { font-size: 13px; font-weight: 700; line-height: 1.2; }
+.supp-meta {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+color: var(–muted);
+margin-top: 2px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.supp-time {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–green);
+flex-shrink: 0;
+}
+.supp-row:not(.logged) .supp-time { color: var(–muted); }
+
+.select-all-row {
+display: flex;
+align-items: center;
+padding: 10px 14px;
+background: var(–surface2);
+border-bottom: 1px solid var(–border);
+gap: 10px;
+cursor: pointer;
+}
+.select-all-row:active { background: var(–surface3); }
+.select-all-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+color: var(–green);
+letter-spacing: 0.5px;
+}
+
+/* ── WATER ── */
+.water-total-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 20px;
+margin-bottom: 10px;
+display: flex;
+align-items: center;
+gap: 16px;
+}
+.water-big {
+font-family: ‘Space Mono’, monospace;
+font-size: 48px;
+font-weight: 700;
+color: var(–blue);
+line-height: 1;
+}
+.water-big-unit {
+font-family: ‘Space Mono’, monospace;
+font-size: 14px;
+color: var(–text2);
+margin-top: 4px;
+}
+.water-target {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+margin-top: 4px;
+}
+.water-progress-wrap { flex: 1; }
+.water-progress-bg {
+height: 8px;
+background: var(–surface3);
+border-radius: 4px;
+overflow: hidden;
+margin-bottom: 8px;
+}
+.water-progress-fill {
+height: 100%;
+background: var(–blue);
+border-radius: 4px;
+transition: width 0.4s ease;
+}
+.water-pct {
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–blue);
+}
+
+.quick-btns-grid {
+display: grid;
+grid-template-columns: repeat(5, 1fr);
+gap: 8px;
+margin-bottom: 10px;
+}
+.quick-btn {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 14px 4px;
+text-align: center;
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–blue);
+cursor: pointer;
+transition: all 0.15s;
+}
+.quick-btn:active { background: var(–blue-dim); border-color: var(–blue); }
+
+.water-log-entry {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 10px 14px;
+border-bottom: 1px solid var(–border);
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+}
+.water-log-entry:last-child { border-bottom: none; }
+.water-log-time { color: var(–muted); }
+.water-log-qty { color: var(–blue); font-weight: 700; }
+
+/* ── FOOD ── */
+.food-section-banner {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 10px 14px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 6px;
+}
+.food-section-name { font-size: 13px; font-weight: 700; }
+.food-section-progress {
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+color: var(–text2);
+}
+.food-section-progress.met { color: var(–green); }
+
+.food-row {
+display: flex;
+align-items: center;
+padding: 12px 14px;
+border-bottom: 1px solid var(–border);
+gap: 10px;
+}
+.food-row:last-child { border-bottom: none; }
+.food-info { flex: 1; min-width: 0; cursor: pointer; }
+.food-name { font-size: 13px; font-weight: 700; }
+.food-meta {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+color: var(–muted);
+margin-top: 2px;
+}
+.food-meta.met { color: var(–green); }
+.food-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.qty-btn {
+width: 30px; height: 30px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 8px;
+display: flex; align-items: center; justify-content: center;
+font-size: 16px; color: var(–text);
+cursor: pointer;
+transition: background 0.15s;
+flex-shrink: 0;
+}
+.qty-btn:active { background: var(–surface3); }
+.qty-val {
+font-family: ‘Space Mono’, monospace;
+font-size: 14px;
+min-width: 32px;
+text-align: center;
+color: var(–green);
+}
+.qty-val.zero { color: var(–muted); }
+
+/* ── ACTIVITIES ── */
+.activity-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px;
+margin-bottom: 10px;
+cursor: pointer;
+transition: background 0.15s;
+}
+.activity-card:active { background: var(–surface2); }
+.activity-card.logged { border-color: var(–orange); background: var(–orange-dim); }
+.activity-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.activity-emoji { font-size: 28px; }
+.activity-name { font-size: 16px; font-weight: 700; }
+.activity-status {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–muted);
+margin-top: 2px;
+}
+.activity-card.logged .activity-status { color: var(–orange); }
+.activity-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+.activity-field-chip {
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 4px 10px;
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–text2);
+}
+
+/* ── NOTES ── */
+.note-card {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px;
+margin-bottom: 10px;
+}
+.note-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.note-title { font-size: 14px; font-weight: 700; }
+.note-time { font-family: ‘Space Mono’, monospace; font-size: 10px; color: var(–muted); }
+.note-body { font-size: 13px; color: var(–text2); line-height: 1.5; }
+
+/* ── LOG TAB ── */
+.log-md {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 14px;
+padding: 16px;
+}
+.log-md pre {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+color: var(–text2);
+white-space: pre-wrap;
+line-height: 1.8;
+overflow-x: auto;
+}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar {
+position: fixed;
+bottom: 0; left: 0; right: 0;
+z-index: 50;
+background: var(–bg);
+border-top: 1px solid var(–border);
+padding: 10px 14px calc(var(–safe-bot) + 10px);
+display: flex;
+gap: 10px;
+}
+.btn-copy {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 14px 16px;
+color: var(–text2);
+font-family: ‘Syne’, sans-serif;
+font-size: 13px;
+font-weight: 700;
+cursor: pointer;
+display: flex; align-items: center; gap: 6px;
+transition: all 0.15s;
+}
+.btn-copy:active { background: var(–surface2); }
+.btn-save {
+flex: 1;
+background: var(–green);
+border: none;
+border-radius: 12px;
+padding: 14px;
+color: #000;
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 800;
+cursor: pointer;
+transition: opacity 0.15s;
+}
+.btn-save:active { opacity: 0.85; }
+
+/* ── MODAL ── */
+.overlay {
+position: fixed; inset: 0;
+background: rgba(0,0,0,0.75);
+backdrop-filter: blur(6px);
+z-index: 200;
+display: flex;
+align-items: flex-end;
+opacity: 0;
+pointer-events: none;
+transition: opacity 0.25s;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+
+.sheet {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 22px 22px 0 0;
+padding: 16px 18px calc(var(–safe-bot) + 20px);
+width: 100%;
+max-height: 90dvh;
+overflow-y: auto;
+transform: translateY(100%);
+transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+}
+.overlay.open .sheet { transform: translateY(0); }
+
+.sheet-handle {
+width: 36px; height: 4px;
+background: var(–border2);
+border-radius: 2px;
+margin: 0 auto 16px;
+}
+.sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.sheet-sub {
+font-family: ‘Space Mono’, monospace;
+font-size: 11px;
+color: var(–green);
+margin-bottom: 18px;
+}
+
+/* ── FORM ── */
+.field { margin-bottom: 14px; }
+.field-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 6px;
+}
+.field-row { display: flex; gap: 10px; }
+.field-row .field { flex: 1; margin-bottom: 0; }
+
+input, textarea, select {
+width: 100%;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 14px;
+color: var(–text);
+font-family: ‘Space Mono’, monospace;
+font-size: 13px;
+outline: none;
+-webkit-appearance: none;
+transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(–green); }
+textarea { resize: none; height: 80px; line-height: 1.5; }
+select { background-image: none; }
+
+.qty-field-row {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+.qty-field-row input {
+flex: 1;
+text-align: center;
+font-size: 20px;
+font-weight: 700;
+color: var(–green);
+}
+.qty-big-btn {
+width: 44px; height: 44px;
+background: var(–surface2);
+border: 1px solid var(–border);
+border-radius: 10px;
+display: flex; align-items: center; justify-content: center;
+font-size: 20px; color: var(–text);
+cursor: pointer; flex-shrink: 0;
+}
+.qty-big-btn:active { background: var(–surface3); }
+
+.sheet-actions { display: flex; gap: 10px; margin-top: 18px; }
+.btn-primary {
+flex: 1;
+background: var(–green);
+color: #000;
+border: none;
+border-radius: 12px;
+padding: 16px;
+font-family: ‘Syne’, sans-serif;
+font-size: 15px;
+font-weight: 800;
+cursor: pointer;
+}
+.btn-primary:active { opacity: 0.85; }
+.btn-cancel {
+background: var(–surface2);
+color: var(–muted);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 16px 18px;
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+cursor: pointer;
+}
+.btn-danger {
+background: rgba(255,82,82,0.1);
+color: var(–red);
+border: 1px solid rgba(255,82,82,0.3);
+border-radius: 12px;
+padding: 16px 18px;
+font-family: ‘Syne’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+cursor: pointer;
+}
+
+/* ── MANAGE SCREEN ── */
+.manage-item {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 12px;
+padding: 14px;
+margin-bottom: 8px;
+display: flex;
+align-items: center;
+gap: 12px;
+cursor: pointer;
+transition: background 0.15s;
+}
+.manage-item:active { background: var(–surface2); }
+.manage-item.disabled { opacity: 0.4; }
+.manage-item-info { flex: 1; min-width: 0; }
+.manage-item-name { font-size: 13px; font-weight: 700; }
+.manage-item-meta { font-family: ‘Space Mono’, monospace; font-size: 10px; color: var(–muted); margin-top: 2px; }
+.toggle-pill {
+width: 40px; height: 24px;
+background: var(–surface3);
+border-radius: 12px;
+position: relative;
+flex-shrink: 0;
+transition: background 0.2s;
+}
+.toggle-pill.on { background: var(–green); }
+.toggle-pill::after {
+content: ‘’;
+position: absolute;
+width: 18px; height: 18px;
+background: #fff;
+border-radius: 50%;
+top: 3px; left: 3px;
+transition: transform 0.2s;
+}
+.toggle-pill.on::after { transform: translateX(16px); }
+
+/* ── HISTORY ── */
+.history-day { margin-bottom: 16px; }
+.history-day-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 6px;
+padding-left: 2px;
+}
+.history-entry {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 14px;
+margin-bottom: 6px;
+display: flex;
+align-items: center;
+gap: 10px;
+cursor: pointer;
+}
+.history-entry:active { background: var(–surface2); }
+.history-entry-info { flex: 1; min-width: 0; }
+.history-entry-name { font-size: 13px; font-weight: 700; }
+.history-entry-meta { font-family: ‘Space Mono’, monospace; font-size: 10px; color: var(–muted); margin-top: 2px; }
+.history-entry-time { font-family: ‘Space Mono’, monospace; font-size: 11px; color: var(–green); }
+
+/* ── TOAST ── */
+.toast {
+position: fixed;
+bottom: calc(var(–safe-bot) + 85px);
+left: 50%;
+transform: translateX(-50%) translateY(10px);
+background: var(–green);
+color: #000;
+font-family: ‘Space Mono’, monospace;
+font-size: 12px;
+font-weight: 700;
+padding: 10px 20px;
+border-radius: 20px;
+opacity: 0;
+transition: all 0.3s;
+pointer-events: none;
+white-space: nowrap;
+z-index: 999;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── DETAIL SHEET ── */
+.detail-section { margin-bottom: 14px; }
+.detail-label {
+font-family: ‘Space Mono’, monospace;
+font-size: 10px;
+letter-spacing: 1px;
+color: var(–muted);
+text-transform: uppercase;
+margin-bottom: 4px;
+}
+.detail-text { font-size: 13px; color: var(–text2); line-height: 1.6; }
+.detail-highlight {
+font-family: ‘Space Mono’, monospace;
+font-size: 13px;
+color: var(–green);
+}
+
+.add-row {
+display: flex;
+align-items: center;
+gap: 10px;
+padding: 12px 14px;
+color: var(–green);
+font-size: 13px;
+font-weight: 700;
+cursor: pointer;
+border-top: 1px solid var(–border);
+}
+.add-row:active { background: var(–surface2); }
+
+.tag {
+display: inline-block;
+font-family: ‘Space Mono’, monospace;
+font-size: 9px;
+padding: 2px 6px;
+border-radius: 4px;
+margin-left: 6px;
+vertical-align: middle;
+}
+.tag-interim { background: var(–orange-dim); color: var(–orange); }
+.tag-optional { background: var(–blue-dim); color: var(–blue); }
+</style>
+
+</head>
+<body>
+
+<!-- HEADER -->
+
+<div class="header">
+  <div class="header-title">Daily <span>Tracker</span></div>
+  <div class="global-dt" id="globalDtBtn" onclick="openGlobalDt()">
+    <div class="global-dt-icon">🕐</div>
+    <div class="global-dt-text" id="globalDtText">Now</div>
+  </div>
+</div>
+
+<!-- TABS -->
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('water',this)"><div class="tab-icon">💧</div>Water</div>
+  <div class="tab" onclick="switchTab('supps',this)"><div class="tab-icon">💊</div>Supps</div>
+  <div class="tab" onclick="switchTab('food',this)"><div class="tab-icon">🥗</div>Food</div>
+  <div class="tab" onclick="switchTab('activities',this)"><div class="tab-icon">🏃</div>Activities</div>
+  <div class="tab" onclick="switchTab('notes',this)"><div class="tab-icon">📝</div>Notes</div>
+  <div class="tab" onclick="switchTab('log',this)"><div class="tab-icon">📋</div>Log</div>
+</div>
+
+<!-- ══════════ WATER ══════════ -->
+
+<div id="page-water" class="page active">
+  <div class="content">
+    <div class="water-total-card">
+      <div>
+        <div class="water-big" id="waterTotal">0</div>
+        <div class="water-big-unit">oz today</div>
+        <div class="water-target">Target: 80–100 oz</div>
+      </div>
+      <div class="water-progress-wrap">
+        <div class="water-progress-bg">
+          <div class="water-progress-fill" id="waterBar" style="width:0%"></div>
+        </div>
+        <div class="water-pct" id="waterPct">0%</div>
+      </div>
+    </div>
+
+```
+<div class="quick-btns-grid" id="waterQuickBtns"></div>
+
+<div class="tab-actions">
+  <div class="btn-sm accent" onclick="openManageWaterBtns()">⚙ Edit Buttons</div>
+  <div class="btn-sm" onclick="openWaterHistory()">📋 History</div>
+  <div class="btn-sm" onclick="openCustomWater()">+ Custom</div>
+</div>
+
+<div class="section-header"><div class="section-label">Today's Log</div></div>
+<div class="card" id="waterLogList"><div style="padding:14px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">No entries yet</div></div>
+```
+
+  </div>
+</div>
+
+<!-- ══════════ SUPPLEMENTS ══════════ -->
+
+<div id="page-supps" class="page">
+  <div class="content">
+    <div class="tab-actions">
+      <div class="btn-sm accent" onclick="openManageSupps()">⚙ Manage</div>
+      <div class="btn-sm" onclick="openSuppHistory()">📋 History</div>
+    </div>
+    <div id="suppGroups"></div>
+  </div>
+</div>
+
+<!-- ══════════ FOOD ══════════ -->
+
+<div id="page-food" class="page">
+  <div class="content">
+    <div class="tab-actions">
+      <div class="btn-sm accent" onclick="openManageFood()">⚙ Manage</div>
+      <div class="btn-sm" onclick="openFoodHistory()">📋 History</div>
+    </div>
+    <div id="foodSections"></div>
+  </div>
+</div>
+
+<!-- ══════════ ACTIVITIES ══════════ -->
+
+<div id="page-activities" class="page">
+  <div class="content">
+    <div class="tab-actions">
+      <div class="btn-sm accent" onclick="openManageActivities()">⚙ Manage</div>
+      <div class="btn-sm" onclick="openActivityHistory()">📋 History</div>
+      <div class="btn-sm" onclick="openAddActivityType()">+ New Type</div>
+    </div>
+    <div id="activityList"></div>
+  </div>
+</div>
+
+<!-- ══════════ NOTES ══════════ -->
+
+<div id="page-notes" class="page">
+  <div class="content">
+    <div class="tab-actions">
+      <div class="btn-sm accent" onclick="openAddNote()">+ Add Note</div>
+      <div class="btn-sm" onclick="openNoteHistory()">📋 History</div>
+    </div>
+    <div id="notesList"><div style="color:var(--muted);font-family:'Space Mono',monospace;font-size:11px;padding:20px 0;text-align:center">No notes today</div></div>
+  </div>
+</div>
+
+<!-- ══════════ LOG ══════════ -->
+
+<div id="page-log" class="page">
+  <div class="content">
+    <div class="tab-actions">
+      <div class="btn-sm accent" onclick="copyMd()">📋 Copy MD</div>
+    </div>
+    <div class="section-header"><div class="section-label">Markdown Output</div></div>
+    <div class="log-md"><pre id="mdOutput">Log will appear here after entries are saved.</pre></div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+
+<div class="bottom-bar">
+  <button class="btn-copy" onclick="copyMd()">📋 Copy</button>
+  <button class="btn-save" onclick="saveAll()">✓ Save</button>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Global DateTime -->
+
+<div class="overlay" id="overlayGlobalDt">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Set Date & Time</div>
+    <div class="sheet-sub">Applies to all entries until you save</div>
+    <div class="field">
+      <div class="field-label">Date & Time</div>
+      <input type="datetime-local" id="globalDtInput">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeOverlay('overlayGlobalDt')">Cancel</button>
+      <button class="btn-cancel" onclick="resetGlobalDt()">Reset to Now</button>
+      <button class="btn-primary" onclick="confirmGlobalDt()">Set</button>
+    </div>
+  </div>
+</div>
+
+<!-- Supplement Entry -->
+
+<div class="overlay" id="overlaySuppEntry">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="suppEntryName"></div>
+    <div class="sheet-sub" id="suppEntryMeta"></div>
+    <div class="field-row">
+      <div class="field">
+        <div class="field-label">Date & Time</div>
+        <input type="datetime-local" id="suppEntryDt">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Quantity</div>
+      <div class="qty-field-row">
+        <div class="qty-big-btn" onclick="adjustSuppQty(-0.5)">−</div>
+        <input type="number" id="suppEntryQty" step="0.5" min="0">
+        <div class="qty-big-btn" onclick="adjustSuppQty(0.5)">＋</div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Notes (optional)</div>
+      <textarea id="suppEntryNotes" placeholder="Modified dose, skipped reason..."></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="suppEntryDelete" onclick="deleteSuppEntry()" style="display:none">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlaySuppEntry')">Cancel</button>
+      <button class="btn-primary" onclick="confirmSuppEntry()">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Water Custom Entry -->
+
+<div class="overlay" id="overlayWaterEntry">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Log Water</div>
+    <div class="sheet-sub">Enter amount consumed</div>
+    <div class="field-row">
+      <div class="field">
+        <div class="field-label">Date & Time</div>
+        <input type="datetime-local" id="waterEntryDt">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Amount (oz)</div>
+      <div class="qty-field-row">
+        <div class="qty-big-btn" onclick="adjustWaterQty(-4)">−</div>
+        <input type="number" id="waterEntryQty" value="16" step="1" min="0">
+        <div class="qty-big-btn" onclick="adjustWaterQty(4)">＋</div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="waterEntryDelete" onclick="deleteWaterEntry()" style="display:none">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayWaterEntry')">Cancel</button>
+      <button class="btn-primary" onclick="confirmWaterEntry()">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Water Buttons -->
+
+<div class="overlay" id="overlayManageWater">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Edit Quick Buttons</div>
+    <div class="sheet-sub">Set your 5 quick-add amounts</div>
+    <div id="waterBtnFields"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeOverlay('overlayManageWater')">Cancel</button>
+      <button class="btn-primary" onclick="saveWaterBtns()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Food Detail / Log -->
+
+<div class="overlay" id="overlayFoodDetail">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="foodDetailName"></div>
+    <div class="sheet-sub" id="foodDetailGoal"></div>
+    <div class="detail-section" id="foodDetailServingWrap">
+      <div class="detail-label">What counts as 1 serving</div>
+      <div class="detail-text" id="foodDetailServing"></div>
+    </div>
+    <div class="detail-section" id="foodDetailWhyWrap">
+      <div class="detail-label">Why this matters for you</div>
+      <div class="detail-text" id="foodDetailWhy"></div>
+    </div>
+    <div class="detail-section" id="foodDetailCeilingWrap">
+      <div class="detail-label">Ceiling</div>
+      <div class="detail-text detail-highlight" id="foodDetailCeiling"></div>
+    </div>
+    <div class="field">
+      <div class="field-label">Log Servings Today</div>
+      <div class="qty-field-row">
+        <div class="qty-big-btn" onclick="adjustFoodDetailQty(-0.5)">−</div>
+        <input type="number" id="foodDetailQty" step="0.5" min="0">
+        <div class="qty-big-btn" onclick="adjustFoodDetailQty(0.5)">＋</div>
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Date & Time</div>
+      <input type="datetime-local" id="foodDetailDt">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeOverlay('overlayFoodDetail')">Cancel</button>
+      <button class="btn-primary" onclick="confirmFoodDetail()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activity Entry -->
+
+<div class="overlay" id="overlayActivityEntry">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="actEntryName"></div>
+    <div class="sheet-sub">Log this activity</div>
+    <div class="field">
+      <div class="field-label">Date & Time</div>
+      <input type="datetime-local" id="actEntryDt">
+    </div>
+    <div id="actEntryFields"></div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="actEntryDelete" onclick="deleteActivityEntry()" style="display:none">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayActivityEntry')">Cancel</button>
+      <button class="btn-primary" onclick="confirmActivityEntry()">Log It</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note Entry -->
+
+<div class="overlay" id="overlayNoteEntry">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="noteEntryTitle2">Add Note</div>
+    <div class="field">
+      <div class="field-label">Date & Time</div>
+      <input type="datetime-local" id="noteEntryDt">
+    </div>
+    <div class="field">
+      <div class="field-label">Title</div>
+      <input type="text" id="noteEntryTitle" placeholder="e.g. Feeling sick, Travel day...">
+    </div>
+    <div class="field">
+      <div class="field-label">Note</div>
+      <textarea id="noteEntryBody" placeholder="Write anything relevant to today..."></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="noteEntryDelete" onclick="deleteNoteEntry()" style="display:none">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayNoteEntry')">Cancel</button>
+      <button class="btn-primary" onclick="confirmNoteEntry()">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Supplements -->
+
+<div class="overlay" id="overlayManageSupps">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Manage Supplements</div>
+    <div class="sheet-sub">Tap to edit · Toggle to enable/disable</div>
+    <div id="manageSuppList"></div>
+    <div class="add-row" onclick="openAddSupp()">＋ Add Supplement</div>
+    <div style="height:10px"></div>
+    <button class="btn-cancel" style="width:100%" onclick="closeOverlay('overlayManageSupps')">Done</button>
+  </div>
+</div>
+
+<!-- Edit Supplement Master -->
+
+<div class="overlay" id="overlayEditSupp">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="editSuppTitle">Edit Supplement</div>
+    <div class="field">
+      <div class="field-label">Manufacturer</div>
+      <input type="text" id="editSuppMfr" placeholder="e.g. Thorne, Doctor's Best">
+    </div>
+    <div class="field">
+      <div class="field-label">Name</div>
+      <input type="text" id="editSuppName" placeholder="Supplement name">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <div class="field-label">Default Qty</div>
+        <input type="number" id="editSuppQty" step="0.5" min="0">
+      </div>
+      <div class="field">
+        <div class="field-label">Units</div>
+        <input type="text" id="editSuppUnits" placeholder="tablet, mg, drops...">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Group</div>
+      <select id="editSuppGroup">
+        <option value="morning-water">Morning Water</option>
+        <option value="breakfast">Breakfast</option>
+        <option value="lunch">Lunch</option>
+        <option value="dinner">Dinner</option>
+        <option value="bedtime">Bedtime</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <div class="field-label">Notes / Rationale</div>
+      <textarea id="editSuppNotes" placeholder="Why you take this..."></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="editSuppDelete" onclick="deleteSupp()">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayEditSupp')">Cancel</button>
+      <button class="btn-primary" onclick="confirmEditSupp()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Food -->
+
+<div class="overlay" id="overlayManageFood">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Manage Food Protocol</div>
+    <div class="sheet-sub">Tap to edit · Toggle to enable/disable</div>
+    <div id="manageFoodList"></div>
+    <div class="add-row" onclick="openAddFood()">＋ Add Food Item</div>
+    <div style="height:10px"></div>
+    <button class="btn-cancel" style="width:100%" onclick="closeOverlay('overlayManageFood')">Done</button>
+  </div>
+</div>
+
+<!-- Edit Food Item -->
+
+<div class="overlay" id="overlayEditFood">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="editFoodTitle">Edit Food Item</div>
+    <div class="field">
+      <div class="field-label">Name</div>
+      <input type="text" id="editFoodName">
+    </div>
+    <div class="field">
+      <div class="field-label">Section</div>
+      <input type="text" id="editFoodSection" placeholder="Vegetables, Protein, etc.">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <div class="field-label">Daily Goal (servings)</div>
+        <input type="number" id="editFoodDailyGoal" step="0.5" min="0">
+      </div>
+      <div class="field">
+        <div class="field-label">Weekly Goal (0=daily)</div>
+        <input type="number" id="editFoodWeeklyGoal" step="1" min="0">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">What = 1 serving</div>
+      <textarea id="editFoodServing" placeholder="85g cooked, 1 piece, 2 tbsp..."></textarea>
+    </div>
+    <div class="field">
+      <div class="field-label">Ceiling</div>
+      <input type="text" id="editFoodCeiling" placeholder="e.g. 200g daily">
+    </div>
+    <div class="field">
+      <div class="field-label">Why (genetic rationale)</div>
+      <textarea id="editFoodWhy" placeholder="Why this matters for your profile..."></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="editFoodDelete" onclick="deleteFood()">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayEditFood')">Cancel</button>
+      <button class="btn-primary" onclick="confirmEditFood()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage Activities -->
+
+<div class="overlay" id="overlayManageActivities">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Manage Activities</div>
+    <div class="sheet-sub">Tap to edit · Toggle to enable/disable</div>
+    <div id="manageActivityList"></div>
+    <div class="add-row" onclick="openAddActivityType()">＋ Add Activity Type</div>
+    <div style="height:10px"></div>
+    <button class="btn-cancel" style="width:100%" onclick="closeOverlay('overlayManageActivities')">Done</button>
+  </div>
+</div>
+
+<!-- Edit Activity Type -->
+
+<div class="overlay" id="overlayEditActivity">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="editActTitle">Edit Activity</div>
+    <div class="field-row">
+      <div class="field">
+        <div class="field-label">Name</div>
+        <input type="text" id="editActName">
+      </div>
+      <div class="field">
+        <div class="field-label">Emoji</div>
+        <input type="text" id="editActEmoji" placeholder="🧊" maxlength="2">
+      </div>
+    </div>
+    <div class="field">
+      <div class="field-label">Custom Fields (one per line: name|type|unit)</div>
+      <textarea id="editActFields" placeholder="Duration|number|minutes&#10;Temperature|number|°F&#10;Notes|text|"></textarea>
+    </div>
+    <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px">Types: number, text, select, boolean</div>
+    <div class="sheet-actions">
+      <button class="btn-danger" id="editActDelete" onclick="deleteActivityType()">Delete</button>
+      <button class="btn-cancel" onclick="closeOverlay('overlayEditActivity')">Cancel</button>
+      <button class="btn-primary" onclick="confirmEditActivity()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Sheet (generic) -->
+
+<div class="overlay" id="overlayHistory">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="historyTitle">History</div>
+    <div class="sheet-sub" id="historySub">Tap any entry to edit</div>
+    <div id="historyContent"></div>
+    <div style="height:10px"></div>
+    <button class="btn-cancel" style="width:100%" onclick="closeOverlay('overlayHistory')">Done</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// DATA DEFINITIONS
+// ════════════════════════════════════════════════════════════
+
+const DEFAULT_SUPPS = [
+  // Morning Water
+  { id:'s1', mfr:'Himalayan Gold', name:'Morning Water', qty:14, units:'oz', group:'morning-water', active:true, notes:'Hydration foundation; primes GI tract' },
+  { id:'s2', mfr:'Himalayan Gold', name:'Himalayan Salt', qty:0.125, units:'tsp', group:'morning-water', active:true, notes:'Sodium for morning cortisol peak; electrolyte priming' },
+  { id:'s3', mfr:'Vital Reaction', name:'Hydrogen Tab', qty:1, units:'tab', group:'morning-water', active:true, notes:'Oxidative stress reduction; under review', tag:'optional' },
+  // Breakfast
+  { id:'s4', mfr:'Slow Mag', name:'Slow Mag', qty:1, units:'tablet', group:'breakfast', active:true, notes:'Systemic Mg repletion (~71.5mg); electrolyte balance' },
+  { id:'s5', mfr:"Doctor's Best", name:'Mg Glycinate', qty:1, units:'tablet', group:'breakfast', active:true, notes:'Glycinate form (~100mg); TRPM6 variants; glucose signaling' },
+  { id:'s6', mfr:'PureGenomics', name:'B-Complex', qty:1, units:'capsule', group:'breakfast', active:true, notes:'B1/B2/B5/B6-P5P/B12; COMT-safe B12', tag:'interim' },
+  { id:'s7', mfr:'Thorne', name:'D3/K2 Liquid', qty:6, units:'drops', group:'breakfast', active:true, notes:'3,000 IU D3 + MK-4; VDR/CYP2R1 variants; target 70-80 ng/mL' },
+  { id:'s8', mfr:'Coromega', name:'DHA Xtra', qty:2, units:'softgels', group:'breakfast', active:true, notes:'FADS1/FADS2 variants; APOE4 neuroprotection' },
+  { id:'s9', mfr:'Bulk Supplements', name:'Creatine', qty:5, units:'g', group:'breakfast', active:true, notes:'Athletic performance; neuroprotection; APOE4 support' },
+  { id:'s10', mfr:'Rx', name:'Ezetimibe', qty:1, units:'tablet', group:'breakfast', active:true, notes:'ApoB target <60; APOE4 cardiovascular management' },
+  { id:'s11', mfr:'Jarrow', name:'Pterostilbene', qty:50, units:'mg', group:'breakfast', active:true, notes:'APOE4 neuroinflammation; NF-kB suppression; COMT-safe' },
+  // Lunch
+  { id:'s12', mfr:"Doctor's Best", name:'Mg Glycinate', qty:3, units:'tablets', group:'lunch', active:true, notes:'Afternoon Mg repletion (~300mg); glycine supports glucose metabolism' },
+  // Bedtime
+  { id:'s13', mfr:'Slow Mag', name:'Slow Mag', qty:3, units:'tablets', group:'bedtime', active:true, notes:'Sleep architecture (~214.5mg); overnight recovery; HPA axis buffering' },
+  { id:'s14', mfr:'Jarrow', name:'Magtein (Mg L-Threonate)', qty:1, units:'g', group:'bedtime', active:true, notes:'CNS-targeted Mg (~75mg); APOE4 neuroprotection; sleep architecture' },
+  { id:'s15', mfr:'Quicksilver', name:'Liposomal C', qty:500, units:'mg', group:'bedtime', active:true, notes:'SLC23A variants; APOE4 oxidative stress; enhanced absorption' },
+  { id:'s16', mfr:'Swanson', name:'Apigenin', qty:50, units:'mg', group:'bedtime', active:true, notes:'NAD+ pathway (CD38 inhibition); sleep; mild COMT inhibition' },
+  { id:'s17', mfr:'Bulk Supplements', name:'Glycine', qty:4, units:'g', group:'bedtime', active:true, notes:'Sleep quality; methylation buffer; COMT Met/Met pressure valve; collagen' },
+  { id:'s18', mfr:'Rx', name:'Rosuvastatin', qty:2.5, units:'mg', group:'bedtime', active:true, notes:'ApoB target <60; night dosing for hepatic synthesis peak' },
+];
+
+const DEFAULT_FOOD = [
+  // Vegetables
+  { id:'f1', name:'Betaine Greens', section:'Vegetables', dailyGoal:1, weeklyGoal:0, active:true, serving:'85g cooked spinach, beet greens, or Swiss chard', ceiling:'200g daily', why:'BHMT + PEMT variants reduce homocysteine clearance. Dietary betaine targets homocysteine <7.2 (currently 8.0) since TMG is excluded.' },
+  { id:'f2', name:'Dark Greens / Cruciferous', section:'Vegetables', dailyGoal:1, weeklyGoal:0, active:true, serving:'85g cooked kale, arugula, collards, broccoli, Brussels sprouts, cauliflower', ceiling:'No limit', why:'Activates NRF2 pathway for cellular defense against APOE4 oxidative burden. Nitrates support vascular function via NOS3 variant.' },
+  { id:'f3', name:'Colorful Vegetable', section:'Vegetables', dailyGoal:1, weeklyGoal:0, active:true, serving:'125g red bell pepper, carrots, sweet potato, beets, tomatoes', ceiling:'No limit', why:'BCO1 variants reduce beta-carotene conversion — higher dietary carotenoids required. SLC23A2 variant demands food-form vitamin C.' },
+  { id:'f4', name:'Any Veg', section:'Vegetables', dailyGoal:1, weeklyGoal:0, active:true, serving:'85-125g any vegetable, or ½ medium avocado (75g)', ceiling:'No limit', why:'Pushes total daily produce toward 600g optimal range. Mushrooms support immune function relevant to chronically low WBC (3.5-3.8).' },
+  // Fruit
+  { id:'f5', name:'Berries', section:'Fruit', dailyGoal:1, weeklyGoal:0, active:true, serving:'85g blueberries, blackberries, strawberries, or raspberries (up to 2 servings)', ceiling:'200g combined daily fruit', why:'SIRT1 rs932658 AA genotype responds well to berry polyphenols. Anthocyanins provide strongest food-based evidence for APOE4 neuroinflammation reduction.' },
+  { id:'f6', name:'Optional Fruit', section:'Fruit', dailyGoal:1, weeklyGoal:0, active:true, serving:'1 piece citrus, kiwi, pomegranate, or green-tipped banana', ceiling:'200g combined daily fruit', why:'SLC23A2 variant demands higher vitamin C — citrus and kiwi priority. Pomegranate has specific APOE4 neuroprotective evidence.' },
+  // Protein
+  { id:'f7', name:'Eggs', section:'Protein', dailyGoal:1, weeklyGoal:0, active:true, serving:'2 whole eggs', ceiling:'3 daily', why:'Primary choline delivery for APOE4/PEMT variants (~294mg). Ceiling reflects APOE4 dietary cholesterol sensitivity despite ezetimibe.' },
+  { id:'f8', name:'Fish', section:'Protein', dailyGoal:0, weeklyGoal:5, active:true, serving:'140g cooked salmon, sardines, mackerel, trout, cod, or halibut. Tuna max 2x/week.', ceiling:'200g per sitting', why:'FADS1/FADS2 variants impair ALA to EPA/DHA conversion — marine omega-3s are essential. Maintains omega index (9.8%).' },
+  { id:'f9', name:'Fowl', section:'Protein', dailyGoal:0, weeklyGoal:5, active:true, serving:'140g cooked chicken or turkey breast, skinless preferred', ceiling:'No limit', why:'Primary weekly protein anchor for leucine threshold. AMPD1 variant increases post-exercise protein requirement.' },
+  { id:'f10', name:'Red Meat / Pork', section:'Protein', dailyGoal:0, weeklyGoal:1, active:true, serving:'140g cooked grass-fed beef, bison, or pork tenderloin', ceiling:'140g per sitting', why:'Heme iron addresses iron saturation at 24% — below 25-45% athlete target. Always pair with vitamin C. Conservative re APOE4.' },
+  // Grains
+  { id:'f11', name:'Smart Carbs', section:'Grains / Smart Carbs', dailyGoal:1, weeklyGoal:0, active:true, serving:'40g dry steel cut oats (breakfast) + 100g cooked quinoa, basmati, sweet potato, sourdough, farro, or barley (lunch)', ceiling:'150g cooked at any sitting', why:'PPARD and AMPD1 variants require adequate carbohydrate for performance. Steel cut oats provide beta-glucan supporting lathosterol management.' },
+  // Fats
+  { id:'f12', name:'Extra Virgin Olive Oil', section:'Fats', dailyGoal:1, weeklyGoal:0, active:true, serving:'14g (1 tbsp) first cold press at lunch or dinner with vegetables — never high heat', ceiling:'28g (2 tbsp) daily', why:'Oleocanthal provides NF-kB suppression relevant to APOE4 inflammation. Enhances fat-soluble carotenoid absorption.' },
+  // Legumes
+  { id:'f13', name:'Legumes', section:'Legumes', dailyGoal:1, weeklyGoal:0, active:true, serving:'85g cooked lentils, black beans, edamame, chickpeas, navy beans, or kidney beans', ceiling:'170g daily', why:'Magnesium delivery supporting TRPM6 variant. Plant sterols address slightly elevated lathosterol. FMO3 variant warrants ceiling.' },
+  // Nuts
+  { id:'f14', name:'Nuts & Seeds', section:'Nuts & Seeds', dailyGoal:1, weeklyGoal:0, active:true, serving:'30g walnuts, pecans, pumpkin seeds, or sesame seeds. No peanuts.', ceiling:'60g daily', why:'Primary food source for gamma tocopherol (currently 0.6 mg/L, below optimal). Walnuts provide ALA and polyphenols. Peanuts excluded — allergy variants.' },
+  // Fermented
+  { id:'f15', name:'Fermented Foods', section:'Fermented Foods', dailyGoal:0, weeklyGoal:3, active:true, serving:'180ml kefir, 150g Greek yogurt, 85g kimchi or sauerkraut, or 17g miso', ceiling:'No ceiling', why:'WBC consistently low (3.5-3.8) — microbiome supports immune function. APOE4 gut-brain axis research links microbiome to neuroinflammation.' },
+  // Choline
+  { id:'f16', name:'Sunflower Lecithin', section:'Choline', dailyGoal:1, weeklyGoal:0, active:true, serving:'2 tsp (5g) Now Foods Sunflower Lecithin Powder with a meal', ceiling:'1 tbsp (7.5g) daily', why:'Phosphatidylcholine delivery for APOE4/PEMT variants. Combined with eggs reaches ~310mg choline at breakfast. Total daily target 700-800mg.' },
+];
+
+const DEFAULT_ACTIVITIES = [
+  { id:'a1', name:'Cold Plunge', emoji:'🧊', active:true, fields:[
+    { name:'Duration', type:'number', unit:'minutes' },
+    { name:'Temperature', type:'number', unit:'°F' },
+    { name:'Notes', type:'text', unit:'' }
+  ]},
+  { id:'a2', name:'Sauna', emoji:'🔥', active:true, fields:[
+    { name:'Duration', type:'number', unit:'minutes' },
+    { name:'Temperature', type:'number', unit:'°F' },
+    { name:'Notes', type:'text', unit:'' }
+  ]},
+  { id:'a3', name:'Meditation', emoji:'🧘', active:true, fields:[
+    { name:'Duration', type:'number', unit:'minutes' },
+    { name:'Type', type:'select', unit:'guided|unguided|breathwork|body scan' },
+    { name:'Notes', type:'text', unit:'' }
+  ]},
+];
+
+const DEFAULT_WATER_BTNS = [8, 16, 20, 24, 32];
+const WATER_TARGET = 90;
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let state = {
+  globalDt: null, // null = now
+  supps: [],       // master supplement definitions
+  suppLog: [],     // { id, suppId, eventDt, loggedAt, qty, notes }
+  waterBtns: [...DEFAULT_WATER_BTNS],
+  waterLog: [],    // { id, eventDt, loggedAt, qty }
+  food: [],        // food item definitions
+  foodLog: [],     // { id, foodId, eventDt, loggedAt, qty }
+  activities: [],  // activity type definitions
+  activityLog: [], // { id, actTypeId, eventDt, loggedAt, fields:{} }
+  notes: [],       // { id, eventDt, loggedAt, title, body }
+};
+
+let _activeOverlay = null;
+let _editingSuppId = null;
+let _editingFoodId = null;
+let _editingActId = null;
+let _currentSuppLogId = null; // for editing existing log entry
+let _currentWaterLogId = null;
+let _currentActivityLogId = null;
+let _currentNoteId = null;
+let _currentActTypeId = null;
+let _currentFoodId = null;
+let _historyType = null;
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function init() {
+  loadState();
+  renderHeader();
+  renderWater();
+  renderSupps();
+  renderFood();
+  renderActivities();
+  renderNotes();
+  setInterval(renderHeader, 60000);
+}
+
+// ════════════════════════════════════════════════════════════
+// PERSISTENCE
+// ════════════════════════════════════════════════════════════
+function saveState() {
+  try { localStorage.setItem('dt-state', JSON.stringify(state)); } catch(e) {}
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem('dt-state');
+    if (s) {
+      const parsed = JSON.parse(s);
+      state = { ...state, ...parsed };
+    } else {
+      state.supps = JSON.parse(JSON.stringify(DEFAULT_SUPPS));
+      state.food = JSON.parse(JSON.stringify(DEFAULT_FOOD));
+      state.activities = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+      state.waterBtns = [...DEFAULT_WATER_BTNS];
+    }
+  } catch(e) {
+    state.supps = JSON.parse(JSON.stringify(DEFAULT_SUPPS));
+    state.food = JSON.parse(JSON.stringify(DEFAULT_FOOD));
+    state.activities = JSON.parse(JSON.stringify(DEFAULT_ACTIVITIES));
+    state.waterBtns = [...DEFAULT_WATER_BTNS];
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function nowIso() { return new Date().toISOString(); }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function weekStart() {
+  const d = new Date(); d.setDate(d.getDate() - d.getDay()); return d.toISOString().slice(0,10);
+}
+function fmtDt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function fmtTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function getEffectiveDt() {
+  return state.globalDt || nowIso();
+}
+function toDatetimeLocal(iso) {
+  const d = new Date(iso || Date.now());
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off*60000);
+  return local.toISOString().slice(0,16);
+}
+function fromDatetimeLocal(val) {
+  if (!val) return nowIso();
+  return new Date(val).toISOString();
+}
+function checkmark() {
+  return `<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// HEADER / GLOBAL DT
+// ════════════════════════════════════════════════════════════
+function renderHeader() {
+  const d = new Date();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const timeStr = d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});
+  const dateStr = `${days[d.getDay()]} ${months[d.getMonth()]} ${d.getDate()}`;
+
+  const btn = document.getElementById('globalDtBtn');
+  const txt = document.getElementById('globalDtText');
+  if (state.globalDt) {
+    btn.classList.add('modified');
+    txt.innerHTML = fmtDt(state.globalDt).replace(' ','<br>');
+  } else {
+    btn.classList.remove('modified');
+    txt.innerHTML = `${dateStr}<br>${timeStr}`;
+  }
+}
+
+function openGlobalDt() {
+  document.getElementById('globalDtInput').value = toDatetimeLocal(state.globalDt || null);
+  openOverlay('overlayGlobalDt');
+}
+function confirmGlobalDt() {
+  state.globalDt = fromDatetimeLocal(document.getElementById('globalDtInput').value);
+  renderHeader();
+  closeOverlay('overlayGlobalDt');
+}
+function resetGlobalDt() {
+  state.globalDt = null;
+  renderHeader();
+  closeOverlay('overlayGlobalDt');
+}
+
+// ════════════════════════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════════════════════════
+function switchTab(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'log') renderLog();
+}
+
+// ════════════════════════════════════════════════════════════
+// WATER
+// ════════════════════════════════════════════════════════════
+function renderWater() {
+  const todayEntries = state.waterLog.filter(e => e.eventDt.slice(0,10) === todayStr());
+  const total = todayEntries.reduce((s,e) => s + e.qty, 0);
+  document.getElementById('waterTotal').textContent = total;
+  const pct = Math.min(100, Math.round(total/WATER_TARGET*100));
+  document.getElementById('waterBar').style.width = pct + '%';
+  document.getElementById('waterPct').textContent = pct + '%';
+
+  // Quick buttons
+  const grid = document.getElementById('waterQuickBtns');
+  grid.innerHTML = '';
+  state.waterBtns.forEach(oz => {
+    const btn = document.createElement('div');
+    btn.className = 'quick-btn';
+    btn.textContent = `+${oz}`;
+    btn.onclick = () => logWaterQuick(oz);
+    grid.appendChild(btn);
+  });
+
+  // Log list
+  const list = document.getElementById('waterLogList');
+  if (todayEntries.length === 0) {
+    list.innerHTML = '<div style="padding:14px;font-family:\'Space Mono\',monospace;font-size:11px;color:var(--muted)">No entries yet</div>';
+    return;
+  }
+  list.innerHTML = todayEntries.map(e => `
+    <div class="water-log-entry" onclick="editWaterEntry('${e.id}')">
+      <span class="water-log-time">${fmtTime(e.eventDt)}</span>
+      <span class="water-log-qty">+${e.qty} oz</span>
+    </div>
+  `).join('') + `<div class="water-log-entry" style="border-top:1px solid var(--border2)">
+    <span style="font-family:'Space Mono',monospace;font-size:11px;font-weight:700">Total</span>
+    <span class="water-log-qty">${total} oz</span>
+  </div>`;
+}
+
+function logWaterQuick(oz) {
+  state.waterLog.push({ id: uid(), eventDt: getEffectiveDt(), loggedAt: nowIso(), qty: oz });
+  saveState(); renderWater();
+}
+
+function openCustomWater() {
+  _currentWaterLogId = null;
+  document.getElementById('waterEntryDt').value = toDatetimeLocal(getEffectiveDt());
+  document.getElementById('waterEntryQty').value = 16;
+  document.getElementById('waterEntryDelete').style.display = 'none';
+  openOverlay('overlayWaterEntry');
+}
+function editWaterEntry(id) {
+  const e = state.waterLog.find(x => x.id === id);
+  if (!e) return;
+  _currentWaterLogId = id;
+  document.getElementById('waterEntryDt').value = toDatetimeLocal(e.eventDt);
+  document.getElementById('waterEntryQty').value = e.qty;
+  document.getElementById('waterEntryDelete').style.display = 'block';
+  openOverlay('overlayWaterEntry');
+}
+function adjustWaterQty(d) {
+  const el = document.getElementById('waterEntryQty');
+  el.value = Math.max(0, parseFloat(el.value||0) + d);
+}
+function confirmWaterEntry() {
+  const dt = fromDatetimeLocal(document.getElementById('waterEntryDt').value);
+  const qty = parseFloat(document.getElementById('waterEntryQty').value) || 0;
+  if (_currentWaterLogId) {
+    const e = state.waterLog.find(x => x.id === _currentWaterLogId);
+    if (e) { e.eventDt = dt; e.qty = qty; }
+  } else {
+    state.waterLog.push({ id: uid(), eventDt: dt, loggedAt: nowIso(), qty });
+  }
+  saveState(); closeOverlay('overlayWaterEntry'); renderWater();
+}
+function deleteWaterEntry() {
+  state.waterLog = state.waterLog.filter(x => x.id !== _currentWaterLogId);
+  saveState(); closeOverlay('overlayWaterEntry'); renderWater();
+}
+function openWaterHistory() {
+  _historyType = 'water';
+  document.getElementById('historyTitle').textContent = 'Water History';
+  document.getElementById('historySub').textContent = 'Tap any entry to edit';
+  const grouped = groupByDay(state.waterLog);
+  document.getElementById('historyContent').innerHTML = renderHistoryGrouped(grouped, e =>
+    `+${e.qty} oz`, e => editWaterEntry(e.id));
+  openOverlay('overlayHistory');
+}
+
+function openManageWaterBtns() {
+  const fields = document.getElementById('waterBtnFields');
+  fields.innerHTML = state.waterBtns.map((v,i) => `
+    <div class="field">
+      <div class="field-label">Button ${i+1} (oz)</div>
+      <input type="number" id="wbtn${i}" value="${v}" step="1" min="1">
+    </div>
+  `).join('');
+  openOverlay('overlayManageWater');
+}
+function saveWaterBtns() {
+  state.waterBtns = [0,1,2,3,4].map(i => parseFloat(document.getElementById('wbtn'+i).value)||8);
+  saveState(); closeOverlay('overlayManageWater'); renderWater();
+}
+
+// ════════════════════════════════════════════════════════════
+// SUPPLEMENTS
+// ════════════════════════════════════════════════════════════
+const SUPP_GROUPS = [
+  { id:'morning-water', label:'Morning Water Protocol', emoji:'🌅' },
+  { id:'breakfast', label:'Breakfast Stack', emoji:'🍳' },
+  { id:'lunch', label:'Lunch', emoji:'☀️' },
+  { id:'dinner', label:'Dinner', emoji:'🌙' },
+  { id:'bedtime', label:'Bedtime Stack', emoji:'🌛' },
+  { id:'other', label:'Other', emoji:'➕' },
+];
+
+function renderSupps() {
+  const container = document.getElementById('suppGroups');
+  container.innerHTML = '';
+  SUPP_GROUPS.forEach(group => {
+    const items = state.supps.filter(s => s.active && s.group === group.id);
+    if (items.length === 0) return;
+    const section = document.createElement('div');
+    section.innerHTML = `
+      <div class="section-header">
+        <div class="section-label">${group.emoji} ${group.label}</div>
+      </div>
+    `;
+    const card = document.createElement('div');
+    card.className = 'card';
+    // Select All row
+    const saRow = document.createElement('div');
+    saRow.className = 'select-all-row';
+    saRow.innerHTML = `<div class="select-all-label">SELECT ALL</div>`;
+    saRow.onclick = () => selectAllGroup(group.id);
+    card.appendChild(saRow);
+    items.forEach(s => card.appendChild(makeSuppRow(s)));
+    section.appendChild(card);
+    container.appendChild(section);
+  });
+}
+
+function makeSuppRow(s) {
+  const logEntry = getTodaySuppLog(s.id);
+  const div = document.createElement('div');
+  div.className = 'supp-row' + (logEntry ? ' logged' : '');
+  div.id = 'srow-' + s.id;
+  div.onclick = () => openSuppEntry(s.id);
+  div.innerHTML = `
+    <div class="check-box">${logEntry ? checkmark() : ''}</div>
+    <div class="supp-info">
+      <div class="supp-name">${s.name}${s.tag === 'interim' ? '<span class="tag tag-interim">interim</span>' : ''}${s.tag === 'optional' ? '<span class="tag tag-optional">optional</span>' : ''}</div>
+      <div class="supp-meta">${s.mfr} · ${s.qty} ${s.units}</div>
+    </div>
+    <div class="supp-time">${logEntry ? fmtTime(logEntry.eventDt) : s.group === 'morning-water' ? '06:30' : s.group === 'breakfast' ? '07:30' : s.group === 'lunch' ? '12:30' : s.group === 'bedtime' ? '22:00' : '—'}</div>
+  `;
+  return div;
+}
+
+function getTodaySuppLog(suppId) {
+  return state.suppLog.find(e => e.suppId === suppId && e.eventDt.slice(0,10) === todayStr());
+}
+
+function selectAllGroup(groupId) {
+  const items = state.supps.filter(s => s.active && s.group === groupId);
+  items.forEach(s => {
+    if (!getTodaySuppLog(s.id)) {
+      state.suppLog.push({ id: uid(), suppId: s.id, eventDt: getEffectiveDt(), loggedAt: nowIso(), qty: s.qty, notes: '' });
+    }
+  });
+  saveState(); renderSupps();
+}
+
+function openSuppEntry(suppId) {
+  const s = state.supps.find(x => x.id === suppId);
+  if (!s) return;
+  _currentSuppLogId = null;
+  const existing = getTodaySuppLog(suppId);
+  document.getElementById('suppEntryName').textContent = s.name;
+  document.getElementById('suppEntryMeta').textContent = `${s.mfr} · ${s.qty} ${s.units}`;
+  document.getElementById('suppEntryDt').value = toDatetimeLocal(existing ? existing.eventDt : getEffectiveDt());
+  document.getElementById('suppEntryQty').value = existing ? existing.qty : s.qty;
+  document.getElementById('suppEntryNotes').value = existing ? existing.notes : '';
+  if (existing) {
+    _currentSuppLogId = existing.id;
+    document.getElementById('suppEntryDelete').style.display = 'block';
+  } else {
+    document.getElementById('suppEntryDelete').style.display = 'none';
+  }
+  // store suppId for confirm
+  document.getElementById('overlaySuppEntry').dataset.suppId = suppId;
+  openOverlay('overlaySuppEntry');
+}
+
+function adjustSuppQty(d) {
+  const el = document.getElementById('suppEntryQty');
+  el.value = Math.max(0, Math.round((parseFloat(el.value||0) + d)*10)/10);
+}
+
+function confirmSuppEntry() {
+  const suppId = document.getElementById('overlaySuppEntry').dataset.suppId;
+  const dt = fromDatetimeLocal(document.getElementById('suppEntryDt').value);
+  const qty = parseFloat(document.getElementById('suppEntryQty').value) || 0;
+  const notes = document.getElementById('suppEntryNotes').value;
+  if (_currentSuppLogId) {
+    const e = state.suppLog.find(x => x.id === _currentSuppLogId);
+    if (e) { e.eventDt = dt; e.qty = qty; e.notes = notes; }
+  } else {
+    state.suppLog.push({ id: uid(), suppId, eventDt: dt, loggedAt: nowIso(), qty, notes });
+  }
+  saveState(); closeOverlay('overlaySuppEntry'); renderSupps();
+}
+function deleteSuppEntry() {
+  state.suppLog = state.suppLog.filter(x => x.id !== _currentSuppLogId);
+  saveState(); closeOverlay('overlaySuppEntry'); renderSupps();
+}
+
+function openSuppHistory() {
+  document.getElementById('historyTitle').textContent = 'Supplement History';
+  document.getElementById('historySub').textContent = 'Tap any entry to edit';
+  const enriched = state.suppLog.map(e => {
+    const s = state.supps.find(x => x.id === e.suppId);
+    return { ...e, _name: s ? s.name : 'Unknown', _meta: s ? `${s.mfr} · ${e.qty} ${s.units}` : '' };
+  }).sort((a,b) => b.eventDt.localeCompare(a.eventDt));
+  const grouped = groupByDay(enriched);
+  document.getElementById('historyContent').innerHTML = renderHistoryGrouped(grouped,
+    e => `${e._name} · ${e._meta}`,
+    e => { closeOverlay('overlayHistory'); openSuppEntryById(e.id); }
+  );
+  openOverlay('overlayHistory');
+}
+
+function openSuppEntryById(logId) {
+  const logEntry = state.suppLog.find(x => x.id === logId);
+  if (!logEntry) return;
+  _currentSuppLogId = logId;
+  const s = state.supps.find(x => x.id === logEntry.suppId);
+  if (!s) return;
+  document.getElementById('suppEntryName').textContent = s.name;
+  document.getElementById('suppEntryMeta').textContent = `${s.mfr} · ${s.qty} ${s.units}`;
+  document.getElementById('suppEntryDt').value = toDatetimeLocal(logEntry.eventDt);
+  document.getElementById('suppEntryQty').value = logEntry.qty;
+  document.getElementById('suppEntryNotes').value = logEntry.notes;
+  document.getElementById('suppEntryDelete').style.display = 'block';
+  document.getElementById('overlaySuppEntry').dataset.suppId = logEntry.suppId;
+  openOverlay('overlaySuppEntry');
+}
+
+// Manage Supplements
+function openManageSupps() {
+  renderManageSuppList();
+  openOverlay('overlayManageSupps');
+}
+function renderManageSuppList() {
+  const list = document.getElementById('manageSuppList');
+  list.innerHTML = state.supps.map(s => `
+    <div class="manage-item ${s.active ? '' : 'disabled'}" onclick="openEditSupp('${s.id}')">
+      <div class="manage-item-info">
+        <div class="manage-item-name">${s.name}</div>
+        <div class="manage-item-meta">${s.mfr} · ${s.qty} ${s.units} · ${s.group}</div>
+      </div>
+      <div class="toggle-pill ${s.active ? 'on' : ''}" onclick="toggleSupp(event,'${s.id}')"></div>
+    </div>
+  `).join('');
+}
+function toggleSupp(e, id) {
+  e.stopPropagation();
+  const s = state.supps.find(x => x.id === id);
+  if (s) s.active = !s.active;
+  saveState(); renderManageSuppList(); renderSupps();
+}
+function openAddSupp() {
+  _editingSuppId = null;
+  document.getElementById('editSuppTitle').textContent = 'Add Supplement';
+  document.getElementById('editSuppMfr').value = '';
+  document.getElementById('editSuppName').value = '';
+  document.getElementById('editSuppQty').value = 1;
+  document.getElementById('editSuppUnits').value = '';
+  document.getElementById('editSuppGroup').value = 'breakfast';
+  document.getElementById('editSuppNotes').value = '';
+  document.getElementById('editSuppDelete').style.display = 'none';
+  openOverlay('overlayEditSupp');
+}
+function openEditSupp(id) {
+  const s = state.supps.find(x => x.id === id);
+  if (!s) return;
+  _editingSuppId = id;
+  document.getElementById('editSuppTitle').textContent = 'Edit Supplement';
+  document.getElementById('editSuppMfr').value = s.mfr;
+  document.getElementById('editSuppName').value = s.name;
+  document.getElementById('editSuppQty').value = s.qty;
+  document.getElementById('editSuppUnits').value = s.units;
+  document.getElementById('editSuppGroup').value = s.group;
+  document.getElementById('editSuppNotes').value = s.notes || '';
+  document.getElementById('editSuppDelete').style.display = 'block';
+  openOverlay('overlayEditSupp');
+}
+function confirmEditSupp() {
+  const data = {
+    mfr: document.getElementById('editSuppMfr').value,
+    name: document.getElementById('editSuppName').value,
+    qty: parseFloat(document.getElementById('editSuppQty').value) || 1,
+    units: document.getElementById('editSuppUnits').value,
+    group: document.getElementById('editSuppGroup').value,
+    notes: document.getElementById('editSuppNotes').value,
+  };
+  if (_editingSuppId) {
+    const s = state.supps.find(x => x.id === _editingSuppId);
+    if (s) Object.assign(s, data);
+  } else {
+    state.supps.push({ id: uid(), active: true, ...data });
+  }
+  saveState(); closeOverlay('overlayEditSupp'); renderManageSuppList(); renderSupps();
+}
+function deleteSupp() {
+  state.supps = state.supps.filter(x => x.id !== _editingSuppId);
+  saveState(); closeOverlay('overlayEditSupp'); renderManageSuppList(); renderSupps();
+}
+
+// ════════════════════════════════════════════════════════════
+// FOOD
+// ════════════════════════════════════════════════════════════
+const FOOD_SECTION_GOALS = { 'Vegetables': 4, 'Fruit': 2, 'Protein': 2 };
+
+function renderFood() {
+  const container = document.getElementById('foodSections');
+  container.innerHTML = '';
+  const sections = [...new Set(state.food.filter(f=>f.active).map(f=>f.section))];
+  sections.forEach(sec => {
+    const items = state.food.filter(f => f.active && f.section === sec);
+    const sectionGoal = FOOD_SECTION_GOALS[sec];
+    let sectionTotal = 0;
+    items.forEach(f => { sectionTotal += getTodayFoodQty(f.id); });
+
+    const secDiv = document.createElement('div');
+    const goalMet = sectionGoal && sectionTotal >= sectionGoal;
+    secDiv.innerHTML = `
+      <div class="food-section-banner">
+        <div class="food-section-name">${sec}</div>
+        <div class="food-section-progress ${goalMet ? 'met' : ''}">
+          ${sectionGoal ? `${sectionTotal}/${sectionGoal} servings${goalMet ? ' ✓' : ''}` : ''}
+        </div>
+      </div>
+    `;
+    const card = document.createElement('div');
+    card.className = 'card';
+    items.forEach(f => card.appendChild(makeFoodRow(f)));
+    secDiv.appendChild(card);
+    container.appendChild(secDiv);
+  });
+}
+
+function getTodayFoodQty(foodId) {
+  return state.foodLog
+    .filter(e => e.foodId === foodId && e.eventDt.slice(0,10) === todayStr())
+    .reduce((s,e) => s+e.qty, 0);
+}
+function getWeekFoodQty(foodId) {
+  const ws = weekStart();
+  return state.foodLog
+    .filter(e => e.foodId === foodId && e.eventDt.slice(0,10) >= ws)
+    .reduce((s,e) => s+e.qty, 0);
+}
+
+function makeFoodRow(f) {
+  const daily = getTodayFoodQty(f.id);
+  const weekly = getWeekFoodQty(f.id);
+  const dailyMet = f.dailyGoal > 0 && daily >= f.dailyGoal;
+  const weeklyMet = f.weeklyGoal > 0 && weekly >= f.weeklyGoal;
+  const div = document.createElement('div');
+  div.className = 'food-row';
+  let metaStr = '';
+  if (f.dailyGoal > 0) metaStr += `Today: ${daily}/${f.dailyGoal}`;
+  if (f.weeklyGoal > 0) metaStr += (metaStr ? ' · ' : '') + `Week: ${weekly}/${f.weeklyGoal}`;
+  const met = dailyMet || weeklyMet;
+  div.innerHTML = `
+    <div class="food-info" onclick="openFoodDetail('${f.id}')">
+      <div class="food-name" style="${met ? 'color:var(--green)' : ''}">${f.name}${met ? ' ✓' : ''}</div>
+      <div class="food-meta ${met ? 'met' : ''}">${metaStr || 'No goal set'}</div>
+    </div>
+    <div class="food-controls">
+      <div class="qty-btn" onclick="quickFood('${f.id}',-0.5)">−</div>
+      <div class="qty-val ${daily===0?'zero':''}" id="fqty-${f.id}">${daily}</div>
+      <div class="qty-btn" onclick="quickFood('${f.id}',0.5)">＋</div>
+    </div>
+  `;
+  return div;
+}
+
+function quickFood(foodId, delta) {
+  const current = getTodayFoodQty(foodId);
+  const newQty = Math.max(0, Math.round((current + delta)*10)/10);
+  if (delta > 0) {
+    state.foodLog.push({ id: uid(), foodId, eventDt: getEffectiveDt(), loggedAt: nowIso(), qty: delta });
+  } else if (delta < 0 && current > 0) {
+    // remove most recent entry or reduce
+    const entries = state.foodLog.filter(e => e.foodId === foodId && e.eventDt.slice(0,10) === todayStr());
+    if (entries.length > 0) {
+      const last = entries[entries.length-1];
+      if (last.qty + delta <= 0) {
+        state.foodLog = state.foodLog.filter(x => x.id !== last.id);
+      } else {
+        last.qty = Math.round((last.qty + delta)*10)/10;
+      }
+    }
+  }
+  saveState(); renderFood();
+}
+
+function openFoodDetail(foodId) {
+  const f = state.food.find(x => x.id === foodId);
+  if (!f) return;
+  _currentFoodId = foodId;
+  document.getElementById('foodDetailName').textContent = f.name;
+  let goalStr = '';
+  if (f.dailyGoal > 0) goalStr += `Daily: ${f.dailyGoal} servings`;
+  if (f.weeklyGoal > 0) goalStr += (goalStr?' · ':'') + `Weekly: ${f.weeklyGoal}x`;
+  document.getElementById('foodDetailGoal').textContent = goalStr || 'No goal set';
+  document.getElementById('foodDetailServing').textContent = f.serving || '—';
+  document.getElementById('foodDetailWhy').textContent = f.why || '—';
+  document.getElementById('foodDetailCeiling').textContent = f.ceiling || '—';
+  document.getElementById('foodDetailQty').value = getTodayFoodQty(foodId);
+  document.getElementById('foodDetailDt').value = toDatetimeLocal(getEffectiveDt());
+  openOverlay('overlayFoodDetail');
+}
+function adjustFoodDetailQty(d) {
+  const el = document.getElementById('foodDetailQty');
+  el.value = Math.max(0, Math.round((parseFloat(el.value||0)+d)*10)/10);
+}
+function confirmFoodDetail() {
+  const qty = parseFloat(document.getElementById('foodDetailQty').value) || 0;
+  const dt = fromDatetimeLocal(document.getElementById('foodDetailDt').value);
+  // Replace today's entries for this food with new total
+  state.foodLog = state.foodLog.filter(e => !(e.foodId === _currentFoodId && e.eventDt.slice(0,10) === dt.slice(0,10)));
+  if (qty > 0) state.foodLog.push({ id: uid(), foodId: _currentFoodId, eventDt: dt, loggedAt: nowIso(), qty });
+  saveState(); closeOverlay('overlayFoodDetail'); renderFood();
+}
+
+function openFoodHistory() {
+  document.getElementById('historyTitle').textContent = 'Food History';
+  document.getElementById('historySub').textContent = 'All logged food entries';
+  const enriched = state.foodLog.map(e => {
+    const f = state.food.find(x => x.id === e.foodId);
+    return { ...e, _name: f ? f.name : 'Unknown', _meta: `${e.qty} servings` };
+  }).sort((a,b) => b.eventDt.localeCompare(a.eventDt));
+  const grouped = groupByDay(enriched);
+  document.getElementById('historyContent').innerHTML = renderHistoryGrouped(grouped, e => `${e._name} · ${e._meta}`, ()=>{});
+  openOverlay('overlayHistory');
+}
+
+// Manage Food
+function openManageFood() {
+  renderManageFoodList();
+  openOverlay('overlayManageFood');
+}
+function renderManageFoodList() {
+  document.getElementById('manageFoodList').innerHTML = state.food.map(f => `
+    <div class="manage-item ${f.active?'':'disabled'}" onclick="openEditFood('${f.id}')">
+      <div class="manage-item-info">
+        <div class="manage-item-name">${f.name}</div>
+        <div class="manage-item-meta">${f.section} · Goal: ${f.dailyGoal > 0 ? f.dailyGoal+'/day' : f.weeklyGoal > 0 ? f.weeklyGoal+'/week' : 'none'}</div>
+      </div>
+      <div class="toggle-pill ${f.active?'on':''}" onclick="toggleFood(event,'${f.id}')"></div>
+    </div>
+  `).join('');
+}
+function toggleFood(e, id) {
+  e.stopPropagation();
+  const f = state.food.find(x => x.id === id);
+  if (f) f.active = !f.active;
+  saveState(); renderManageFoodList(); renderFood();
+}
+function openAddFood() {
+  _editingFoodId = null;
+  document.getElementById('editFoodTitle').textContent = 'Add Food Item';
+  ['editFoodName','editFoodSection','editFoodServing','editFoodCeiling','editFoodWhy'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('editFoodDailyGoal').value = 1;
+  document.getElementById('editFoodWeeklyGoal').value = 0;
+  document.getElementById('editFoodDelete').style.display = 'none';
+  openOverlay('overlayEditFood');
+}
+function openEditFood(id) {
+  const f = state.food.find(x => x.id === id);
+  if (!f) return;
+  _editingFoodId = id;
+  document.getElementById('editFoodTitle').textContent = 'Edit Food Item';
+  document.getElementById('editFoodName').value = f.name;
+  document.getElementById('editFoodSection').value = f.section;
+  document.getElementById('editFoodDailyGoal').value = f.dailyGoal;
+  document.getElementById('editFoodWeeklyGoal').value = f.weeklyGoal;
+  document.getElementById('editFoodServing').value = f.serving || '';
+  document.getElementById('editFoodCeiling').value = f.ceiling || '';
+  document.getElementById('editFoodWhy').value = f.why || '';
+  document.getElementById('editFoodDelete').style.display = 'block';
+  openOverlay('overlayEditFood');
+}
+function confirmEditFood() {
+  const data = {
+    name: document.getElementById('editFoodName').value,
+    section: document.getElementById('editFoodSection').value,
+    dailyGoal: parseFloat(document.getElementById('editFoodDailyGoal').value)||0,
+    weeklyGoal: parseInt(document.getElementById('editFoodWeeklyGoal').value)||0,
+    serving: document.getElementById('editFoodServing').value,
+    ceiling: document.getElementById('editFoodCeiling').value,
+    why: document.getElementById('editFoodWhy').value,
+  };
+  if (_editingFoodId) {
+    const f = state.food.find(x => x.id === _editingFoodId);
+    if (f) Object.assign(f, data);
+  } else {
+    state.food.push({ id: uid(), active: true, ...data });
+  }
+  saveState(); closeOverlay('overlayEditFood'); renderManageFoodList(); renderFood();
+}
+function deleteFood() {
+  state.food = state.food.filter(x => x.id !== _editingFoodId);
+  saveState(); closeOverlay('overlayEditFood'); renderManageFoodList(); renderFood();
+}
+
+// ════════════════════════════════════════════════════════════
+// ACTIVITIES
+// ════════════════════════════════════════════════════════════
+function renderActivities() {
+  const container = document.getElementById('activityList');
+  container.innerHTML = '';
+  state.activities.filter(a => a.active).forEach(a => {
+    const logEntry = getTodayActivityLog(a.id);
+    const card = document.createElement('div');
+    card.className = 'activity-card' + (logEntry ? ' logged' : '');
+    card.onclick = () => openActivityEntry(a.id);
+    let fieldsHtml = '';
+    if (logEntry) {
+      fieldsHtml = a.fields.map(f => {
+        const val = logEntry.fields[f.name];
+        if (!val && val !== 0) return '';
+        return `<div class="activity-field-chip">${f.name}: ${val}${f.unit ? ' '+f.unit : ''}</div>`;
+      }).join('');
+    } else {
+      fieldsHtml = a.fields.map(f => `<div class="activity-field-chip">${f.name}</div>`).join('');
+    }
+    card.innerHTML = `
+      <div class="activity-top">
+        <div class="activity-emoji">${a.emoji}</div>
+        <div>
+          <div class="activity-name">${a.name}</div>
+          <div class="activity-status">${logEntry ? '✓ Logged ' + fmtTime(logEntry.eventDt) : 'Tap to log'}</div>
+        </div>
+      </div>
+      <div class="activity-fields">${fieldsHtml}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function getTodayActivityLog(actTypeId) {
+  return state.activityLog.find(e => e.actTypeId === actTypeId && e.eventDt.slice(0,10) === todayStr());
+}
+
+function openActivityEntry(actTypeId) {
+  const a = state.activities.find(x => x.id === actTypeId);
+  if (!a) return;
+  _currentActTypeId = actTypeId;
+  _currentActivityLogId = null;
+  const existing = getTodayActivityLog(actTypeId);
+  document.getElementById('actEntryName').textContent = `${a.emoji} ${a.name}`;
+  document.getElementById('actEntryDt').value = toDatetimeLocal(existing ? existing.eventDt : getEffectiveDt());
+  // Build custom fields
+  const fieldsDiv = document.getElementById('actEntryFields');
+  fieldsDiv.innerHTML = '';
+  a.fields.forEach(f => {
+    const val = existing ? existing.fields[f.name] : '';
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className = 'field';
+    fieldDiv.innerHTML = `<div class="field-label">${f.name}${f.unit ? ' ('+f.unit+')' : ''}</div>`;
+    if (f.type === 'number') {
+      fieldDiv.innerHTML += `<input type="number" id="act-field-${f.name}" value="${val||''}" placeholder="Enter ${f.name.toLowerCase()}">`;
+    } else if (f.type === 'select') {
+      const opts = f.unit.split('|').map(o => `<option ${val===o?'selected':''}>${o}</option>`).join('');
+      fieldDiv.innerHTML += `<select id="act-field-${f.name}">${opts}</select>`;
+    } else if (f.type === 'boolean') {
+      fieldDiv.innerHTML += `<select id="act-field-${f.name}"><option ${val==='Yes'?'selected':''}>Yes</option><option ${val==='No'?'selected':''}>No</option></select>`;
+    } else {
+      fieldDiv.innerHTML += `<textarea id="act-field-${f.name}" placeholder="Notes...">${val||''}</textarea>`;
+
+```
+}
+fieldsDiv.appendChild(fieldDiv);
+```
+
+});
+if (existing) {
+_currentActivityLogId = existing.id;
+document.getElementById(‘actEntryDelete’).style.display = ‘block’;
+} else {
+document.getElementById(‘actEntryDelete’).style.display = ‘none’;
+}
+openOverlay(‘overlayActivityEntry’);
+}
+
+function confirmActivityEntry() {
+const a = state.activities.find(x => x.id === _currentActTypeId);
+if (!a) return;
+const dt = fromDatetimeLocal(document.getElementById(‘actEntryDt’).value);
+const fields = {};
+a.fields.forEach(f => {
+const el = document.getElementById(‘act-field-’ + f.name);
+if (el) fields[f.name] = el.value;
+});
+if (_currentActivityLogId) {
+const e = state.activityLog.find(x => x.id === _currentActivityLogId);
+if (e) { e.eventDt = dt; e.fields = fields; }
+} else {
+state.activityLog.push({ id: uid(), actTypeId: _currentActTypeId, eventDt: dt, loggedAt: nowIso(), fields });
+}
+saveState(); closeOverlay(‘overlayActivityEntry’); renderActivities();
+}
+function deleteActivityEntry() {
+state.activityLog = state.activityLog.filter(x => x.id !== _currentActivityLogId);
+saveState(); closeOverlay(‘overlayActivityEntry’); renderActivities();
+}
+
+function openActivityHistory() {
+document.getElementById(‘historyTitle’).textContent = ‘Activity History’;
+document.getElementById(‘historySub’).textContent = ‘Tap any entry to edit’;
+const enriched = state.activityLog.map(e => {
+const a = state.activities.find(x => x.id === e.actTypeId);
+const fieldsStr = Object.entries(e.fields).filter(([k,v])=>v).map(([k,v])=>`${k}: ${v}`).join(’, ’);
+return { …e, _name: a ? `${a.emoji} ${a.name}` : ‘Unknown’, _meta: fieldsStr };
+}).sort((a,b) => b.eventDt.localeCompare(a.eventDt));
+const grouped = groupByDay(enriched);
+document.getElementById(‘historyContent’).innerHTML = renderHistoryGrouped(grouped,
+e => `${e._name}${e._meta ? ' · '+e._meta : ''}`,
+e => { closeOverlay(‘overlayHistory’); openActivityEntryById(e.id); }
+);
+openOverlay(‘overlayHistory’);
+}
+
+function openActivityEntryById(logId) {
+const logEntry = state.activityLog.find(x => x.id === logId);
+if (!logEntry) return;
+openActivityEntry(logEntry.actTypeId);
+}
+
+// Manage Activities
+function openManageActivities() {
+renderManageActivityList();
+openOverlay(‘overlayManageActivities’);
+}
+function renderManageActivityList() {
+document.getElementById(‘manageActivityList’).innerHTML = state.activities.map(a => `<div class="manage-item ${a.active?'':'disabled'}" onclick="openEditActivity('${a.id}')"> <div class="manage-item-info"> <div class="manage-item-name">${a.emoji} ${a.name}</div> <div class="manage-item-meta">${a.fields.length} fields</div> </div> <div class="toggle-pill ${a.active?'on':''}" onclick="toggleActivity(event,'${a.id}')"></div> </div>`).join(’’);
+}
+function toggleActivity(e, id) {
+e.stopPropagation();
+const a = state.activities.find(x => x.id === id);
+if (a) a.active = !a.active;
+saveState(); renderManageActivityList(); renderActivities();
+}
+function openAddActivityType() {
+_editingActId = null;
+document.getElementById(‘editActTitle’).textContent = ‘Add Activity Type’;
+document.getElementById(‘editActName’).value = ‘’;
+document.getElementById(‘editActEmoji’).value = ‘’;
+document.getElementById(‘editActFields’).value = ‘Duration|number|minutes\nNotes|text|’;
+document.getElementById(‘editActDelete’).style.display = ‘none’;
+openOverlay(‘overlayEditActivity’);
+}
+function openEditActivity(id) {
+const a = state.activities.find(x => x.id === id);
+if (!a) return;
+_editingActId = id;
+document.getElementById(‘editActTitle’).textContent = ‘Edit Activity’;
+document.getElementById(‘editActName’).value = a.name;
+document.getElementById(‘editActEmoji’).value = a.emoji;
+document.getElementById(‘editActFields’).value = a.fields.map(f => `${f.name}|${f.type}|${f.unit}`).join(’\n’);
+document.getElementById(‘editActDelete’).style.display = ‘block’;
+openOverlay(‘overlayEditActivity’);
+}
+function confirmEditActivity() {
+const fieldsRaw = document.getElementById(‘editActFields’).value.trim().split(’\n’);
+const fields = fieldsRaw.map(line => {
+const parts = line.split(’|’);
+return { name: parts[0]||’’, type: parts[1]||‘text’, unit: parts[2]||’’ };
+}).filter(f => f.name);
+const data = {
+name: document.getElementById(‘editActName’).value,
+emoji: document.getElementById(‘editActEmoji’).value || ‘⚡’,
+fields,
+};
+if (_editingActId) {
+const a = state.activities.find(x => x.id === _editingActId);
+if (a) Object.assign(a, data);
+} else {
+state.activities.push({ id: uid(), active: true, …data });
+}
+saveState(); closeOverlay(‘overlayEditActivity’); renderManageActivityList(); renderActivities();
+}
+function deleteActivityType() {
+state.activities = state.activities.filter(x => x.id !== _editingActId);
+saveState(); closeOverlay(‘overlayEditActivity’); renderManageActivityList(); renderActivities();
+}
+
+// ════════════════════════════════════════════════════════════
+// NOTES
+// ════════════════════════════════════════════════════════════
+function renderNotes() {
+const todayNotes = state.notes.filter(n => n.eventDt.slice(0,10) === todayStr())
+.sort((a,b) => b.eventDt.localeCompare(a.eventDt));
+const container = document.getElementById(‘notesList’);
+if (todayNotes.length === 0) {
+container.innerHTML = ‘<div style="color:var(--muted);font-family:\'Space Mono\',monospace;font-size:11px;padding:20px 0;text-align:center">No notes today</div>’;
+return;
+}
+container.innerHTML = todayNotes.map(n => `<div class="note-card" onclick="editNote('${n.id}')"> <div class="note-header"> <div class="note-title">${n.title || 'Untitled'}</div> <div class="note-time">${fmtTime(n.eventDt)}</div> </div> <div class="note-body">${n.body || ''}</div> </div>`).join(’’);
+}
+
+function openAddNote() {
+_currentNoteId = null;
+document.getElementById(‘noteEntryTitle2’).textContent = ‘Add Note’;
+document.getElementById(‘noteEntryDt’).value = toDatetimeLocal(getEffectiveDt());
+document.getElementById(‘noteEntryTitle’).value = ‘’;
+document.getElementById(‘noteEntryBody’).value = ‘’;
+document.getElementById(‘noteEntryDelete’).style.display = ‘none’;
+openOverlay(‘overlayNoteEntry’);
+}
+function editNote(id) {
+const n = state.notes.find(x => x.id === id);
+if (!n) return;
+_currentNoteId = id;
+document.getElementById(‘noteEntryTitle2’).textContent = ‘Edit Note’;
+document.getElementById(‘noteEntryDt’).value = toDatetimeLocal(n.eventDt);
+document.getElementById(‘noteEntryTitle’).value = n.title;
+document.getElementById(‘noteEntryBody’).value = n.body;
+document.getElementById(‘noteEntryDelete’).style.display = ‘block’;
+openOverlay(‘overlayNoteEntry’);
+}
+function confirmNoteEntry() {
+const dt = fromDatetimeLocal(document.getElementById(‘noteEntryDt’).value);
+const title = document.getElementById(‘noteEntryTitle’).value;
+const body = document.getElementById(‘noteEntryBody’).value;
+if (_currentNoteId) {
+const n = state.notes.find(x => x.id === _currentNoteId);
+if (n) { n.eventDt = dt; n.title = title; n.body = body; }
+} else {
+state.notes.push({ id: uid(), eventDt: dt, loggedAt: nowIso(), title, body });
+}
+saveState(); closeOverlay(‘overlayNoteEntry’); renderNotes();
+}
+function deleteNoteEntry() {
+state.notes = state.notes.filter(x => x.id !== _currentNoteId);
+saveState(); closeOverlay(‘overlayNoteEntry’); renderNotes();
+}
+function openNoteHistory() {
+document.getElementById(‘historyTitle’).textContent = ‘Note History’;
+document.getElementById(‘historySub’).textContent = ‘Tap to edit’;
+const sorted = […state.notes].sort((a,b) => b.eventDt.localeCompare(a.eventDt));
+const grouped = groupByDay(sorted);
+document.getElementById(‘historyContent’).innerHTML = renderHistoryGrouped(grouped,
+e => `${e.title || 'Untitled'}${e.body ? ' · ' + e.body.slice(0,40) : ''}`,
+e => { closeOverlay(‘overlayHistory’); editNote(e.id); }
+);
+openOverlay(‘overlayHistory’);
+}
+
+// ════════════════════════════════════════════════════════════
+// LOG / MARKDOWN
+// ════════════════════════════════════════════════════════════
+function renderLog() {
+document.getElementById(‘mdOutput’).textContent = generateMarkdown();
+}
+
+function generateMarkdown() {
+const today = todayStr();
+let md = `## ${today}\n\n`;
+
+// Supplements
+const suppEntries = state.suppLog
+.filter(e => e.eventDt.slice(0,10) === today)
+.sort((a,b) => a.eventDt.localeCompare(b.eventDt));
+if (suppEntries.length > 0) {
+md += `### Supplements\n`;
+md += `| logged_at | event_date | event_time | manufacturer | name | qty | units | notes |\n`;
+md += `|-----------|------------|------------|--------------|------|-----|-------|-------|\n`;
+suppEntries.forEach(e => {
+const s = state.supps.find(x => x.id === e.suppId);
+const la = new Date(e.loggedAt);
+md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${e.eventDt.slice(0,10)} | ${e.eventDt.slice(11,16)} | ${s?.mfr||'—'} | ${s?.name||'—'} | ${e.qty} | ${s?.units||'—'} | ${e.notes||'—'} |\n`;
+});
+md += ‘\n’;
+}
+
+// Water
+const waterEntries = state.waterLog.filter(e => e.eventDt.slice(0,10) === today);
+if (waterEntries.length > 0) {
+const total = waterEntries.reduce((s,e)=>s+e.qty,0);
+md += `### Water\n`;
+md += `| logged_at | event_date | event_time | qty_oz |\n`;
+md += `|-----------|------------|------------|--------|\n`;
+waterEntries.forEach(e => {
+const la = new Date(e.loggedAt);
+md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${e.eventDt.slice(0,10)} | ${e.eventDt.slice(11,16)} | ${e.qty} |\n`;
+});
+md += `| **TOTAL** | ${today} | — | **${total}** |\n\n`;
+}
+
+// Food
+const foodEntries = state.foodLog.filter(e => e.eventDt.slice(0,10) === today);
+if (foodEntries.length > 0) {
+md += `### Food\n`;
+md += `| logged_at | event_date | event_time | item | servings |\n`;
+md += `|-----------|------------|------------|------|----------|\n`;
+foodEntries.forEach(e => {
+const f = state.food.find(x => x.id === e.foodId);
+const la = new Date(e.loggedAt);
+md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${e.eventDt.slice(0,10)} | ${e.eventDt.slice(11,16)} | ${f?.name||'—'} | ${e.qty} |\n`;
+});
+md += ‘\n’;
+}
+
+// Activities
+const actEntries = state.activityLog.filter(e => e.eventDt.slice(0,10) === today);
+if (actEntries.length > 0) {
+md += `### Activities\n`;
+md += `| logged_at | event_date | event_time | activity | field | value |\n`;
+md += `|-----------|------------|------------|----------|-------|-------|\n`;
+actEntries.forEach(e => {
+const a = state.activities.find(x => x.id === e.actTypeId);
+const la = new Date(e.loggedAt);
+const laStr = la.toISOString().slice(0,16).replace(‘T’,’ ’);
+const dateStr = e.eventDt.slice(0,10);
+const timeStr = e.eventDt.slice(11,16);
+const actName = a ? `${a.emoji} ${a.name}` : ‘—’;
+Object.entries(e.fields).forEach(([k,v]) => {
+if (v) md += `| ${laStr} | ${dateStr} | ${timeStr} | ${actName} | ${k} | ${v} |\n`;
+});
+});
+md += ‘\n’;
+}
+
+// Notes
+const noteEntries = state.notes.filter(n => n.eventDt.slice(0,10) === today);
+if (noteEntries.length > 0) {
+md += `### Notes\n`;
+md += `| logged_at | event_date | event_time | title | body |\n`;
+md += `|-----------|------------|------------|-------|------|\n`;
+noteEntries.forEach(n => {
+const la = new Date(n.loggedAt);
+md += `| ${la.toISOString().slice(0,16).replace('T',' ')} | ${n.eventDt.slice(0,10)} | ${n.eventDt.slice(11,16)} | ${n.title||'—'} | ${(n.body||'').replace(/\|/g,'/')} |\n`;
+});
+md += ‘\n’;
+}
+
+return md.trim();
+}
+
+function copyMd() {
+const md = generateMarkdown();
+navigator.clipboard.writeText(md).catch(()=>{
+const ta = document.createElement(‘textarea’);
+ta.value = md; document.body.appendChild(ta); ta.select(); document.execCommand(‘copy’); document.body.removeChild(ta);
+});
+showToast(‘Markdown copied ✓’);
+}
+
+// ════════════════════════════════════════════════════════════
+// SAVE ALL
+// ════════════════════════════════════════════════════════════
+function saveAll() {
+state.globalDt = null; // reset global dt
+saveState();
+renderHeader();
+showToast(‘Saved ✓’);
+}
+
+// ════════════════════════════════════════════════════════════
+// HISTORY HELPERS
+// ════════════════════════════════════════════════════════════
+function groupByDay(entries) {
+const groups = {};
+entries.forEach(e => {
+const day = (e.eventDt || e.loggedAt || ‘’).slice(0,10);
+if (!groups[day]) groups[day] = [];
+groups[day].push(e);
+});
+return Object.entries(groups).sort((a,b) => b[0].localeCompare(a[0]));
+}
+
+function renderHistoryGrouped(grouped, labelFn, clickFn) {
+if (grouped.length === 0) return ‘<div style="color:var(--muted);font-family:\'Space Mono\',monospace;font-size:11px;padding:20px 0;text-align:center">No history yet</div>’;
+return grouped.map(([day, entries]) => `<div class="history-day"> <div class="history-day-label">${day}</div> ${entries.map(e =>`
+<div class="history-entry" onclick="(${clickFn.toString()})('${e.id}')">
+<div class="history-entry-info">
+<div class="history-entry-name">${labelFn(e)}</div>
+</div>
+<div class="history-entry-time">${fmtTime(e.eventDt)}</div>
+</div>
+`).join('')} </div> `).join(’’);
+}
+
+// ════════════════════════════════════════════════════════════
+// OVERLAY HELPERS
+// ════════════════════════════════════════════════════════════
+function openOverlay(id) {
+if (_activeOverlay) closeOverlay(_activeOverlay);
+document.getElementById(id).classList.add(‘open’);
+_activeOverlay = id;
+}
+function closeOverlay(id) {
+document.getElementById(id).classList.remove(‘open’);
+if (_activeOverlay === id) _activeOverlay = null;
+}
+document.addEventListener(‘click’, e => {
+if (_activeOverlay && e.target.classList.contains(‘overlay’)) closeOverlay(_activeOverlay);
+});
+
+// ════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════
+function showToast(msg) {
+const t = document.getElementById(‘toast’);
+t.textContent = msg;
+t.classList.add(‘show’);
+setTimeout(() => t.classList.remove(‘show’), 2200);
+}
+
+// ════════════════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════════════════
+init();
+</script>
+
+</body>
+</html>
