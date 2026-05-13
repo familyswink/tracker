@@ -1610,6 +1610,18 @@ async function svAll(){
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});
 function shT(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),2500);}
 init();
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/tracker/sw.js',{scope:'/tracker/'}).then(reg=>{
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;
+      nw.addEventListener('statechange',()=>{
+        if(nw.state==='installed'&&navigator.serviceWorker.controller){
+          shT('App updated — close & reopen to get latest version');
+        }
+      });
+    });
+  }).catch(e=>console.warn('SW reg failed',e));
+}
 </script>
 </body>
 </html>
