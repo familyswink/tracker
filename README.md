@@ -8,6 +8,8 @@ A personal health tracking app for supplements, food, water, activity, and daily
 
 Open the app at [familyswink.github.io/tracker](https://familyswink.github.io/tracker) on any device. On iPhone, tap the Share button → **Add to Home Screen** to install it as a full-screen app.
 
+The app installs a service worker that caches it for offline use and updates automatically when new code is deployed. After an update, close the app from the app switcher and reopen it — you will see an "App updated" toast. **Never clear Safari history to force an update** — this erases all your data.
+
 ---
 
 ## Tabs
@@ -43,12 +45,20 @@ Track water intake in ounces. Quick-add buttons let you log common amounts insta
 - **Edit Buttons** — customize the quick-add button amounts
 
 ### Other
-Log activities (Cold Plunge, Sauna, Meditation) and bowel health.
+Log activities, symptoms, and observations. Cards with a single Yes/No or list field show inline buttons so you can log with a single tap — no overlay required.
 
-- Tap any card to open the log overlay for that activity
-- Each activity saves directly when you tap **Save** inside its overlay — no global Save needed on this tab
+- **Single-field items (Yes/No or short list):** tap the button directly on the card to log instantly. The button highlights to show your selection. Tap the item name to open the full overlay to edit or delete.
+- **Multi-field items (e.g. Cold Plunge with Duration + Temperature):** tap the card to open the log overlay
+- Each activity saves immediately when logged — no global Save needed on this tab
 - **Manage** — add, edit, enable/disable, or reorder activity types; configure bowel health status options
 - **History** — view all past Other and Bowel Health entries
+
+#### Setting up a quick-log item (e.g. "Arm Numb")
+1. Other tab → Manage → + Add New Type
+2. Name: `Arm Numb`
+3. Add Field → select **Y/N**
+4. Field name: `Occurred`
+5. Save — the card now shows Yes/No buttons inline
 
 ### Notes
 Write a quick note for the day. Tap **History** to browse and edit past notes.
@@ -57,7 +67,7 @@ Write a quick note for the day. Tap **History** to browse and edit past notes.
 View today's full log as a formatted Markdown document.
 
 - **Sync Drive** — push today's MD and JSON files to Google Drive (signs in with Google on first use)
-- **Export** — export files locally via Share sheet (iPhone/iPad) or save to a linked folder (Mac)
+- **Export** — export files for a selected date range
 
 ### Settings
 Configure the app behavior and integrations.
@@ -65,7 +75,7 @@ Configure the app behavior and integrations.
 - **Auto-sync on Save** — automatically push to Google Drive every time you press Save
 - **Drive Folder IDs** — set the Google Drive folder IDs for MD, JSON, and backup files. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **Help** — links to this README
-- **Backup Now** — save a full JSON backup of all your data to Drive
+- **Backup Now** — save a full JSON backup of all your data (logs + config) to the Drive backups folder
 - **Restore from Backup** — instructions for restoring from a backup
 
 ---
@@ -76,16 +86,38 @@ The global **Save** button (bottom of screen) commits pending supplement entries
 
 ---
 
+## Export
+
+Log tab → **Export** opens a dialog where you can:
+- Set a **date range** (From / To) — defaults to your modified dates but can be any range
+- Choose file types: Markdown (.md), JSON (.json), Config snapshot (.json)
+
+**On iPhone/iPad:** Uses the Share sheet → Save to Files (iCloud Drive or local)
+
+**On Mac (Chrome/Edge):** Save-file picker or linked folder if one was set up
+
+---
+
 ## Google Drive Sync
 
+### First-time setup
 1. In [Google Cloud Console](https://console.cloud.google.com), create an OAuth 2.0 Web Client ID
-2. Add your app's URL to **Authorized JavaScript origins** and **Authorized redirect URIs**
-3. Enable the **Google Drive API** in your project
-4. Create folders in Google Drive for MD logs, JSON logs, and backups
-5. In Settings → Drive Folder IDs, paste each folder's ID (the string after `/folders/` in the URL)
-6. Go to Log tab → **Sync Drive** to authenticate and push your first files
+2. Under **Authorized JavaScript origins**, add:
+   - `https://familyswink.github.io`
+   - `http://localhost:8766` (for local testing)
+3. Under **Authorized redirect URIs**, add:
+   - `https://familyswink.github.io/tracker/` ← **important: include the trailing slash and `/tracker/` path**
+   - `http://localhost:8766` (for local testing)
+4. Enable the **Google Drive API** in your project
+5. Create folders in Google Drive for MD logs, JSON logs, and backups
+6. In Settings → Drive Folder IDs, paste each folder's ID (the string after `/folders/` in the URL — stop before any `?`)
+7. Go to Log tab → **Sync Drive** to authenticate and push your first files
 
-The token lasts one hour. After expiry, the next sync will prompt for sign-in again.
+The token lasts one hour. After expiry, the next sync will redirect to Google sign-in and return automatically.
+
+### Backup vs. Config Export
+- **Backup Now** (Drive) — saves one `DT_Backup_YYYY-MM-DD.json` file per day to your backups folder containing **all log history + all configuration**. Use this to fully restore the app.
+- **Config snapshot** (Export) — saves only setup data (supplement list, food protocol, activity types, settings) with no log history. Use this to transfer your protocol to a new device.
 
 ---
 
@@ -95,14 +127,17 @@ Each person runs the app independently with their own Google account and their o
 
 ---
 
-## Exporting Files
+## PWA Updates
 
-**On iPhone/iPad:** Log tab → Export → Share sheet → Save to Files (iCloud Drive or local)
+The app uses a service worker with a network-first caching strategy:
+- When online, it always fetches the latest version from GitHub Pages
+- When offline, it serves the cached version
+- When a new version is deployed, you will see an "App updated" toast on next open
 
-**On Mac (Chrome/Edge):** Settings → Choose parent folder → pick a local or synced folder → Export will write files there automatically on each export
+**Never clear Safari history to force a PWA update** — this deletes your `localStorage` data. If you need to force a refresh, close the app from the app switcher and reopen it while connected to the internet.
 
 ---
 
 ## Resetting the App
 
-All data is in your browser's `localStorage` under the key `dt6`. Clearing site data in browser settings resets the app to defaults. Use **Backup Now** before doing this.
+All data is in your browser's `localStorage` under the key `dt6`. Clearing site data in browser settings resets the app to defaults. **Use Backup Now before doing this.**

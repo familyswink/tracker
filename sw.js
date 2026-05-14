@@ -1,4 +1,4 @@
-const CACHE='dt6-sw-v1';
+const CACHE='dt6-sw-v2';
 const SHELL=['/tracker/','/tracker/index.html'];
 
 self.addEventListener('install',e=>{

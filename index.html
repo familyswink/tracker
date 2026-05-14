@@ -87,6 +87,12 @@ html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMa
 .an{font-size:15px;font-weight:700}
 .as2{font-family:Courier New,monospace;font-size:10px;color:var(--mt);margin-top:2px}
 .ac.lg .as2{color:var(--or)}
+.ac-ql{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.acl{flex:1;min-width:0}
+.aq{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-items:center}
+.aqb{background:var(--sf2);border:1px solid var(--bd2);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;min-height:36px;display:flex;align-items:center;justify-content:center}
+.aqb.aqba{background:var(--grd);border-color:var(--gr);color:var(--gr)}
+.aqb:active{opacity:.7}
 .af{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .ach{background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:3px 9px;font-family:Courier New,monospace;font-size:10px;color:var(--tx2)}
 .nc{background:var(--sf);border:1px solid var(--bd);border-radius:13px;padding:14px;margin-bottom:9px;cursor:pointer}
@@ -335,7 +341,7 @@ textarea{resize:none;height:75px;line-height:1.5}
 
 <div class="ov" id="ovBulkDT"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Edit Date &amp; Time</div><div class="ssb" id="bulkSub">Applies to selected entries</div><div class="fld"><div class="fl">Date</div><input type="date" id="bulkDate"></div><div class="fld"><div class="fl">Time</div><input type="time" id="bulkTime" step="60"></div></div><div class="sa"><button class="bcn" onclick="popOv()">Cancel</button><button class="blg" id="bulkApplyBtn" onclick="cfBulkDT()">Apply</button></div></div></div>
 
-<div class="ov" id="ovExport"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Export</div><div class="ssb" id="expSub"></div><div class="card" style="margin-bottom:0">
+<div class="ov" id="ovExport"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Export</div><div class="ssb" id="expSub"></div><div class="fr2" style="margin-bottom:13px"><div class="fld" style="margin-bottom:0"><div class="fl">From</div><input type="date" id="expStart" onchange="rExpSub()"></div><div class="fld" style="margin-bottom:0"><div class="fl">To</div><input type="date" id="expEnd" onchange="rExpSub()"></div></div><div class="card" style="margin-bottom:0">
   <div class="set-row" onclick="togExpAll()" style="cursor:pointer"><div class="mii"><div class="mn" style="font-weight:800">All files</div></div><div class="hcb" id="expAllCb" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
   <div class="set-row" onclick="togExpCb('expMd')" style="cursor:pointer"><div class="mii"><div class="mn">Markdown (.md)</div><div class="mm">Daily log in readable format</div></div><div class="hcb" id="expMd" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
   <div class="set-row" onclick="togExpCb('expJson')" style="cursor:pointer"><div class="mii"><div class="mn">JSON (.json)</div><div class="mm">Daily log in structured format</div></div><div class="hcb" id="expJson" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
@@ -891,6 +897,19 @@ function cfEFI(){const d={nm:document.getElementById('efiNm').value,sec:document
 function dFI(){S.fd=S.fd.filter(x=>x.id!==_efiId);sv();popOv();rMFL();rF();}
 
 // OTHER
+function actQuickField(a){
+  if(!a.flds||a.flds.length!==1)return null;
+  const f=a.flds[0];
+  if(f.t==='yesno')return{field:f,type:'yesno'};
+  if(f.t==='opts'&&f.opts&&f.opts.length>=1&&f.opts.length<=4)return{field:f,type:'opts'};
+  return null;
+}
+function quickLogAct(aid,fieldNm,val){
+  const dt=gEDt();const ex=gTAL(aid);
+  if(ex){if(!ex.flds)ex.flds={};ex.flds[fieldNm]=val;ex.la=now();markMod(ex.dt.slice(0,10));}
+  else{const flds={};flds[fieldNm]=val;S.al.push({id:uid(),aid,dt,la:now(),flds,nt:''});markMod(dt.slice(0,10));}
+  sv();rA();shT('Logged');
+}
 function rA(){
   const c=document.getElementById('aList');c.innerHTML='';
   const todayBW=S.bwl.filter(b=>b.dt.slice(0,10)===td());
@@ -898,9 +917,26 @@ function rA(){
   bwCard.innerHTML='<div><div class="an">Bowel Health</div><div class="as2">'+(todayBW.length?todayBW.length+' entr'+(todayBW.length>1?'ies':'y')+' today':'Tap to log')+'</div></div>'+(todayBW.length?'<div class="af">'+todayBW.map(b=>'<div class="ach">'+b.val+' '+f12(b.dt)+'</div>').join('')+'</div>':'');
   c.appendChild(bwCard);
   S.acts.filter(a=>a.on).forEach(a=>{
-    const le=gTAL(a.id);const card=document.createElement('div');card.className='ac';card.onclick=()=>oAE(a.id);
-    let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];if(f.t==='opts')return(v!==undefined&&v!=='')?'<div class="ach">'+f.nm+': '+v+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+f.nm+': '+v+(f.u&&f.t==='number'?' '+f.u:'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+f.nm+' ('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+f.nm+(f.u?' ('+f.u+')':'')+'</div>').join('');
-    card.innerHTML='<div><div class="an">'+a.nm+'</div><div class="as2">'+(le?'Logged '+f12(le.dt):'Tap to log')+'</div></div><div class="af">'+fh+'</div>';
+    const le=gTAL(a.id);const card=document.createElement('div');
+    const qf=actQuickField(a);
+    if(qf){
+      card.className='ac ac-ql';
+      const curVal=le&&le.flds?le.flds[qf.field.nm]:'';
+      const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id);
+      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2">'+(le?'Logged '+f12(le.dt):'Tap name to edit')+'</div>';
+      const btnsDiv=document.createElement('div');btnsDiv.className='aq';
+      const opts=qf.type==='yesno'?['Yes','No']:qf.field.opts.map(o=>o.v);
+      opts.forEach(v=>{
+        const b=document.createElement('div');b.className='aqb'+(curVal===v?' aqba':'');b.textContent=v;
+        b.addEventListener('click',ev=>{ev.stopPropagation();quickLogAct(a.id,qf.field.nm,v);});
+        btnsDiv.appendChild(b);
+      });
+      card.appendChild(left);card.appendChild(btnsDiv);
+    }else{
+      card.className='ac';card.onclick=()=>oAE(a.id);
+      let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];if(f.t==='opts')return(v!==undefined&&v!=='')?'<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+' ('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
+      card.innerHTML='<div><div class="an">'+escHTML(a.nm)+'</div><div class="as2">'+(le?'Logged '+f12(le.dt):'Tap to log')+'</div></div><div class="af">'+fh+'</div>';
+    }
     c.appendChild(card);
   });
 }
@@ -1409,10 +1445,12 @@ function togAutoSync(){S.cfg.autoSync=!S.cfg.autoSync;document.getElementById('t
 function togShareOnSave(){S.cfg.shareOnSave=!S.cfg.shareOnSave;document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave);sv();}
 function setDS(msg,type){const el=document.getElementById('driveStatus');if(!el)return;el.className='drs '+(type||'ok');el.textContent=msg;el.style.display='block';}
 function gDriveTokenValid(){return!!(_gToken&&Date.now()<_gTokenExpiry-60000);}
-function gDriveAuth(){
-  localStorage.setItem('_gAuthPending','sync');
-  const base=window.location.origin;
-  const p=new URLSearchParams({client_id:GOOGLE_CLIENT_ID,redirect_uri:base,response_type:'token',scope:'https://www.googleapis.com/auth/drive'});
+function gDriveAuth(reason){
+  reason=reason||'sync';
+  localStorage.setItem('_gAuthPending',reason);
+  const redirectUri=window.location.origin+window.location.pathname;
+  localStorage.setItem('_gAuthRedirectUri',redirectUri);
+  const p=new URLSearchParams({client_id:GOOGLE_CLIENT_ID,redirect_uri:redirectUri,response_type:'token',scope:'https://www.googleapis.com/auth/drive'});
   window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+p;
 }
 function gDriveCheckHash(){
@@ -1426,12 +1464,16 @@ function gDriveCheckHash(){
   history.replaceState(null,'',window.location.pathname);
   const pending=localStorage.getItem('_gAuthPending');
   localStorage.removeItem('_gAuthPending');
+  localStorage.removeItem('_gAuthRedirectUri');
   if(pending==='sync'){
     shT('Google connected — syncing…');
     setTimeout(()=>{
       const dates=_modDates.size?[..._modDates]:[td()];
       syncDrive(dates).then(ok=>{if(ok)clearExportDirty();}).catch(e=>{console.warn('sync',e);setDS('Sync error: '+e.message,'err');});
     },400);
+  }else if(pending==='backup'){
+    shT('Google connected — backing up…');
+    setTimeout(()=>doBackup(),400);
   }
 }
 async function driveWrite(filename,content,folderId){
@@ -1477,6 +1519,8 @@ async function onSyncDriveClick(){
   if(await syncDrive())clearExportDirty();
 }
 async function doBackup(){
+  if(!gDriveTokenValid()){gDriveAuth('backup');return;}
+  if(!S.cfg.driveIds.backups){setDS('No backup folder ID — check Settings → Drive Folder IDs','err');return;}
   setDS('Backing up...','syn');
   const ok=await driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups);
   if(ok){setDS('Backup saved '+td(),'ok');shT('Backup saved');}else setDS('Backup failed','err');
@@ -1505,13 +1549,26 @@ function setExpCb(id,on){const el=document.getElementById(id);el.classList.toggl
 function rExpAllCb(){const all=['expMd','expJson','expCfg'].every(id=>expCbState(id));setExpCb('expAllCb',all);}
 function togExpCb(id){setExpCb(id,!expCbState(id));rExpAllCb();}
 function togExpAll(){const all=['expMd','expJson','expCfg'].every(id=>expCbState(id));['expMd','expJson','expCfg'].forEach(id=>setExpCb(id,!all));setExpCb('expAllCb',!all);}
+function datesInRange(start,end){
+  const dates=[];let cur=new Date(start+'T00:00:00');const last=new Date(end+'T00:00:00');
+  while(cur<=last&&dates.length<=366){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  return dates;
+}
+function rExpSub(){
+  const s=document.getElementById('expStart');const e=document.getElementById('expEnd');
+  if(!s||!e)return;
+  const start=s.value||td();const end=e.value||td();
+  const dates=datesInRange(start,end);
+  const sub=dates.length===1?dates[0]:dates.length+' days ('+dates[0]+' – '+dates[dates.length-1]+')';
+  document.getElementById('expSub').textContent=sub;
+}
 function oExport(){
   if(Object.keys(_supSt).length){shT('Save first — supplements not committed');return;}
   ['expMd','expJson','expCfg','expAllCb'].forEach(id=>setExpCb(id,true));
-  const dates=_modDates.size?[..._modDates]:[td()];
-  const uniq=[...new Set(dates.map(d=>ymdFromLogKey(d)).filter(Boolean))].sort();
-  const sub=uniq.length===1?uniq[0]:uniq.length+' days ('+uniq[0]+' – '+uniq[uniq.length-1]+')';
-  document.getElementById('expSub').textContent=sub;
+  const modDates=_modDates.size?[..._modDates].sort():[td()];
+  document.getElementById('expStart').value=modDates[0];
+  document.getElementById('expEnd').value=modDates[modDates.length-1];
+  rExpSub();
   openOvRoot('ovExport');
 }
 async function cfExport(){
@@ -1519,16 +1576,19 @@ async function cfExport(){
   const wantJson=expCbState('expJson');
   const wantCfg=expCbState('expCfg');
   if(!wantMd&&!wantJson&&!wantCfg){shT('Select at least one file type');return;}
+  const start=document.getElementById('expStart').value||td();
+  const end=document.getElementById('expEnd').value||td();
+  const dates=datesInRange(start,end);
   closeAllOv();
-  await exportExternal(wantMd,wantJson,wantCfg);
+  await exportExternal(wantMd,wantJson,wantCfg,dates);
 }
 function downloadBlob(filename,text){
   const a=document.createElement('a');
   a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
   a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
-async function exportExternal(wantMd=true,wantJson=true,wantCfg=true){
-  const exportDates=_modDates.size?[..._modDates]:[td()];
+async function exportExternal(wantMd=true,wantJson=true,wantCfg=true,exportDates){
+  if(!exportDates||!exportDates.length)exportDates=_modDates.size?[..._modDates]:[td()];
   const uniq=[...new Set(exportDates.map(d=>ymdFromLogKey(d)).filter(Boolean))].sort();
   const day=uniq.length?uniq[uniq.length-1]:td();
   const cfgDay=isoToLocalYMD(now());
