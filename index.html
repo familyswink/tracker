@@ -1665,6 +1665,12 @@ async function svAll(){
     if(!gDriveTokenValid()){gDriveAuth();return;}
     const dates=[..._modDates].filter(Boolean);
     syncDrive(dates.length?dates:[td()]).catch(e=>{console.warn('Drive sync',e);setDS('Sync failed: '+e.message,'err');});
+    const isFirstSaveToday=!prevFl||isoToLocalYMD(prevFl)!==td();
+    if(isFirstSaveToday&&S.cfg.driveIds.backups){
+      driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups)
+        .then(ok=>{if(ok){setDS('Synced + daily backup saved','ok');shT('Daily backup saved');}})
+        .catch(e=>console.warn('Daily backup',e));
+    }
   }
 }
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});
