@@ -11,7 +11,7 @@
 <style>
 :root{--bg:#080810;--sf:#10101e;--sf2:#181828;--sf3:#202035;--bd:#2c2c45;--bd2:#3a3a55;--gr:#00e5a0;--grd:rgba(0,229,160,0.1);--bl:#4d9fff;--bld:rgba(77,159,255,0.1);--or:#ff8c42;--ord:rgba(255,140,66,0.1);--yw:#ffd166;--rd:#ff5252;--rdd:rgba(255,82,82,0.1);--tx:#e8e8f5;--tx2:#a0a0c0;--mt:#5a5a7a;--hh:56px;--th:54px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{background:#080810;color-scheme:dark}
+html{background:#080810;color-scheme:dark;overflow-x:hidden}
 html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;min-height:100dvh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100%;position:relative}
 .hdr{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--bg);border-bottom:1px solid var(--bd);display:flex;align-items:flex-end;padding:0 14px 10px;padding-top:max(env(safe-area-inset-top),44px);height:calc(max(env(safe-area-inset-top),44px) + var(--hh));gap:10px}
 .htl{font-size:19px;font-weight:800;letter-spacing:-.5px;flex:1}
@@ -80,7 +80,7 @@ html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMa
 .qv.z{color:var(--mt)}.qv.amber{color:var(--or)}.qv.red{color:var(--rd)}.qv.yellow{color:var(--yw)}
 .inr{display:flex;align-items:center;padding:11px 13px;border-bottom:1px solid var(--bd);gap:9px;cursor:pointer;width:100%}
 .inr:last-child{border-bottom:none}
-.int{flex:1;font-size:13px;color:var(--or);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.int{flex:1;font-size:13px;color:var(--yw);min-width:0;overflow:hidden;text-overflow:ellipsis}
 .inti{font-family:Courier New,monospace;font-size:10px;color:var(--mt);flex-shrink:0}
 .ac{background:var(--sf);border:1px solid var(--bd);border-radius:13px;padding:15px;margin-bottom:9px;cursor:pointer;width:100%}
 .ac.lg{border-color:var(--or);background:var(--ord)}
@@ -247,7 +247,6 @@ textarea{resize:none;height:75px;line-height:1.5}
 <div id="pg-food" class="pg"><div class="con">
   <div class="ta"><div class="bs b" onclick="oMP()">Load Meal</div><div class="bs g" onclick="oMF()">Manage Food</div><div class="bs g" onclick="oMM()">Manage Meals</div><div class="bs g" onclick="oMFGrp()">Manage Groups</div><div class="bs" onclick="oH('food')">History</div></div>
   <div id="fSecs"></div>
-  <div id="foodNoteList"></div>
   <div class="fld" style="margin-top:9px"><textarea id="foodNoteQuick" placeholder="Food note for today..." style="height:75px;font-size:14px"></textarea></div>
 </div></div>
 <div id="pg-other" class="pg"><div class="con">
@@ -755,14 +754,10 @@ function rF(){
   });
   const logIso=gEDt();const ti=S.ind.filter(i=>matchesLogDay(i.dt,logIso));
   const id=document.createElement('div');
-  id.innerHTML='<div class="fsb" style="border-color:var(--or)"><div class="fsn" style="color:var(--or)">Indulgences</div><div class="fsp">'+ti.length+' today</div></div>';
+  id.innerHTML='<div class="fsb" style="border-color:var(--yw);cursor:pointer" onclick="oInd(null)"><div class="fsn" style="color:var(--yw)">Log Indulgence</div><div class="fsp" style="color:var(--yw)">'+( ti.length?ti.length+' today':'')+'</div></div>';
   const ic=document.createElement('div');ic.className='card';
-  ti.forEach(i=>{const r=document.createElement('div');r.className='inr';r.onclick=()=>oInd(i.id);r.innerHTML='<div class="int">'+i.txt+'</div><div class="inti">'+f12(i.dt)+'</div>';ic.appendChild(r);});
-  const ar=document.createElement('div');ar.className='adr';ar.textContent='+ Log Indulgence';ar.onclick=()=>oInd(null);ic.appendChild(ar);id.appendChild(ic);c.appendChild(id);
-  const logDay=isoToLocalYMD(logIso);
-  const todayFN=(S.fnotes||[]).filter(n=>n.dt.slice(0,10)===logDay).sort((a,b)=>a.dt.localeCompare(b.dt));
-  const fnl=document.getElementById('foodNoteList');
-  if(fnl){fnl.innerHTML=todayFN.length?'<div class="sh"><div class="sl">Food Notes</div></div>'+todayFN.map(n=>'<div class="nc" onclick="oFNEdit(\''+n.id+'\')"><div class="nh"><div class="nti">'+f12(n.dt)+'</div></div><div class="nb">'+escHTML(n.bd)+'</div></div>').join(''):'';}
+  ti.forEach(i=>{const r=document.createElement('div');r.className='inr';r.onclick=()=>oInd(i.id);r.innerHTML='<div class="int">'+escHTML(i.txt)+'</div><div class="inti">'+f12(i.dt)+'</div>';ic.appendChild(r);});
+  id.appendChild(ic);c.appendChild(id);
 }
 function gTFQ(fid){const logDay=isoToLocalYMD(gEDt());const fs=S.flSave;return S.fl.filter(e=>String(e.fid)===String(fid)&&isoToLocalYMD(e.dt)===logDay&&(!fs||new Date(e.la)>=new Date(fs))).reduce((s,e)=>s+e.qty,0);}
 function gWFQ(fid){const ws=wks();return S.fl.filter(e=>e.fid===fid&&e.dt.slice(0,10)>=ws).reduce((s,e)=>s+e.qty,0);}
@@ -1214,8 +1209,8 @@ function oH(type){
   if(type==='water')_hData=S.wl.map(e=>({...e,_lb:'+'+e.qty+' oz'+(e.nt?' - '+e.nt:''),_fn:"oWE('"+e.id+"')"}));
   if(type==='supps')_hData=S.sl.map(e=>{const sc=S.sch.find(x=>x.id===e.sid);const m=S.sm.find(x=>x.id===sc?.mid);return{...e,_lb:(m?.mfr?m.mfr+' \u2014 ':'')+( m?.name||'?')+' '+e.qty+' '+(m?.units||'')+(e.sk?' (skipped)':''),_fn:"oSEbyLId('"+e.id+"')"};});
   if(type==='food'){
-    const mealLogs=S.fl.filter(e=>e.fid==='__meal__');
-    _hData=[...S.fl.filter(e=>e.fid!=='__meal__').map(e=>{const f=S.fd.find(x=>x.id===e.fid);const meal=mealLogs.find(m=>Math.abs(new Date(m.dt)-new Date(e.dt))<300000);return{...e,_lb:(f?.nm||'?')+' '+e.qty+' srv',_meal:meal?.mnm,_fn:"oFLEdit('"+e.id+"')"};}), ...(S.fnotes||[]).map(n=>({...n,_lb:'Note: '+n.bd.slice(0,60),_fn:"oFNEdit('"+n.id+"')"}))];
+    const mealMkrs=S.fl.filter(e=>e.fid==='__meal__');
+    _hData=[...S.fl.filter(e=>e.fid!=='__meal__').map(e=>{const f=S.fd.find(x=>x.id===e.fid);const meal=mealMkrs.find(m=>m.dt===e.dt);return{...e,_lb:(f?.nm||'?')+' \xd7'+e.qty,_mealMkrId:meal?.id||null,_fn:"oFLEdit('"+e.id+"')"};}),...(S.fnotes||[]).map(n=>({...n,_lb:'Note: '+n.bd.slice(0,60),_fn:"oFNEdit('"+n.id+"')"}))];
   }
   if(type==='other'){
     _hData=S.al.map(e=>{const a=S.acts.find(x=>x.id===e.aid);const fs=Object.entries(e.flds||{}).filter(([k,v])=>v!==''&&v!==undefined).map(([k,v])=>k+':'+v).join(' ');return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};});
@@ -1233,13 +1228,17 @@ function rHList(){
   days.forEach(([day,items])=>{
     html+='<div class="hd"><div class="hdl2">'+day+'</div>';
     if(_hType==='food'){
-      const meals=[...new Set(items.map(e=>e._meal).filter(Boolean))];
-      const noMeal=items.filter(e=>!e._meal);
-      meals.forEach(mn=>{
-        html+='<div style="font-family:Courier New,monospace;font-size:9px;color:var(--or);padding:5px 2px 2px;letter-spacing:.5px">'+mn+'</div>';
-        items.filter(e=>e._meal===mn).forEach(e=>{html+=heRow(e,true);});
+      const mealMkrMap={};S.fl.filter(e=>e.fid==='__meal__').forEach(m=>mealMkrMap[m.id]=m);
+      const sorted=[...items].sort((a,b)=>b.dt.localeCompare(a.dt));
+      const rendered=new Set();
+      sorted.forEach(e=>{
+        if(rendered.has(e.id))return;rendered.add(e.id);
+        if(e._mealMkrId&&mealMkrMap[e._mealMkrId]){
+          const mkr=mealMkrMap[e._mealMkrId];
+          html+='<div style="font-family:Courier New,monospace;font-size:9px;color:var(--yw);padding:6px 2px 3px;letter-spacing:.5px;display:flex;align-items:baseline;gap:8px"><span>'+escHTML(mkr.mnm)+'</span>'+(mkr.nt?'<span style="color:var(--mt)">'+escHTML(mkr.nt)+'</span>':'')+'<span style="margin-left:auto;color:var(--mt)">'+f12(mkr.dt)+'</span></div>';
+          sorted.filter(x=>x._mealMkrId===e._mealMkrId).forEach(item=>{rendered.add(item.id);html+=heRow(item,true);});
+        }else{html+=heRow(e,false);}
       });
-      noMeal.forEach(e=>{html+=heRow(e,false);});
     }else{items.forEach(e=>{html+=heRow(e,false);});}
     html+='</div>';
   });
