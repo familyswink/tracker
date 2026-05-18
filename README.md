@@ -66,14 +66,14 @@ Write a quick note for the day. Tap **History** to browse and edit past notes.
 ### Log
 View today's full log as a formatted Markdown document.
 
-- **Sync Drive** — push today's MD and JSON files to Google Drive (signs in with Google on first use)
+- **Sync Drive** — push today's Daily Log (.md with embedded JSON) to Google Drive (signs in with Google on first use)
 - **Export** — export files for a selected date range
 
 ### Settings
 Configure the app behavior and integrations.
 
-- **Auto-sync on Save** — automatically push to Google Drive every time you press Save
-- **Drive Folder IDs** — set the Google Drive folder IDs for MD, JSON, and backup files. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
+- **Auto-sync on Save** — automatically push today's Daily Log to Google Drive every time you press Save
+- **Drive Folder IDs** — set the Google Drive folder IDs for Daily Logs and backups. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **Help** — links to this README
 - **Backup Now** — save a full JSON backup of all your data (logs + config) to the Drive backups folder
 - **Restore from Backup** — instructions for restoring from a backup
@@ -90,7 +90,7 @@ The global **Save** button (bottom of screen) commits pending supplement entries
 
 Log tab → **Export** opens a dialog where you can:
 - Set a **date range** (From / To) — defaults to your modified dates but can be any range
-- Choose file types: Markdown (.md), JSON (.json), Config snapshot (.json)
+- Choose file types: Daily Log (.md, hybrid markdown + embedded JSON), Config snapshot (.json)
 
 **On iPhone/iPad:** Uses the Share sheet → Save to Files (iCloud Drive or local)
 
@@ -110,8 +110,8 @@ Log tab → **Export** opens a dialog where you can:
    - `http://localhost:8766` (for local testing)
 4. Enable the **Google Drive API** in your project
 5. Create folders in Google Drive for MD logs, JSON logs, and backups
-6. In Settings → Drive Folder IDs, paste each folder's ID (the string after `/folders/` in the URL — stop before any `?`)
-7. Go to Log tab → **Sync Drive** to authenticate and push your first files
+6. In Settings → Drive Folder IDs, paste your **Daily Logs** folder ID and **Backups** folder ID (the string after `/folders/` in the URL — stop before any `?`)
+7. Go to Log tab → **Sync Drive** to authenticate and push your first daily log file
 
 The token lasts one hour. After expiry, the next sync will redirect to Google sign-in and return automatically.
 
