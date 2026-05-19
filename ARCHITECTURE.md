@@ -1,0 +1,33 @@
+# Daily Tracker — Architecture
+
+This app is a client-only PWA (`index.html` + `sw.js`). Refactor work is governed by **[REFACTOR_SPEC.md](REFACTOR_SPEC.md)**.
+
+## Invariants (summary)
+
+Read **§4** in `REFACTOR_SPEC.md` before changing dates, food counts, or Save behavior.
+
+| Topic | Rule |
+|-------|------|
+| **Log day** | `isoToLocalYMD(entry.dt)` — never `iso.slice(0,10)` |
+| **Food +/- wheels** | `gTFQ` — session since `flSave`; **resets** after Save |
+| **Food counters / goals** | `gDFQ` — full day total; **does not reset** after Save |
+| **Global Save** | Clears staging, `gdt`, note fields; bumps `flSave` |
+| **Water** | `S.wl` only, not supplement logs |
+
+## Code layout (Phase 0+)
+
+| Path | Role |
+|------|------|
+| `src/core/date.js` | Calendar / ISO helpers |
+| `src/domain/food.js` | `gTFQ`, `gDFQ`, `bumpFlSave` |
+| `src/session/save.js` | Save prepare / rollback / reset |
+| `test/*.test.js` | Node test runner — run `npm test` |
+| `index.html` | Production UI (wired to `src/` in Phase 1) |
+
+## Tests
+
+```bash
+npm test
+```
+
+Requires Node 18+. Optional timezone matrix: `npm run test:tz`

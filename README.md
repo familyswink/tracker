@@ -2,6 +2,9 @@
 
 A personal health tracking app for supplements, food, water, activity, and daily notes. Runs entirely in the browser — no account required. Data lives in your browser's local storage and can be synced to Google Drive.
 
+**Refactor plan:** see [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for phased architecture work, invariants, and acceptance criteria.  
+**Developers:** `npm install && npm test` — see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ---
 
 ## Getting Started

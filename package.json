@@ -1,0 +1,9 @@
+{
+  "name": "daily-tracker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "test:tz": "TZ=America/Chicago node --test test/**/*.test.js && TZ=UTC node --test test/**/*.test.js"
+  }
+}
