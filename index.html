@@ -353,7 +353,7 @@ textarea{resize:none;height:75px;line-height:1.5}
 
 <div class="ov" id="ovEAT"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl" id="eatT">Define Entry Type</div><div class="fld"><div class="fl">Type name</div><input type="text" id="eatNm" placeholder="Cold Plunge, Stretching..."></div><div class="fld"><div class="fl">Fields to track (up to 5)</div><div class="ssb" style="margin-bottom:10px">Type name is the button label on Other and the heading when you log. For Num / Text / Y/N, add a field name per row (e.g. Duration). List has no field name: logged values use the type name as the label (two List fields use &quot;Name&quot; and &quot;Name (2)&quot;). Same choice cards as Bowel.</div><div id="eatFldList"></div><button type="button" class="bcn" style="width:100%;margin-top:8px" id="eatAddFld" onclick="addFldRow()">+ Add Field</button></div><div class="fld" style="margin-top:13px"><div class="fl">Quick-log on Other tab</div><div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;gap:12px"><div style="font-size:12px;color:var(--tx2);flex:1">Show inline Y/N or list buttons — otherwise always tap-through to overlay</div><div class="tg on" id="eatInline" onclick="this.classList.toggle('on')"></div></div></div></div><div class="sa"><button class="bdl" id="eatDl" onclick="dAT()">Delete</button><button class="bcn" onclick="popOv()">Cancel</button><button class="blg" onclick="cfEAT()">Save</button></div></div></div>
 
-<div class="ov" id="ovH"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl" id="hT">History</div><div class="fr2" style="margin-bottom:12px"><div class="fld" style="margin-bottom:0"><div class="fl">Filter by day</div><input type="date" id="hDayFilter" onchange="applyHDayFilter()"></div><div class="fld" style="margin-bottom:0;display:flex;align-items:flex-end"><button type="button" class="bcn" style="width:100%" onclick="clearHDayFilter()">All days</button></div></div><div class="ta" style="margin-bottom:10px"><button class="bs rd" id="hDelBtn" onclick="bulkDel()">Delete</button><button class="bs b" id="hDTBtn" onclick="bulkDT()">Edit Time</button></div><div id="hC"></div><div style="height:8px"></div></div><div class="sa"><button class="bcn" style="width:100%;flex:1" onclick="exitHSel();closeAllOv()">Done</button></div></div></div>
+<div class="ov" id="ovH"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl" id="hT">History</div><div class="fr2" style="margin-bottom:12px"><div class="fld" style="margin-bottom:0"><div class="fl">Filter by day</div><input type="date" id="hDayFilter" onchange="applyHDayFilter()"></div><div class="fld" style="margin-bottom:0;display:flex;align-items:flex-end"><button type="button" class="bcn" style="width:100%" onclick="clearHDayFilter()">All days</button></div></div><div class="ta" style="margin-bottom:10px"><button class="bs rd" id="hDelBtn" onclick="bulkDel()">Delete</button><button class="bs b" id="hDTBtn" onclick="bulkDT()">Edit date/time</button></div><div id="hC"></div><div style="height:8px"></div></div><div class="sa"><button class="bcn" style="width:100%;flex:1" onclick="exitHSel();closeAllOv()">Done</button></div></div></div>
 
 <div class="ov" id="ovBulkDT"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Edit Date &amp; Time</div><div class="ssb" id="bulkSub">Applies to selected entries</div><div class="fld"><div class="fl">Date</div><input type="date" id="bulkDate"></div><div class="fld"><div class="fl">Time</div><input type="time" id="bulkTime" step="60"></div></div><div class="sa"><button class="bcn" onclick="popOv()">Cancel</button><button class="blg" id="bulkApplyBtn" onclick="cfBulkDT()">Apply</button></div></div></div>
 
@@ -522,6 +522,7 @@ function resolveAdhocSid(mid){
 
 const LOG_DATA_CUTOFF='2026-05-18';
 const LOG_DATA_BAD_DAY='2026-05-19';
+function logEntryDay(e){return isoToLocalYMD(e&&(e.dt||e.la||''));}
 function migrateStoredLogsOnce(){
   if(S.cfg&&S.cfg._logMigrate20260520)return;
   const fixDt=iso=>{
@@ -574,12 +575,7 @@ function isoToLocalYMD(iso){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function logDateKey(){return isoToLocalYMD(gEDt());}
-function matchesLogDay(eDt,logIso){
-  if(!eDt||!logIso)return false;
-  if(isoToLocalYMD(eDt)===isoToLocalYMD(logIso))return true;
-  const a=String(eDt).slice(0,10),b=String(logIso).slice(0,10);
-  return a===b;
-}
+function matchesLogDay(eDt,logIso){return!!(eDt&&logIso)&&isoToLocalYMD(eDt)===isoToLocalYMD(logIso);}
 function onLogDay(iso,dt){return iso&&isoToLocalYMD(iso)===dt;}
 function laStamp(iso){const d=new Date(iso);return isNaN(d.getTime())?'':d.toISOString().slice(0,16).replace('T',' ');}
 function cleanMfr(mfr){if(!mfr||mfr==='--'||!String(mfr).trim())return null;return String(mfr).trim();}
@@ -660,9 +656,12 @@ function initSwipe(){
 function isoToTimeLocal(iso){if(!iso)return'12:00';const d=new Date(iso);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function dateAndTimeToISO(dateStr,timeStr){
   if(!dateStr)return new Date().toISOString();
-  const p=(timeStr||'12:00').split(':');
-  const hh=parseInt(p[0],10)||0,mm=parseInt(p[1],10)||0;
-  return new Date(dateStr+'T'+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':00').toISOString();
+  const p=String(dateStr).split('-').map(x=>parseInt(x,10));
+  const tm=(timeStr||'12:00').split(':');
+  const hh=parseInt(tm[0],10)||0,mm=parseInt(tm[1],10)||0;
+  const d=new Date(p[0],(p[1]||1)-1,p[2]||1,hh,mm,0,0);
+  if(isNaN(d.getTime()))return new Date().toISOString();
+  return d.toISOString();
 }
 function syncOvZ(){_ovStack.forEach((id,i)=>{const el=document.getElementById(id);if(el)el.style.zIndex=String(200+i);});}
 function refreshParentOv(pid){
@@ -672,6 +671,7 @@ function refreshParentOv(pid){
   if(pid==='ovMF')rMFL();
   if(pid==='ovMA')rMAL();
   if(pid==='ovMP')rMPList();
+  if(pid==='ovH'){applyHDataFilter();}
 }
 function rMPList(){
   const act=S.meals.filter(m=>m.on!==false);
@@ -1117,7 +1117,7 @@ function rA(){
   const c=document.getElementById('aList');c.innerHTML='';
   const day=logDateKey();
   S.acts.filter(a=>a.on).forEach(a=>{
-    const todayAL=S.al.filter(e=>e.aid===a.id&&e.dt.slice(0,10)===day);
+    const todayAL=S.al.filter(e=>e.aid===a.id&&isoToLocalYMD(e.dt)===day);
     const card=document.createElement('div');
     const qf=actQuickField(a);
     if(qf){
@@ -1364,7 +1364,7 @@ function svFoodNote(){const el=document.getElementById('foodNoteQuick');const bd
 function svSuppNote(){const el=document.getElementById('suppNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.snotes.push({id:uid(),dt,la:now(),bd});markMod(dt);sv();el.value='';el.classList.remove('note-dirty');rS();}
 function rN(){
   const day=logDateKey();
-  const tn=S.notes.filter(n=>n.dt.slice(0,10)===day).sort((a,b)=>b.dt.localeCompare(a.dt));
+  const tn=S.notes.filter(n=>isoToLocalYMD(n.dt)===day).sort((a,b)=>b.dt.localeCompare(a.dt));
   const c=document.getElementById('nList');
   if(!tn.length){c.innerHTML='<div style="color:var(--mt);font-family:Courier New,monospace;font-size:10px;padding:10px 0;text-align:center">No notes today</div>';return;}
   c.innerHTML=tn.map(n=>'<div class="nc" onclick="oNoteEdit(\''+n.id+'\')"><div class="nh"><div class="nti">'+f12(n.dt)+'</div></div><div class="nb">'+n.bd+'</div></div>').join('');
@@ -1425,7 +1425,7 @@ function buildHistoryData(type){
   return data;
 }
 function applyHDataFilter(){
-  _hData=_hFilterDay?_hDataAll.filter(e=>(e.dt||'').slice(0,10)===_hFilterDay):_hDataAll.slice();
+  _hData=_hFilterDay?_hDataAll.filter(e=>logEntryDay(e)===_hFilterDay):_hDataAll.slice();
   rHList();
 }
 function applyHDayFilter(){
@@ -1450,7 +1450,7 @@ function oH(type){
   openOvRoot('ovH');
 }
 function rHList(){
-  const grp={};_hData.forEach(e=>{const d=(e.dt||'').slice(0,10);if(!grp[d])grp[d]=[];grp[d].push(e);});
+  const grp={};_hData.forEach(e=>{const d=logEntryDay(e);if(!grp[d])grp[d]=[];grp[d].push(e);});
   const days=Object.entries(grp).sort((a,b)=>b[0].localeCompare(a[0]));
   if(!days.length){document.getElementById('hC').innerHTML='<div style="color:var(--mt);font-family:Courier New,monospace;font-size:10px;padding:18px 0;text-align:center">No history for this filter</div>';return;}
   let html='';
@@ -1493,17 +1493,30 @@ function bulkDT(){
   const firstId=[..._hSel][0];
   const first=_hData.find(e=>e.id===firstId);
   const iso=first&&(first.dt||'')||gEDt();
-  document.getElementById('bulkDate').value=String(iso).slice(0,10);
+  document.getElementById('bulkDate').value=isoToLocalYMD(iso);
   document.getElementById('bulkTime').value=isoToTimeLocal(iso);
   openOvPush('ovBulkDT');
 }
 function cfBulkDT(){
-  const newDt=dateAndTimeToISO(document.getElementById('bulkDate').value,document.getElementById('bulkTime').value);
+  const dateStr=document.getElementById('bulkDate').value;
+  const timeStr=document.getElementById('bulkTime').value;
+  if(!dateStr){shT('Pick a date');return;}
+  const newDt=dateAndTimeToISO(dateStr,timeStr||'12:00');
+  if(isNaN(new Date(newDt).getTime())){shT('Invalid date or time');return;}
   const ids=new Set(_hSel);
-  const patch=arr=>arr.forEach(e=>{if(ids.has(e.id)){markMod(e.dt);e.dt=newDt;if('la' in e)e.la=newDt;markMod(newDt);}});
-  patch(S.wl);patch(S.sl);patch(S.fl);patch(S.al);patch(S.fnotes);patch(S.snotes||[]);patch(S.notes);
+  let updated=0;
+  const patch=arr=>{if(!Array.isArray(arr))return;arr.forEach(e=>{if(ids.has(e.id)){markMod(e.dt);e.dt=newDt;markMod(newDt);updated++;}});};
+  patch(S.wl);patch(S.sl);patch(S.fl);patch(S.al);patch(S.ind);patch(S.fnotes);patch(S.snotes);patch(S.notes);
+  if(!updated){shT('No entries updated');return;}
   _hDataAll=buildHistoryData(_hType);
-  sv();popOv();_hSel=new Set();applyHDataFilter();rW();rS();rF();rA();rN();shT('Time updated');
+  if(!sv())return;
+  const newDay=isoToLocalYMD(newDt);
+  if(_hFilterDay&&_hFilterDay!==newDay)clearHDayFilter();
+  popOv();
+  _hSel=new Set();
+  applyHDataFilter();
+  rW();rS();rF();rA();rN();
+  shT('Updated '+updated+' entr'+(updated>1?'ies':'y')+' to '+newDay);
 }
 function oSEbyLId(lid){const le=S.sl.find(x=>x.id===lid);if(le)oSE(le.sid,lid);}
 function oAEbyLId(lid){const le=S.al.find(x=>x.id===lid);if(le)oAE(le.aid,lid);}
