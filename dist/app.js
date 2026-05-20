@@ -52,33 +52,57 @@ function findJsonFences(content) {
  * @returns {JsonFence[]}
  */
 function findWearableFences(content) {
-  return findJsonFences(content).filter((f) => f.parsed && isWearableOnlyRoot(f.parsed));
+  return findJsonFences(content).filter(
+    (f) =>
+      f.parsed &&
+      typeof f.parsed === 'object' &&
+      !Array.isArray(f.parsed) &&
+      f.parsed.wearable_biometrics != null &&
+      typeof f.parsed.wearable_biometrics === 'object'
+  );
 }
 
 /**
- * Index where Oura-tail begins: the `---` line immediately above the wearable ```json fence.
+ * Line index of the opening ```json for a character offset in content.
+ * @param {string} content
+ * @param {number} charIndex
+ * @returns {number}
+ */
+function lineIndexAtChar(content, charIndex) {
+  const lines = content.split('\n');
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const lineStart = offset;
+    const lineEnd = offset + lines[i].length;
+    if (charIndex >= lineStart && charIndex <= lineEnd) return i;
+    offset = lineEnd + 1;
+  }
+  return lines.length - 1;
+}
+
+/**
+ * Byte index where Oura-tail begins. Prefer `---` above the wearable fence (blank lines OK);
+ * if the injector omitted `---`, start at the wearable ```json fence.
  * @param {string} content
  * @param {number} fenceStart index of opening ```json for wearable block
  * @returns {number|null}
  */
 function findOuraTailOpenerIndex(content, fenceStart) {
   const lines = content.split('\n');
-  let offset = 0;
-  let fenceLineIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const lineStart = offset;
-    const lineEnd = offset + lines[i].length;
-    if (fenceStart >= lineStart && fenceStart <= lineEnd) {
-      fenceLineIdx = i;
-      break;
+  const fenceLineIdx = lineIndexAtChar(content, fenceStart);
+  if (fenceLineIdx < 0) return null;
+
+  for (let i = fenceLineIdx - 1; i >= 0; i--) {
+    const t = lines[i].trim();
+    if (t === '') continue;
+    if (t === '---') {
+      let opener = 0;
+      for (let j = 0; j < i; j++) opener += lines[j].length + 1;
+      return opener;
     }
-    offset = lineEnd + 1;
+    break;
   }
-  if (fenceLineIdx <= 0) return null;
-  if (lines[fenceLineIdx - 1].trim() !== '---') return null;
-  let opener = 0;
-  for (let i = 0; i < fenceLineIdx - 1; i++) opener += lines[i].length + 1;
-  return opener;
+  return fenceStart;
 }
 
 /**
@@ -98,22 +122,14 @@ function splitJournalFile(content) {
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }
-  if (wearable.length > 1) {
-    return {
-      ok: false,
-      error:
-        'Daily log has multiple wearable_biometrics JSON blocks. Fix the file in Drive (or run the Oura injector repair) before saving from Tracker.',
-      wearableFenceCount: wearable.length,
-    };
-  }
+  // Canonical tail is the last wearable block (bottom of file after injector).
   const fence = wearable[wearable.length - 1];
   const opener = findOuraTailOpenerIndex(text, fence.start);
   if (opener == null) {
     return {
       ok: false,
-      error:
-        'Daily log has wearable_biometrics JSON but no --- line directly above it. Cannot preserve Oura tail safely.',
-      wearableFenceCount: 1,
+      error: 'Daily log has wearable_biometrics JSON but tail boundary could not be determined.',
+      wearableFenceCount: wearable.length,
     };
   }
   return {
@@ -121,7 +137,7 @@ function splitJournalFile(content) {
     hasTail: true,
     head: text.slice(0, opener),
     tail: text.slice(opener),
-    wearableFenceCount: 1,
+    wearableFenceCount: wearable.length,
   };
 }
 
@@ -167,6 +183,11 @@ global.DT = {
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 
 
+/**
+ * Daily Tracker application (Phase 1).
+ * Source of truth for UI behavior. Built to dist/app.js via npm run build.
+ * Shared pure logic also lives in src/core/ and src/domain/ (used by tests).
+ */
 const DSM=[{id:'sm1',mfr:'Himalayan Gold',name:'Water',units:'oz',rat:'Hydration foundation; primes GI tract'},{id:'sm2',mfr:'Himalayan Gold',name:'Himalayan Salt',units:'tsp',rat:'Sodium for morning cortisol peak; electrolyte priming'},{id:'sm3',mfr:'Vital Reaction',name:'Hydrogen Tab',units:'tab',rat:'Oxidative stress reduction; under review'},{id:'sm4',mfr:'Slow Mag',name:'Slow Mag',units:'tablet',rat:'Systemic Mg repletion; TRPM6 variants'},{id:'sm5',mfr:"Doctor's Best",name:'Mg Glycinate',units:'tablet',rat:'Glycinate form; TRPM6 variants; glucose signaling; sleep'},{id:'sm6',mfr:'PureGenomics',name:'B-Complex',units:'capsule',rat:'B1/B2/B5/B6-P5P/B12; COMT-safe methylated B12'},{id:'sm7',mfr:'Thorne',name:'D3/K2 Liquid',units:'drops',rat:'3000 IU D3 + MK-4; VDR/CYP2R1 variants; target 70-80 ng/mL'},{id:'sm8',mfr:'Coromega',name:'DHA Xtra',units:'softgels',rat:'FADS1/FADS2 variants; APOE4 neuroprotection'},{id:'sm9',mfr:'Bulk Supplements',name:'Creatine',units:'g',rat:'Athletic performance; neuroprotection; APOE4 support'},{id:'sm10',mfr:'Rx',name:'Ezetimibe',units:'tablet',rat:'ApoB target <60; APOE4 cardiovascular management'},{id:'sm11',mfr:'Jarrow',name:'Pterostilbene',units:'mg',rat:'APOE4 neuroinflammation; NF-kB suppression; COMT-safe'},{id:'sm12',mfr:'Jarrow',name:'Magtein',units:'g',rat:'CNS-targeted Mg; APOE4 neuroprotection; sleep architecture'},{id:'sm13',mfr:'Quicksilver',name:'Liposomal C',units:'mg',rat:'SLC23A variants; APOE4 oxidative stress'},{id:'sm14',mfr:'Swanson',name:'Apigenin',units:'mg',rat:'NAD+ CD38 inhibition; sleep; mild COMT inhibition'},{id:'sm15',mfr:'Bulk Supplements',name:'Glycine',units:'g',rat:'Sleep quality; methylation buffer; COMT Met/Met; collagen'},{id:'sm16',mfr:'Rx',name:'Rosuvastatin',units:'mg',rat:'ApoB target <60; night dosing for hepatic synthesis peak'}];
 const DSCH=[{id:'sc1',mid:'sm1',grp:'morning-water',qty:14,tag:'',on:true},{id:'sc2',mid:'sm2',grp:'morning-water',qty:0.125,tag:'',on:true},{id:'sc3',mid:'sm3',grp:'morning-water',qty:1,tag:'optional',on:true},{id:'sc4',mid:'sm4',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc5',mid:'sm5',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc6',mid:'sm6',grp:'breakfast',qty:1,tag:'interim',on:true},{id:'sc7',mid:'sm7',grp:'breakfast',qty:6,tag:'',on:true},{id:'sc8',mid:'sm8',grp:'breakfast',qty:2,tag:'',on:true},{id:'sc9',mid:'sm9',grp:'breakfast',qty:5,tag:'',on:true},{id:'sc10',mid:'sm10',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc11',mid:'sm11',grp:'breakfast',qty:50,tag:'',on:true},{id:'sc12',mid:'sm5',grp:'lunch',qty:3,tag:'',on:true},{id:'sc13',mid:'sm4',grp:'bedtime',qty:3,tag:'',on:true},{id:'sc14',mid:'sm12',grp:'bedtime',qty:1,tag:'',on:true},{id:'sc15',mid:'sm13',grp:'bedtime',qty:500,tag:'',on:true},{id:'sc16',mid:'sm14',grp:'bedtime',qty:50,tag:'',on:true},{id:'sc17',mid:'sm15',grp:'bedtime',qty:4,tag:'',on:true},{id:'sc18',mid:'sm16',grp:'bedtime',qty:2.5,tag:'',on:true}];
 const DFD=[{id:'f1',nm:'Betaine Greens',sec:'Vegetables',dg:1,wg:0,on:true,srv:'85g cooked spinach, beet greens, or Swiss chard',ceil:'200g daily',col:'auto',why:'BHMT+PEMT variants reduce homocysteine clearance. Dietary betaine targets homocysteine <7.2 since TMG is excluded.'},{id:'f2',nm:'Dark Greens / Cruciferous',sec:'Vegetables',dg:1,wg:0,on:true,srv:'85g cooked kale, arugula, collards, broccoli, Brussels sprouts, cauliflower',ceil:'No limit',col:'auto',why:'Activates NRF2 pathway for APOE4 cellular defense. Nitrates support vascular function via NOS3 variant.'},{id:'f3',nm:'Colorful Veg',sec:'Vegetables',dg:1.5,wg:0,on:true,srv:'85g red bell pepper, carrots, beets, tomatoes, red cabbage',ceil:'No limit',col:'auto',why:'BCO1 variants reduce beta-carotene conversion. SLC23A2 variant demands food-form vitamin C.'},{id:'f4',nm:'Other Veg',sec:'Vegetables',dg:0,wg:0,on:true,srv:'85g any vegetable including onions, mushrooms, zucchini, asparagus. Half avocado = 1 serving.',ceil:'No limit',col:'auto',why:'Counts toward daily vegetable total. Avocado moved here: healthy monounsaturated fats, potassium, enhances fat-soluble vitamin absorption.'},{id:'f5',nm:'Berries',sec:'Fruit',dg:1,wg:0,on:true,srv:'85g blueberries, blackberries, strawberries, or raspberries',ceil:'200g combined daily fruit',col:'auto',why:'SIRT1 rs932658 AA genotype responds well to berry polyphenols. Strongest food-based evidence for APOE4 neuroinflammation reduction.'},{id:'f6',nm:'Other Fruit',sec:'Fruit',dg:1,wg:0,on:true,srv:'1 piece citrus, kiwi, pomegranate, or green-tipped banana',ceil:'200g combined daily fruit',col:'auto',why:'SLC23A2 variant demands higher vitamin C. Pomegranate has specific APOE4 neuroprotective evidence.'},{id:'f7',nm:'Eggs',sec:'Protein',dg:1,wg:0,on:true,srv:'2 whole eggs',ceil:'3 daily',col:'auto',why:'Primary choline delivery for APOE4/PEMT variants (~294mg). Ceiling reflects APOE4 dietary cholesterol sensitivity.'},{id:'f8',nm:'Fish',sec:'Protein',dg:0,wg:5,on:true,srv:'140g cooked salmon, sardines, mackerel, trout, cod, or halibut. Tuna max 2x/week.',ceil:'200g per sitting',col:'auto',why:'FADS1/FADS2 variants impair ALA to EPA/DHA conversion. Maintains omega index 9.8%.'},{id:'f9',nm:'Fowl',sec:'Protein',dg:0,wg:5,on:true,srv:'140g cooked chicken or turkey breast, skinless preferred',ceil:'No limit',col:'auto',why:'Primary weekly protein anchor for leucine threshold. AMPD1 variant increases post-exercise protein requirement.'},{id:'f10',nm:'Red Meat / Pork',sec:'Protein',dg:0,wg:1,on:true,srv:'140g cooked grass-fed beef, bison, or pork tenderloin',ceil:'0=amber 1-2=green 3=yellow 4+=red weekly',col:'auto',why:'Heme iron for iron saturation at 24%. Always pair with vitamin C. ApoB 57 well controlled.'},{id:'f11',nm:'Smart Carbs',sec:'Grains',dg:1,wg:0,on:true,srv:'40g dry steel cut oats OR 100g cooked quinoa, basmati, sweet potato, sourdough, farro, or barley',ceil:'150g cooked at any sitting',col:'auto',why:'PPARD and AMPD1 variants require adequate carbohydrate for performance.'},{id:'f12',nm:'Refined Grains',sec:'Grains',dg:0,wg:0,on:true,srv:'150g cooked white pasta, white rice, white bread, risotto, or white potato',ceil:'Minimize',col:'amber',why:'Refined carbs spike glucose - track for awareness.'},{id:'f13',nm:'Extra Virgin Olive Oil',sec:'Fats',dg:1,wg:0,on:true,srv:'14g (1 tbsp) first cold press with vegetables - never high heat',ceil:'28g (2 tbsp) daily',col:'auto',why:'Oleocanthal provides NF-kB suppression relevant to APOE4 inflammation.'},{id:'f14',nm:'Legumes',sec:'Legumes',dg:1,wg:0,on:true,srv:'85g cooked lentils, black beans, edamame, chickpeas, navy or kidney beans',ceil:'170g daily',col:'auto',why:'Magnesium delivery supporting TRPM6 variant. Plant sterols address elevated lathosterol.'},{id:'f15',nm:'Nuts and Seeds',sec:'Nuts and Seeds',dg:1,wg:0,on:true,srv:'30g walnuts, pecans, pumpkin seeds, or sesame seeds. No peanuts.',ceil:'60g daily',col:'auto',why:'Primary food source for gamma tocopherol (currently 0.6 mg/L, below optimal).'},{id:'f16',nm:'Fermented Foods',sec:'Fermented Foods',dg:0,wg:3,on:true,srv:'180ml kefir, 150g Greek yogurt, 85g kimchi or sauerkraut, or 17g miso',ceil:'No ceiling',col:'auto',why:'WBC consistently low (3.5-3.8). APOE4 gut-brain axis research links microbiome to neuroinflammation.'},{id:'f17',nm:'Sunflower Lecithin',sec:'Choline',dg:1,wg:0,on:true,srv:'2 tsp (5g) Now Foods Sunflower Lecithin Powder with a meal',ceil:'1 tbsp (7.5g) daily',col:'auto',why:'Phosphatidylcholine for APOE4/PEMT variants. Total daily target 700-800mg choline.'}];
@@ -1741,8 +1762,11 @@ function composeDailyLogContent(existingContent,dt){
   const head=gDailyLogForDate(dt);
   if(typeof DT==='undefined'||!DT.composeJournalFile)return head;
   const r=DT.composeJournalFile(existingContent,head);
-  if(!r.ok){shT(r.error);setDS(r.error,'err');return null;}
-  return r.file;
+  if(r.ok)return r.file;
+  console.warn('composeJournalFile',r.error,existingContent&&existingContent.slice(-400));
+  shT('Drive sync: '+r.error);
+  setDS(r.error,'err');
+  return null;
 }
 async function resolveExistingDailyLog(dt){
   const ids=S.cfg.driveIds||{};

@@ -48,33 +48,57 @@ export function findJsonFences(content) {
  * @returns {JsonFence[]}
  */
 export function findWearableFences(content) {
-  return findJsonFences(content).filter((f) => f.parsed && isWearableOnlyRoot(f.parsed));
+  return findJsonFences(content).filter(
+    (f) =>
+      f.parsed &&
+      typeof f.parsed === 'object' &&
+      !Array.isArray(f.parsed) &&
+      f.parsed.wearable_biometrics != null &&
+      typeof f.parsed.wearable_biometrics === 'object'
+  );
 }
 
 /**
- * Index where Oura-tail begins: the `---` line immediately above the wearable ```json fence.
+ * Line index of the opening ```json for a character offset in content.
+ * @param {string} content
+ * @param {number} charIndex
+ * @returns {number}
+ */
+function lineIndexAtChar(content, charIndex) {
+  const lines = content.split('\n');
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const lineStart = offset;
+    const lineEnd = offset + lines[i].length;
+    if (charIndex >= lineStart && charIndex <= lineEnd) return i;
+    offset = lineEnd + 1;
+  }
+  return lines.length - 1;
+}
+
+/**
+ * Byte index where Oura-tail begins. Prefer `---` above the wearable fence (blank lines OK);
+ * if the injector omitted `---`, start at the wearable ```json fence.
  * @param {string} content
  * @param {number} fenceStart index of opening ```json for wearable block
  * @returns {number|null}
  */
 export function findOuraTailOpenerIndex(content, fenceStart) {
   const lines = content.split('\n');
-  let offset = 0;
-  let fenceLineIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const lineStart = offset;
-    const lineEnd = offset + lines[i].length;
-    if (fenceStart >= lineStart && fenceStart <= lineEnd) {
-      fenceLineIdx = i;
-      break;
+  const fenceLineIdx = lineIndexAtChar(content, fenceStart);
+  if (fenceLineIdx < 0) return null;
+
+  for (let i = fenceLineIdx - 1; i >= 0; i--) {
+    const t = lines[i].trim();
+    if (t === '') continue;
+    if (t === '---') {
+      let opener = 0;
+      for (let j = 0; j < i; j++) opener += lines[j].length + 1;
+      return opener;
     }
-    offset = lineEnd + 1;
+    break;
   }
-  if (fenceLineIdx <= 0) return null;
-  if (lines[fenceLineIdx - 1].trim() !== '---') return null;
-  let opener = 0;
-  for (let i = 0; i < fenceLineIdx - 1; i++) opener += lines[i].length + 1;
-  return opener;
+  return fenceStart;
 }
 
 /**
@@ -94,22 +118,14 @@ export function splitJournalFile(content) {
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }
-  if (wearable.length > 1) {
-    return {
-      ok: false,
-      error:
-        'Daily log has multiple wearable_biometrics JSON blocks. Fix the file in Drive (or run the Oura injector repair) before saving from Tracker.',
-      wearableFenceCount: wearable.length,
-    };
-  }
+  // Canonical tail is the last wearable block (bottom of file after injector).
   const fence = wearable[wearable.length - 1];
   const opener = findOuraTailOpenerIndex(text, fence.start);
   if (opener == null) {
     return {
       ok: false,
-      error:
-        'Daily log has wearable_biometrics JSON but no --- line directly above it. Cannot preserve Oura tail safely.',
-      wearableFenceCount: 1,
+      error: 'Daily log has wearable_biometrics JSON but tail boundary could not be determined.',
+      wearableFenceCount: wearable.length,
     };
   }
   return {
@@ -117,7 +133,7 @@ export function splitJournalFile(content) {
     hasTail: true,
     head: text.slice(0, opener),
     tail: text.slice(opener),
-    wearableFenceCount: 1,
+    wearableFenceCount: wearable.length,
   };
 }
 

@@ -66,11 +66,36 @@ describe('splitJournalFile', () => {
     assert.equal(r.tail, OURA_TAIL);
   });
 
-  it('rejects two wearable fences', () => {
-    const corrupt = FULL + '\n---\n```json\n{"wearable_biometrics":{}}\n```\n';
-    const r = splitJournalFile(corrupt);
-    assert.equal(r.ok, false);
-    assert.match(r.error, /multiple wearable/i);
+  it('uses last wearable fence when multiple present', () => {
+    const second = '\n---\n```json\n{"wearable_biometrics":{"stale":true}}\n```\n';
+    const r = splitJournalFile(FULL + second);
+    assert.equal(r.ok, true);
+    assert.equal(r.hasTail, true);
+    assert.equal(r.tail, second.trimStart());
+    assert.ok(r.tail.includes('"stale":true'));
+  });
+
+  it('allows blank line between --- and wearable fence', () => {
+    const tail = '---\n\n```json\n{"wearable_biometrics":{"x":1}}\n```\n';
+    const r = splitJournalFile(TRACKER_HEAD + tail);
+    assert.equal(r.ok, true);
+    assert.equal(r.hasTail, true);
+    assert.equal(r.tail, tail);
+  });
+
+  it('allows wearable fence without preceding ---', () => {
+    const tail = '```json\n{"wearable_biometrics":{"x":1}}\n```\n';
+    const r = splitJournalFile(TRACKER_HEAD + tail);
+    assert.equal(r.ok, true);
+    assert.equal(r.hasTail, true);
+    assert.equal(r.tail, tail);
+  });
+
+  it('detects wearable when root has only nested wearable key (strict) or object', () => {
+    const tail = '---\n```json\n{"wearable_biometrics":{"sync_metadata":{}}}\n```\n';
+    const r = splitJournalFile(TRACKER_HEAD + tail);
+    assert.equal(r.ok, true);
+    assert.equal(r.hasTail, true);
   });
 });
 

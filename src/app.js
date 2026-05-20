@@ -1578,8 +1578,11 @@ function composeDailyLogContent(existingContent,dt){
   const head=gDailyLogForDate(dt);
   if(typeof DT==='undefined'||!DT.composeJournalFile)return head;
   const r=DT.composeJournalFile(existingContent,head);
-  if(!r.ok){shT(r.error);setDS(r.error,'err');return null;}
-  return r.file;
+  if(r.ok)return r.file;
+  console.warn('composeJournalFile',r.error,existingContent&&existingContent.slice(-400));
+  shT('Drive sync: '+r.error);
+  setDS(r.error,'err');
+  return null;
 }
 async function resolveExistingDailyLog(dt){
   const ids=S.cfg.driveIds||{};
