@@ -255,12 +255,7 @@ def _num(v: Any) -> float | None:
 
 
 def build_markdown_top(state: dict[str, Any], dt: str, payload: dict[str, Any]) -> str:
-    lines = [
-        f"# {payload['day_of_week']} — {dt}",
-        "",
-        "## 📝 Subjective Notes & Food Logs",
-        "* **Supplement & Food Notes:**",
-    ]
+    lines: list[str] = [f"# {payload['day_of_week']} — {dt}", ""]
 
     by_time: dict[str, list[str]] = {}
     sm = {x["id"]: x for x in state.get("sm", [])}
@@ -320,33 +315,26 @@ def build_markdown_top(state: dict[str, Any], dt: str, payload: dict[str, Any]) 
             chron.append((time_sort_key(tm), f"**{tm}:** {n.get('bd', '')}"))
 
     chron.sort(key=lambda x: x[0])
-    if chron:
-        lines.extend(f"    * {text}" for _, text in chron)
-    else:
-        lines.append("    * (none)")
+    has_notes = bool(chron) or bool(payload["total_water_intake_oz"])
+    has_meals = bool(payload["meals_executed"])
 
-    if payload["total_water_intake_oz"]:
-        lines.append(
-            f"    * **Water today:** {payload['total_water_intake_oz']} oz total."
-        )
+    if has_notes or has_meals:
+        lines.append("## 📝 Subjective Notes & Food Logs")
+        if has_notes:
+            lines.append("* **Supplement & Food Notes:**")
+            if chron:
+                lines.extend(f"    * {text}" for _, text in chron)
+            if payload["total_water_intake_oz"]:
+                lines.append(
+                    f"    * **Water today:** {payload['total_water_intake_oz']} oz total."
+                )
+        if has_meals:
+            lines.append("* **Meals executed:**")
+            lines.extend(f"    * {m}" for m in payload["meals_executed"])
 
-    lines.append("* **Meals executed:**")
-    if payload["meals_executed"]:
-        lines.extend(f"    * {m}" for m in payload["meals_executed"])
-    else:
-        lines.append("    * (none)")
-
-    lines.extend(
-        [
-            "",
-            "## ⚠️ Internal Triggers & Biometric Realities",
-        ]
-    )
     bowel = "; ".join(
         f"{e['time']} {e['status']}" for e in payload["gastrointestinal_tracking"]["events"]
     )
-    lines.append("* **Bowel Health:**" + (f" {bowel}." if bowel else " (none)"))
-
     life_parts = []
     for p in payload["lifestyle_protocols"]:
         if p.get("type") in ("Cold Plunge", "Sauna"):
@@ -363,11 +351,15 @@ def build_markdown_top(state: dict[str, Any], dt: str, payload: dict[str, Any]) 
             if p.get("notes"):
                 seg += f" — {p['notes']}"
             life_parts.append(seg)
-    lines.append(
-        "* **Lifestyle Elements:**"
-        + (" " + "; ".join(life_parts) + "." if life_parts else " (none)")
-    )
-    return "\n".join(lines)
+
+    if bowel or life_parts:
+        lines.extend(["", "## ⚠️ Internal Triggers & Biometric Realities"])
+        if bowel:
+            lines.append(f"* **Bowel Health:** {bowel}.")
+        if life_parts:
+            lines.append("* **Lifestyle Elements:** " + "; ".join(life_parts) + ".")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
 def generate_daily_log(state: dict[str, Any], dt: str) -> str:
