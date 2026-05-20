@@ -1,10 +1,11 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
+const APP_VERSION='2026.05.20.2';
 /* Daily Tracker — journal (dual-writer) */
 (function (global) {
 'use strict';
 /**
  * Dual-writer daily journal (.md): Tracker-head + verbatim Oura-tail.
- * @see REFACTOR_SPEC.md § "Dual-writer daily logs" and docs/DAILY_LOG_DUAL_WRITER.md
+ * @see docs/DAILY_LOG_DUAL_WRITER.md
  */
 
 /**
@@ -28,7 +29,7 @@ function isWearableOnlyRoot(obj) {
 function findJsonFences(content) {
   const fences = [];
   if (!content) return fences;
-  const re = /(^|\n)```json\s*\n([\s\S]*?)\n```/g;
+  const re = /(^|\n)```(?:json|JSON)?\s*\r?\n([\s\S]*?)\r?\n```/g;
   let m;
   while ((m = re.exec(content)) !== null) {
     const openerLen = m[1] ? m[1].length : 0;
@@ -47,23 +48,66 @@ function findJsonFences(content) {
 }
 
 /**
- * Canonical Oura wearable fence: root { wearable_biometrics } only, typically last in file.
+ * @param {string} content
+ * @returns {boolean}
+ */
+function rawFenceLooksWearable(raw) {
+  return typeof raw === 'string' && raw.includes('"wearable_biometrics"');
+}
+
+/**
  * @param {string} content
  * @returns {JsonFence[]}
  */
 function findWearableFences(content) {
-  return findJsonFences(content).filter(
+  const text = String(content || '');
+  const parsed = findJsonFences(text).filter(
     (f) =>
-      f.parsed &&
-      typeof f.parsed === 'object' &&
-      !Array.isArray(f.parsed) &&
-      f.parsed.wearable_biometrics != null &&
-      typeof f.parsed.wearable_biometrics === 'object'
+      (f.parsed &&
+        typeof f.parsed === 'object' &&
+        !Array.isArray(f.parsed) &&
+        f.parsed.wearable_biometrics != null &&
+        typeof f.parsed.wearable_biometrics === 'object') ||
+      rawFenceLooksWearable(f.raw)
   );
+  if (parsed.length) return parsed;
+  const span = wearableFenceSpanByMarker(text);
+  return span ? [span] : [];
 }
 
 /**
- * Line index of the opening ```json for a character offset in content.
+ * Locate wearable ``` fence by marker when JSON.parse fails.
+ * @param {string} content
+ * @returns {JsonFence|null}
+ */
+function wearableFenceSpanByMarker(content) {
+  const marker = '"wearable_biometrics"';
+  const midx = content.lastIndexOf(marker);
+  if (midx < 0) return null;
+  const before = content.slice(0, midx);
+  let openIdx = -1;
+  for (const tag of ['```json', '```JSON', '```']) {
+    const i = before.lastIndexOf(tag);
+    if (i > openIdx) openIdx = i;
+  }
+  if (openIdx < 0) return null;
+  const lineStart = openIdx > 0 && content[openIdx - 1] === '\n' ? openIdx : openIdx;
+  const start = content[openIdx - 1] === '\n' ? openIdx : openIdx;
+  let closeIdx = content.indexOf('\n```', midx);
+  if (closeIdx < 0) {
+    closeIdx = content.lastIndexOf('```', midx);
+    if (closeIdx < 0) return null;
+  }
+  const end = closeIdx + 4;
+  return {
+    start,
+    end: Math.min(end, content.length),
+    raw: content.slice(start, end),
+    parsed: null,
+  };
+}
+
+/**
  * @param {string} content
  * @param {number} charIndex
  * @returns {number}
@@ -81,10 +125,8 @@ function lineIndexAtChar(content, charIndex) {
 }
 
 /**
- * Byte index where Oura-tail begins. Prefer `---` above the wearable fence (blank lines OK);
- * if the injector omitted `---`, start at the wearable ```json fence.
  * @param {string} content
- * @param {number} fenceStart index of opening ```json for wearable block
+ * @param {number} fenceStart
  * @returns {number|null}
  */
 function findOuraTailOpenerIndex(content, fenceStart) {
@@ -106,6 +148,30 @@ function findOuraTailOpenerIndex(content, fenceStart) {
 }
 
 /**
+ * Slice from last --- or opening ``` before wearable_biometrics through EOF.
+ * @param {string} content
+ * @returns {string|null}
+ */
+function extractOuraTailByMarker(content) {
+  const text = String(content || '');
+  const marker = '"wearable_biometrics"';
+  const idx = text.lastIndexOf(marker);
+  if (idx < 0) return null;
+  const before = text.slice(0, idx);
+  const sep = before.lastIndexOf('\n---');
+  const fence = Math.max(
+    before.lastIndexOf('\n```json'),
+    before.lastIndexOf('\n```JSON'),
+    before.lastIndexOf('\n```')
+  );
+  let start = -1;
+  if (sep >= 0 && (fence < 0 || sep > fence)) start = sep + 1;
+  else if (fence >= 0) start = fence + 1;
+  else return null;
+  return text.slice(start);
+}
+
+/**
  * @typedef {{ ok: true, hasTail: boolean, head: string, tail: string|null, wearableFenceCount: number } | { ok: false, error: string, wearableFenceCount: number }} JournalSplit
  */
 
@@ -122,13 +188,22 @@ function splitJournalFile(content) {
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }
-  // Canonical tail is the last wearable block (bottom of file after injector).
   const fence = wearable[wearable.length - 1];
-  const opener = findOuraTailOpenerIndex(text, fence.start);
+  let opener = findOuraTailOpenerIndex(text, fence.start);
   if (opener == null) {
+    const tail = extractOuraTailByMarker(text);
+    if (!tail) {
+      return {
+        ok: false,
+        error: 'Daily log has wearable_biometrics but tail boundary could not be determined.',
+        wearableFenceCount: wearable.length,
+      };
+    }
     return {
-      ok: false,
-      error: 'Daily log has wearable_biometrics JSON but tail boundary could not be determined.',
+      ok: true,
+      hasTail: true,
+      head: text.slice(0, text.length - tail.length),
+      tail,
       wearableFenceCount: wearable.length,
     };
   }
@@ -146,31 +221,47 @@ function splitJournalFile(content) {
  */
 
 /**
- * Regenerate Tracker-head only; append verbatim Oura-tail when present.
  * @param {string|null|undefined} existingFile
  * @param {string} trackerHeadNew
  * @returns {ComposeResult}
  */
 function composeJournalFile(existingFile, trackerHeadNew) {
-  const headNew = trackerHeadNew == null ? '' : String(trackerHeadNew);
-  const split = splitJournalFile(existingFile);
+  let headNew = trackerHeadNew == null ? '' : String(trackerHeadNew);
+  const existing = existingFile == null ? '' : String(existingFile);
+  const split = splitJournalFile(existing);
   if (!split.ok) return { ok: false, error: split.error };
   if (!split.hasTail) {
+    if (existing.includes('"wearable_biometrics"')) {
+      const tail = extractOuraTailByMarker(existing);
+      if (tail) {
+        if (headNew.length && !headNew.endsWith('\n') && !tail.startsWith('\n')) headNew += '\n';
+        return { ok: true, file: headNew + tail };
+      }
+      return {
+        ok: false,
+        error:
+          'Daily log contains Oura data but the tail could not be preserved. Drive sync skipped to avoid data loss.',
+      };
+    }
     return { ok: true, file: headNew };
+  }
+  if (headNew.length && !headNew.endsWith('\n') && split.tail && !split.tail.startsWith('\n')) {
+    headNew += '\n';
   }
   return { ok: true, file: headNew + split.tail };
 }
 
 /**
- * Optional read-only parse of wearable block from file (never re-serialize for save).
  * @param {string} content
  * @returns {object|null}
  */
 function parseWearableBiometricsReadOnly(content) {
   const wearable = findWearableFences(String(content || ''));
   if (wearable.length !== 1) return null;
-  const root = wearable[0].parsed;
-  return root && typeof root === 'object' ? root.wearable_biometrics : null;
+  if (wearable[0].parsed && typeof wearable[0].parsed === 'object') {
+    return wearable[0].parsed.wearable_biometrics;
+  }
+  return wearable[0].raw ? {} : null;
 }
 
 global.DT = {
@@ -434,7 +525,15 @@ function touchAppOpenDay(){
   if(prev!==t||prev==null)flushLocalQuiet();
 }
 
+function rAppVersion(){
+  const v=typeof APP_VERSION!=='undefined'?APP_VERSION:'(unknown)';
+  const el=document.getElementById('appVersionLbl');
+  const mm=document.getElementById('appVersionMm');
+  if(el)el.textContent=v;
+  if(mm)mm.textContent='Deployed build — bump src/version.js on every release';
+}
 function init(){
+  rAppVersion();
   ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',!!S.cfg.autoSync);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);setInterval(rH,60000);initSwipe();gDriveCheckHash();
   const en=document.getElementById('eatNm');if(en)en.addEventListener('input',function(){this.classList.remove('eat-miss-err');});
   ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});

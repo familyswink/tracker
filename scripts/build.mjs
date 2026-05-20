@@ -25,10 +25,14 @@ global.DT = {
 `;
 
 const appJs = readFileSync('src/app.js', 'utf8');
+const verSrc = readFileSync('src/version.js', 'utf8');
+const verMatch = verSrc.match(/export const APP_VERSION = '([^']+)'/);
+if (!verMatch) throw new Error('src/version.js must export APP_VERSION');
+const versionBanner = `const APP_VERSION='${verMatch[1]}';\n`;
 
 writeFileSync(
   'dist/app.js',
-  `/* Daily Tracker — dist/app.js (generated; npm run build) */\n${journalPart}\n${appJs}`
+  `/* Daily Tracker — dist/app.js (generated; npm run build) */\n${versionBanner}${journalPart}\n${appJs}`
 );
 
 // Legacy path for bookmarks / old SW caches

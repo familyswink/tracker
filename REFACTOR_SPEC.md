@@ -19,6 +19,12 @@ User-facing behavior is documented in [README.md](README.md). This spec covers *
 | **Same product** | Personal PWA, offline-first, GitHub Pages deploy, `localStorage` + optional Drive |
 | **Incremental delivery** | Small shippable phases; no multi-week “big bang” rewrite |
 
+## 2.1 Release versioning (required)
+
+- **`src/version.js`** exports `APP_VERSION` (e.g. `2026.05.20.2`). **Bump on every user-facing deploy.**
+- `npm run build` injects the version into `dist/app.js`; Settings → **About** shows it.
+- After deploy, confirm the About version matches the commit you expect (PWA may cache until hard refresh).
+
 ## 2. Non-goals (unless decided later)
 
 - Backend server or user accounts

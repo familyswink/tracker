@@ -250,7 +250,15 @@ function touchAppOpenDay(){
   if(prev!==t||prev==null)flushLocalQuiet();
 }
 
+function rAppVersion(){
+  const v=typeof APP_VERSION!=='undefined'?APP_VERSION:'(unknown)';
+  const el=document.getElementById('appVersionLbl');
+  const mm=document.getElementById('appVersionMm');
+  if(el)el.textContent=v;
+  if(mm)mm.textContent='Deployed build — bump src/version.js on every release';
+}
 function init(){
+  rAppVersion();
   ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',!!S.cfg.autoSync);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);setInterval(rH,60000);initSwipe();gDriveCheckHash();
   const en=document.getElementById('eatNm');if(en)en.addEventListener('input',function(){this.classList.remove('eat-miss-err');});
   ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});

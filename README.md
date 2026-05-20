@@ -3,7 +3,7 @@
 A personal health tracking app for supplements, food, water, activity, and daily notes. Runs entirely in the browser — no account required. Data lives in your browser's local storage and can be synced to Google Drive.
 
 **Refactor plan:** see [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for phased architecture work, invariants, and acceptance criteria.  
-**Developers:** Edit `src/app.js`, run `npm run build` (writes `dist/app.js`), then `npm test`. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).
+**Developers:** Edit `src/app.js`, bump **`src/version.js`** on every release, run `npm run build`, then `npm test`. Settings → About shows the deployed version. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).
 
 ---
 

@@ -57,9 +57,10 @@ Implement detection by **parse**, not loose regex:
 
 1. Find fenced code blocks marked `json` (triple-backtick fences).
 2. Parse each block’s JSON.
-3. The Oura-tail starts at the `---` above the **last** fence whose JSON includes a `wearable_biometrics` object (blank lines between `---` and the fence are OK). If the injector omitted `---`, the tail starts at that fence’s opening ` ```json `.
-4. **Zero** such fences → no Oura-tail → save Tracker-head only.
-5. **More than one** wearable fence → use the **last** block (bottom of file); earlier blocks are ignored.
+3. The Oura-tail starts at the `---` above the **last** fence whose content includes `wearable_biometrics` (blank lines between `---` and the fence are OK). JSON does not have to parse. If the injector omitted `---`, the tail starts at that fence’s opening ` ```json `.
+4. If Oura data is present but the tail cannot be extracted, Tracker **must not** write a head-only file (that would delete Oura).
+5. **Zero** wearable markers → save Tracker-head only.
+6. **More than one** wearable fence → use the **last** block (bottom of file).
 
 Do not use a loose regex for `script_execution_utc_timestamp` across the whole file.
 

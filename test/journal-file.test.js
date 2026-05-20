@@ -6,6 +6,7 @@ import {
   isWearableOnlyRoot,
   findWearableFences,
   parseWearableBiometricsReadOnly,
+  extractOuraTailByMarker,
 } from '../src/domain/journal-file.js';
 
 const TRACKER_HEAD = `# Monday — 2026-05-19
@@ -96,6 +97,23 @@ describe('splitJournalFile', () => {
     const r = splitJournalFile(TRACKER_HEAD + tail);
     assert.equal(r.ok, true);
     assert.equal(r.hasTail, true);
+  });
+
+  it('preserves tail when wearable JSON does not parse', () => {
+    const tail = '---\n```json\n{ "wearable_biometrics": { "score": 1, }\n```\n';
+    const file = TRACKER_HEAD + tail;
+    const r = composeJournalFile(file, TRACKER_HEAD.replace('32', '40'));
+    assert.equal(r.ok, true);
+    assert.ok(r.file.includes('"score": 1'));
+    assert.ok(r.file.includes('40'));
+  });
+});
+
+describe('extractOuraTailByMarker', () => {
+  it('returns tail slice from --- before marker', () => {
+    const tail = extractOuraTailByMarker(FULL);
+    assert.ok(tail);
+    assert.ok(tail.includes('wearable_biometrics'));
   });
 });
 
