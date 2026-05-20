@@ -1,5 +1,5 @@
-const CACHE='dt6-sw-v7';
-const SHELL=['/tracker/','/tracker/index.html'];
+const CACHE='dt6-sw-v9';
+const SHELL=['/tracker/','/tracker/index.html','/tracker/styles.css','/tracker/dist/app.js'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));

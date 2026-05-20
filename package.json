@@ -4,6 +4,11 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/**/*.test.js",
-    "test:tz": "TZ=America/Chicago node --test test/**/*.test.js && TZ=UTC node --test test/**/*.test.js"
+    "test:tz": "TZ=America/Chicago node --test test/**/*.test.js && TZ=UTC node --test test/**/*.test.js",
+    "build": "node scripts/build.mjs",
+    "extract": "node scripts/extract-phase1.mjs && node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.5"
   }
 }

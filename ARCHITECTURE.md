@@ -1,6 +1,10 @@
 # Daily Tracker — Architecture
 
-This app is a client-only PWA (`index.html` + `sw.js`). Refactor work is governed by **[REFACTOR_SPEC.md](REFACTOR_SPEC.md)**.
+This app is a client-only PWA: `index.html` (shell), `styles.css`, `dist/app.js` (built from `src/app.js` + journal helpers), and `sw.js`. Refactor work is governed by **[REFACTOR_SPEC.md](REFACTOR_SPEC.md)**.
+
+**Build before deploy:** `npm run build` (writes `dist/app.js`). Edit app logic in `src/app.js`, then rebuild.
+
+**Daily log files** on Drive are co-authored with **oura_loader**. Tracker regenerates only the Tracker-head and preserves the Oura-tail verbatim — see **[docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md)**.
 
 ## Invariants (summary)
 

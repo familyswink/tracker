@@ -3,7 +3,7 @@
 A personal health tracking app for supplements, food, water, activity, and daily notes. Runs entirely in the browser — no account required. Data lives in your browser's local storage and can be synced to Google Drive.
 
 **Refactor plan:** see [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for phased architecture work, invariants, and acceptance criteria.  
-**Developers:** `npm install && npm test` — see [ARCHITECTURE.md](ARCHITECTURE.md).
+**Developers:** Edit `src/app.js`, run `npm run build` (writes `dist/app.js`), then `npm test`. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).
 
 ---
 
@@ -69,7 +69,7 @@ Write a quick note for the day. Tap **History** to browse and edit past notes.
 ### Log
 View today's full log as a formatted Markdown document.
 
-- **Sync Drive** — push today's Daily Log (.md with embedded JSON) to Google Drive (signs in with Google on first use)
+- **Sync Drive** — push today's Daily Log (.md with embedded JSON) to Google Drive (signs in with Google on first use). If the file already has Oura `wearable_biometrics` data at the bottom (from oura_loader), Tracker updates only its own sections and leaves that block unchanged.
 - **Export** — export files for a selected date range
 
 ### Settings
@@ -115,6 +115,8 @@ Log tab → **Export** opens a dialog where you can:
 5. Create folders in Google Drive for MD logs, JSON logs, and backups
 6. In Settings → Drive Folder IDs, paste your **Daily Logs** folder ID and **Backups** folder ID (the string after `/folders/` in the URL — stop before any `?`)
 7. Go to Log tab → **Sync Drive** to authenticate and push your first daily log file
+
+**Oura / wearable data:** Tracker does not fetch or merge Oura ring data. A separate **oura-export** + **oura_loader** pipeline may append a `wearable_biometrics` JSON section at the bottom of the same `.md` file; Tracker preserves that section on sync. See [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).
 
 The token lasts one hour. After expiry, the next sync will redirect to Google sign-in and return automatically.
 

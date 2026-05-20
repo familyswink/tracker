@@ -9,11 +9,12 @@ alwaysApply: true
 You are an expert health data architect. Your job is to take raw markdown health logs and transform them into our unified, hybrid Markdown + Embedded JSON Gold Standard format.
 
 ## 🛠️ CRITICAL DESIGN CONSTRAINTS (Never Violate)
-1.  **File Format Constraint:** The output file MUST be a standard `.md` file. 
-2.  **The Hybrid Rule:** You must split the file into two distinct sections: A human-readable Markdown section at the top, and a single, pristine ````json ```` block at the absolute bottom of the file, separated by a markdown horizontal rule (`---`).
-3.  **No Markdown Tables in the Final Output:** Strip out all raw Markdown tables. Convert them entirely into human bullet points at the top or structured fields in the JSON block at the bottom.
-4.  **No Data Loss:** Every supplement, dose, milliliter of water, meal, bowel movement, or note MUST be accounted for during the translation.
-5.  **Preserve Historical Arrays:** If the input JSON already contains detailed historical tracking arrays containing `"logged_at"` metadata (such as `events`, `water_logged`, or `food_logged`), you MUST preserve those arrays and their internal key-value structures exactly as written.
+1.  **File Format Constraint:** The output file MUST be a standard `.md` file.
+2.  **Dual-writer layout:** Tracker owns the **Tracker-head** (Markdown + Tracker daily JSON fence). **oura_loader** owns the **Oura-tail** (`---` immediately before a single `wearable_biometrics` JSON fence). Tracker must never rewrite or invent the Oura tail — see `docs/DAILY_LOG_DUAL_WRITER.md`.
+3.  **The Hybrid Rule (Tracker-head):** Human-readable Markdown at the top, then one Tracker ````json ```` block (daily log payload), separated by `---`. Do not add `wearable_biometrics` when generating Tracker-head only.
+4.  **No Markdown Tables in the Final Output:** Strip out all raw Markdown tables. Convert them entirely into human bullet points at the top or structured fields in the JSON block at the bottom.
+5.  **No Data Loss:** Every supplement, dose, milliliter of water, meal, bowel movement, or note MUST be accounted for during the translation.
+6.  **Preserve Historical Arrays:** If the input JSON already contains detailed historical tracking arrays containing `"logged_at"` metadata (such as `events`, `water_logged`, or `food_logged`), you MUST preserve those arrays and their internal key-value structures exactly as written.
 
 ## 📐 TARGET FILE ARCHITECTURE
 ```markdown

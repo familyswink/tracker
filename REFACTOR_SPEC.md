@@ -107,6 +107,16 @@ Commits on Save (when non-empty):
 - One-time migrations run in `migrateStoredLogsOnce()` (or successor), idempotent, flagged in `S.cfg`.
 - **No destructive migration** without user confirm (except existing “Clear logs before today” setting).
 
+### 4.7 Dual-writer daily logs (Tracker + oura_loader)
+
+Normative detail: **[docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md)**.
+
+- **Tracker-head:** Markdown + Tracker daily JSON (`gDailyLogForDate` / `generate_daily_log.py` parity). Regenerated on every Drive sync / export save.
+- **Oura-tail:** `---` immediately before a single fenced JSON block whose root is **only** `{ "wearable_biometrics": … }`. Preserved **byte-for-byte** when present; never invented by Tracker.
+- **Save path:** `driveRead` → `composeJournalFile(existing, trackerHeadNew)` → `driveWrite`. No Oura API, no injector, no `JSON.stringify` on wearable bytes.
+- **Corrupt file** (two wearable fences): refuse save; surface error (no silent repair).
+- **Read-only:** `parseWearableBiometricsReadOnly` for UI display only.
+
 ---
 
 ## 5. Target architecture (end state)
@@ -115,8 +125,9 @@ Commits on Save (when non-empty):
 tracker/
   REFACTOR_SPEC.md          # this file
   README.md
-  index.html                # shell: markup + link to bundle (phase 1+)
-  styles.css                # optional extract from index (phase 1+)
+  index.html                # shell: markup + overlays only
+  styles.css                # app styles (extracted phase 1)
+  dist/app.js               # built bundle (journal + app; npm run build)
   sw.js
   package.json              # phase 1+: esbuild
   src/
@@ -171,7 +182,7 @@ tracker/
 **Deliverables**
 
 - [x] This file committed (`REFACTOR_SPEC.md`)
-- [x] `ARCHITECTURE.md` — short pointer to invariants §4 (optional duplicate trim later)
+- [x] `ARCHITECTURE.md` — short pointer to invariants §4
 - [x] `package.json` + Node built-in test runner (`node --test`)
 - [x] `test/date.test.js` — `isoToLocalYMD`, `dateAndTimeToISO` (local TZ cases)
 - [x] `test/food-session.test.js` — `gTFQ` / `gDFQ` / `bumpFlSave` behavior with fixture `S.fl`
@@ -189,15 +200,17 @@ tracker/
 
 ### Phase 1 — Module extraction + bundle
 
-**Purpose:** Split monolith without changing UX; enable real imports and dead-code visibility.
+**Purpose:** Split monolith without changing UX; enable real imports and dead-code visibility; enforce dual-writer daily log saves.
 
 **Deliverables**
 
-- [ ] Extract `src/core/date.js`, `src/domain/food.js`, … per §5 (minimum: date, food, store)
-- [ ] esbuild bundle; `index.html` loads bundle
-- [ ] CSS extract to `styles.css` (optional but recommended)
-- [ ] Archive or delete `scripts/apply_*.py`, `scripts/_patch_ui.py` (keep `generate_daily_log.py`)
-- [ ] Tests import from `src/` modules, not duplicated logic
+- [x] Extract `src/core/date.js`, `src/domain/food.js`, `src/domain/journal-file.js`, `src/session/save.js` (minimum set)
+- [x] Bundle `dist/app.js` via `npm run build` (`scripts/build.mjs`); `index.html` shell loads it
+- [x] Dual-writer save: `driveRead` + `composeJournalFile` on Drive sync, export, local folder export
+- [x] `test/journal-file.test.js` + `docs/DAILY_LOG_DUAL_WRITER.md`
+- [x] Archive `scripts/apply_*.py`, `scripts/_patch_ui.py` → `scripts/archive/` (keep `generate_daily_log.py`)
+- [x] App logic in `src/app.js`; CSS in `styles.css`; `index.html` is markup + overlays only
+- [ ] Wire `src/app.js` to import `date` / `food` / `save` (remove duplicate helpers in app — Phase 1.1 or Phase 2)
 
 **Acceptance criteria**
 
@@ -278,8 +291,8 @@ tracker/
 
 | Phase | Status | Completed | Notes |
 |-------|--------|-----------|-------|
-| 0 | Complete | 2026-05-19 | `src/` modules + Vitest; `index.html` unchanged |
-| 1 | Not started | — | |
+| 0 | Complete | 2026-05-19 | `src/` modules + `node --test` |
+| 1 | Complete | 2026-05-19 | `styles.css`, `src/app.js`, `dist/app.js`; dual-writer on Drive save |
 | 2 | Not started | — | |
 | 3 | Not started | — | |
 | 4 | Not started | — | Optional |
@@ -301,6 +314,7 @@ Run after every phase deploy:
 - [ ] **History:** select entry → Edit date/time → entry under correct day
 - [ ] **Notes:** quick note survives Save; empty fields after Save
 - [ ] **Log tab:** today’s markdown renders
+- [ ] **Dual-writer:** file with Oura tail on Drive → Sync → wearable JSON bytes unchanged (§4.7)
 - [ ] **Offline:** airplane mode → app still opens (cached shell)
 
 ---
