@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.2';
+const APP_VERSION='2026.05.20.3';
 /* Daily Tracker — journal (dual-writer) */
 (function (global) {
 'use strict';
@@ -435,6 +435,12 @@ const DAT=[{id:'a1',nm:'Cold Plunge',on:true,flds:[{nm:'Duration',t:'number',u:'
 const BWL_OPTS=[{v:'Normal',d:''},{v:'Loose',d:''},{v:'Watery',d:''},{v:'Hard',d:''}];
 const DAT_BH={id:'a0bh',nm:'Bowel Health',on:true,flds:[{nm:'Bowel Health',t:'opts',opts:[{v:'Normal',d:''},{v:'Loose',d:''},{v:'Watery',d:''},{v:'Hard',d:''}]}]};
 const DWB=[8,16,20,24,32],WT=90;
+const DEFAULT_SUPP_UNITS=['capsule','softgel','tablet','drops','g','mg','mcg','ml','oz','tsp','tbsp','cup','serving','qty'];
+const LEGACY_SUPP_UNIT_MAP=new Map([
+  ['tab','tablet'],['tabs','tablet'],['caps','capsule'],['capsules','capsule'],
+  ['softgels','softgel'],['gelcap','capsule'],['pill','tablet'],['pills','tablet'],
+  ['drop','drops'],['tb','tablet']
+]);
 const SGP=[{id:'morning-water',lb:'Wake-up'},{id:'breakfast',lb:'Breakfast'},{id:'lunch',lb:'Lunch'},{id:'dinner',lb:'Dinner'},{id:'bedtime',lb:'Bed'},{id:'other',lb:'Other'}];
 const DRIVE_IDS={dailyLogs:'',backups:''};
 const GOOGLE_CLIENT_ID='506786550667-avuia963fvu1o32hjvgdq142u6f6jhn6.apps.googleusercontent.com';
@@ -449,7 +455,7 @@ const IDB_FS_STORE='kv';
 const IDB_KEY_LOCAL_EXPORT_DIR='localExportDir';
 
 const STORAGE_KEY='dt6';
-let S={gdt:null,flSave:null,sm:[],sch:[],sl:[],wb:[...DWB],wl:[],fd:[],meals:[],fl:[],ind:[],acts:[],al:[],bwl:[],fnotes:[],snotes:[],notes:[],exportModDates:[],foodGroups:[],suppGroups:[],cfg:{autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}}};
+let S={gdt:null,flSave:null,sm:[],sch:[],sl:[],wb:[...DWB],wl:[],fd:[],meals:[],fl:[],ind:[],acts:[],al:[],bwl:[],fnotes:[],snotes:[],notes:[],exportModDates:[],foodGroups:[],suppGroups:[],suppUnits:[],cfg:{autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}}};
 let _ovStack=[],_esmId=null,_escId=null,_efiId=null,_emId=null,_eatId=null;
 let _cSLId=null,_cSSId=null,_cWLId=null,_cFId=null,_cALId=null,_cATId=null,_cNId=null,_cFNId=null,_cSNId=null,_cIId=null,_cMId=null;
 let _hType=null,_hData=[],_hDataAll=[],_hFilterDay='',_hSel=new Set(),_hSelMode=true;
@@ -458,6 +464,26 @@ let _listPickCtx=null;
 let _bwlMigrated=false;
 let _localExportDirPromise=null,_migratedDriveOff=false;
 let _gToken=null,_gTokenExpiry=0;
+
+function canonSuppUnitLabel(u){
+  const t=String(u||'').trim();
+  if(!t)return'';
+  const m=LEGACY_SUPP_UNIT_MAP.get(t.toLowerCase());
+  return m||t;
+}
+function normalizeSuppUnitsInState(){
+  if(!Array.isArray(S.suppUnits)||!S.suppUnits.length)S.suppUnits=[...DEFAULT_SUPP_UNITS];
+  const seen=new Set();
+  S.suppUnits=S.suppUnits.map(x=>String(x).trim()).filter(x=>{
+    if(!x||seen.has(x))return false;
+    seen.add(x);return true;
+  });
+  S.sm.forEach(m=>{const c=canonSuppUnitLabel(m.units);if(c)m.units=c;});
+  S.sm.forEach(m=>{
+    const u=String(m.units||'').trim();
+    if(u&&!seen.has(u)){S.suppUnits.push(u);seen.add(u);}
+  });
+}
 
 function normalizeS(){
   const needArr=k=>{if(!Array.isArray(S[k]))S[k]=[];};
@@ -489,6 +515,7 @@ function normalizeS(){
   _modDates=new Set(S.exportModDates);
   if(!Array.isArray(S.foodGroups)||!S.foodGroups.length){S.foodGroups=[...new Set((S.fd||[]).map(f=>f.sec).filter(Boolean))];}
   if(!Array.isArray(S.suppGroups)||!S.suppGroups.length){S.suppGroups=JSON.parse(JSON.stringify(SGP));}
+  normalizeSuppUnitsInState();
 }
 function syncExportModDatesIntoS(){
   S.exportModDates=[..._modDates].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
@@ -522,10 +549,11 @@ function ld(){
   if(_migratedDriveOff){_migratedDriveOff=false;flushLocalQuiet();}
   if(_bwlMigrated){_bwlMigrated=false;flushLocalQuiet();}
 }
-function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));_modDates=new Set();}
+function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
 
 function gFoodGroups(){return(S.foodGroups&&S.foodGroups.length)?S.foodGroups:[...new Set(S.fd.filter(f=>f.on).map(f=>f.sec).filter(Boolean))];}
 function gSuppGroups(){return(S.suppGroups&&S.suppGroups.length)?S.suppGroups:SGP;}
+function gSuppUnits(){return(S.suppUnits&&S.suppUnits.length)?S.suppUnits.slice():[...DEFAULT_SUPP_UNITS];}
 function suppSortKey(m){return ((m&&m.name)||'').toLowerCase()+'\t'+((m&&m.mfr)||'').toLowerCase();}
 function smLabel(m){if(!m)return'?';return (m.mfr?m.mfr+' \u2014 ':'')+m.name;}
 function sortedSm(){return [...S.sm].sort((a,b)=>suppSortKey(a).localeCompare(suppSortKey(b)));}
@@ -946,9 +974,50 @@ function rMSL(){
     c.appendChild(div);
   });
 }
-function oESM(id){_esmId=id;const m=id?S.sm.find(x=>x.id===id):null;document.getElementById('esmT').textContent=id?'Edit Supplement':'Add Supplement';document.getElementById('esmMfr').value=m?.mfr||'';document.getElementById('esmNm').value=m?.name||'';document.getElementById('esmU').value=m?.units||'';document.getElementById('esmRt').value=m?.rat||'';document.getElementById('esmDl').style.display=id?'block':'none';openOvPush('ovESM');}
-function cfESM(){const d={mfr:document.getElementById('esmMfr').value,name:document.getElementById('esmNm').value,units:document.getElementById('esmU').value,rat:document.getElementById('esmRt').value};if(_esmId){const m=S.sm.find(x=>x.id===_esmId);if(m)Object.assign(m,d);}else S.sm.push({id:uid(),...d});sv();popOv();rMSL();rS();shT('Saved');}
+function oESM(id){_esmId=id;const m=id?S.sm.find(x=>x.id===id):null;document.getElementById('esmT').textContent=id?'Edit Supplement':'Add Supplement';document.getElementById('esmMfr').value=m?.mfr||'';document.getElementById('esmNm').value=m?.name||'';fillSuppUnitsSelect(document.getElementById('esmU'),m?.units||'');document.getElementById('esmRt').value=m?.rat||'';document.getElementById('esmDl').style.display=id?'block':'none';openOvPush('ovESM');}
+function cfESM(){const d={mfr:document.getElementById('esmMfr').value,name:document.getElementById('esmNm').value,units:document.getElementById('esmU').value,rat:document.getElementById('esmRt').value};if(_esmId){const m=S.sm.find(x=>x.id===_esmId);if(m)Object.assign(m,d);}else S.sm.push({id:uid(),...d});normalizeSuppUnitsInState();sv();popOv();rMSL();rS();shT('Saved');}
 function dSM(){S.sm=S.sm.filter(x=>x.id!==_esmId);S.sch=S.sch.filter(x=>x.mid!==_esmId);sv();popOv();rMSL();rS();}
+function fillSuppUnitsSelect(sel,val){
+  const units=gSuppUnits();
+  const v=String(val||'').trim();
+  sel.innerHTML='';
+  const z=document.createElement('option');z.value='';z.textContent='\u2014 select unit \u2014';sel.appendChild(z);
+  units.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});
+  if(v&&!units.includes(v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (custom)';sel.appendChild(o);}
+  if(v)sel.value=v;
+}
+function refreshEsmUnitSelect(){const sel=document.getElementById('esmU');if(!sel)return;fillSuppUnitsSelect(sel,sel.value);}
+function oMSUp(){rMSUp();openOvPush('ovMSUp');}
+function rMSUp(){
+  const c=document.getElementById('msuL');if(!c)return;
+  c.innerHTML='';
+  gSuppUnits().forEach((u,i)=>{
+    const div=document.createElement('div');div.className='mi';
+    const left=document.createElement('div');left.className='mii';
+    left.innerHTML='<div class="mn">'+escHTML(u)+'</div>';
+    const right=document.createElement('div');right.className='mia';
+    const del=document.createElement('button');del.type='button';del.className='bdl';del.style.padding='6px 12px';del.style.fontSize='11px';del.textContent='Delete';
+    del.onclick=e=>{e.stopPropagation();delSuppUnit(i);};
+    right.appendChild(del);
+    div.appendChild(left);div.appendChild(right);
+    c.appendChild(div);
+  });
+}
+function cfMSUpDone(){popOv();refreshEsmUnitSelect();}
+function addSuppUnit(){
+  const nm=prompt('New unit label:');if(!nm||!nm.trim())return;
+  const u=nm.trim();
+  if(!S.suppUnits)S.suppUnits=[];
+  if(S.suppUnits.includes(u)){shT('Unit already exists');return;}
+  S.suppUnits.push(u);sv();rMSUp();refreshEsmUnitSelect();shT('Unit added');
+}
+function delSuppUnit(i){
+  const units=gSuppUnits();
+  const u=units[i];if(u===undefined)return;
+  const inUse=S.sm.some(m=>String(m.units||'')===u);
+  if(inUse&&!confirm('"'+u+'" is used by at least one supplement. Remove this label from the list anyway?'))return;
+  S.suppUnits.splice(i,1);sv();rMSUp();refreshEsmUnitSelect();shT('Unit removed');
+}
 function oMSC(){rMSCL();openOvRoot('ovMSC');}
 function rMSCL(){
   const c=document.getElementById('mscL');c.innerHTML='';
@@ -1206,12 +1275,32 @@ function actQuickField(a){
   if(!a.flds||a.flds.length!==1)return null;
   const f=a.flds[0];
   if(f.t==='yesno')return{field:f,type:'yesno'};
-  if(f.t==='opts'&&f.opts&&f.opts.length>=1&&f.opts.length<=5&&!f.multi)return{field:f,type:'opts'};
+  if(f.t==='opts'&&f.opts&&f.opts.length>=1&&f.opts.length<=5)return{field:f,type:'opts'};
   return null;
 }
-function pendOtherAct(aid,fieldNm,val){
-  if(_otherSt[aid]&&_otherSt[aid].val===val){delete _otherSt[aid];}
-  else{_otherSt[aid]={fieldNm,val};}
+function sortPendingOptsVals(vals,optsOrder){
+  if(!optsOrder||!optsOrder.length)return vals;
+  const idx=v=>{const i=optsOrder.indexOf(v);return i<0?optsOrder.length:i};
+  return [...vals].sort((a,b)=>idx(a)-idx(b));
+}
+function pendOtherAct(aid,fieldNm,val,isMulti,optsOrder){
+  if(isMulti){
+    const cur=_otherSt[aid];
+    let vals=[];
+    if(cur&&cur.fieldNm===fieldNm){
+      if(Array.isArray(cur.vals))vals=cur.vals.slice();
+      else if(cur.val!==undefined&&cur.val!==null&&String(cur.val)!=='')vals=[String(cur.val)];
+    }
+    const sv=String(val);
+    const ix=vals.indexOf(sv);
+    if(ix>=0)vals.splice(ix,1);else vals.push(sv);
+    vals=sortPendingOptsVals(vals,optsOrder);
+    if(vals.length===0)delete _otherSt[aid];
+    else _otherSt[aid]={fieldNm,vals,multi:true};
+    rA();return;
+  }
+  if(_otherSt[aid]&&_otherSt[aid].val===val)delete _otherSt[aid];
+  else _otherSt[aid]={fieldNm,val};
   rA();
 }
 function rA(){
@@ -1225,17 +1314,27 @@ function rA(){
       const stacked=qf.type==='opts'&&qf.field.opts.length>=3;
       card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
       const pend=_otherSt[a.id];
+      const pendVals=new Set(
+        pend&&pend.fieldNm===qf.field.nm
+          ? (pend.multi&&Array.isArray(pend.vals)?pend.vals:(pend.val!==undefined&&pend.val!==null&&String(pend.val)!==''?[String(pend.val)]:[]))
+          : []
+      );
+      let pendDisp='';
+      if(pend&&pend.fieldNm===qf.field.nm){
+        if(pend.multi&&Array.isArray(pend.vals)&&pend.vals.length)pendDisp=pend.vals.join(', ');
+        else if(!pend.multi&&pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')pendDisp=String(pend.val);
+      }
       const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for new entry'+(pend?' · pending: '+pend.val:'')):(pend?'Pending: '+pend.val:'Tap for new entry · name for notes');
-      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(pend?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
+      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for new entry'+(pendDisp?' · pending: '+pendDisp:'')):(pendDisp?'Pending: '+pendDisp:'Tap for new entry · name for notes');
+      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(pendDisp?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       const opts=qf.type==='yesno'?['Yes','No']:qf.field.opts.map(o=>o.v);
       opts.forEach(v=>{
-        const isPend=pend&&pend.val===v;
+        const isPend=pendVals.has(v);
         const b=document.createElement('div');
         b.className='aqb'+(isPend?' aqbp':'');
         b.textContent=v;
-        b.addEventListener('click',ev=>{ev.stopPropagation();pendOtherAct(a.id,qf.field.nm,v);});
+        b.addEventListener('click',ev=>{ev.stopPropagation();pendOtherAct(a.id,qf.field.nm,v,qf.field.multi,qf.field.opts.map(o=>o.v));});
         btnsDiv.appendChild(b);
       });
       card.appendChild(left);card.appendChild(btnsDiv);
@@ -1390,10 +1489,13 @@ function mkEatOptsWrap(f){
   if(!(f?.opts||[]).length)appendEatOptRow(wrap,addBtn,null);
   return wrap;
 }
-/** Checkbox in setup: List fields may allow toggling multiple choices when logging (no quick-chip row — use full form). */
+/** Checkbox in setup: List fields may allow multiple selections when logging (quick-log chips support multi too). */
 function appendEatOptsMultiCheckbox(row,f){
   const lab=document.createElement('label');lab.className='eat-multi-row';
-  const cb=document.createElement('input');cb.type='checkbox';cb.className='eat-opt-multi';cb.checked=!!f?.multi;
+  const cid='eat-multi-'+uid();
+  const cb=document.createElement('input');cb.type='checkbox';cb.className='eat-opt-multi';cb.id=cid;cb.checked=!!f?.multi;
+  cb.addEventListener('click',e=>e.stopPropagation());
+  lab.htmlFor=cid;
   lab.appendChild(cb);lab.appendChild(document.createTextNode('Allow multiple selections'));
   row.appendChild(lab);
 }
@@ -1751,7 +1853,7 @@ function gConfigSnapshot(){
   return{
     saved_at:now(),
     snapshot_local_date:isoToLocalYMD(now()),
-    sm:S.sm,sch:S.sch,fd:S.fd,meals:S.meals,acts:S.acts,wb:S.wb,cfg:S.cfg
+    sm:S.sm,sch:S.sch,fd:S.fd,meals:S.meals,acts:S.acts,wb:S.wb,cfg:S.cfg,suppUnits:S.suppUnits
   };
 }
 function gConfigSnapshotJSON(){return JSON.stringify(gConfigSnapshot(),null,2);}
@@ -2244,7 +2346,7 @@ async function svAll(){
   }
   const oaids=Object.keys(_otherSt);
   if(oaids.length){
-    oaids.forEach(aid=>{const st=_otherSt[aid];const flds={};flds[st.fieldNm]=st.val;const id2=uid();S.al.push({id:id2,aid,dt:batchDt,la:now(),flds,nt:''});addedAL.push(id2);});
+    oaids.forEach(aid=>{const st=_otherSt[aid];const flds={};if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;else flds[st.fieldNm]=st.val;const id2=uid();S.al.push({id:id2,aid,dt:batchDt,la:now(),flds,nt:''});addedAL.push(id2);});
     markMod(batchDay);
   }
   const prevFl=S.flSave,prevG=S.gdt;

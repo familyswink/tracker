@@ -116,6 +116,7 @@ input[type="time"]{min-height:44px}
 .fr2{display:flex;gap:9px}
 .fr2 .fld{flex:1;margin-bottom:0}
 input,textarea,select{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:11px 12px;color:var(--tx);font-family:Courier New,monospace;font-size:16px;outline:none;-webkit-appearance:none;transition:border-color .2s;box-sizing:border-box}
+input[type=checkbox],input[type=radio]{width:auto;height:auto;min-width:18px;min-height:18px;padding:8px;-webkit-appearance:auto;appearance:auto;border-radius:4px}
 select{min-height:44px;font-size:16px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%235a5a7a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 input:focus,textarea:focus,select:focus{border-color:var(--gr)}
 textarea{resize:none;height:75px;line-height:1.5}
@@ -171,7 +172,7 @@ textarea{resize:none;height:75px;line-height:1.5}
 .pick-li .pl-nm{font-size:13px;font-weight:600}
 .pick-li .pl-mm{font-family:Courier New,monospace;font-size:9px;color:var(--mt);margin-top:2px}
 .eat-multi-row{display:flex;align-items:center;gap:8px;margin-top:9px;font-family:Courier New,monospace;font-size:11px;color:var(--tx);cursor:pointer;user-select:none}
-.eat-multi-row input{width:15px;height:15px;margin:0;cursor:pointer;flex-shrink:0;accent-color:var(--gr)}
+.eat-multi-row input{width:18px;height:18px;margin:0;padding:0;cursor:pointer;flex-shrink:0;accent-color:var(--gr);-webkit-appearance:auto;appearance:auto;border-radius:4px;background:var(--sf2)}
 .hd{margin-bottom:14px}
 .hdl2{font-family:Courier New,monospace;font-size:9px;letter-spacing:1px;color:var(--mt);text-transform:uppercase;margin-bottom:5px;padding-left:2px}
 .he{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:11px 13px;margin-bottom:5px;display:flex;align-items:center;gap:9px;width:100%;cursor:pointer}
