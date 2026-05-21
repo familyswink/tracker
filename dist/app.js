@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.3';
+const APP_VERSION='2026.05.20.4';
 /* Daily Tracker — journal (dual-writer) */
 (function (global) {
 'use strict';
@@ -470,6 +470,21 @@ function canonSuppUnitLabel(u){
   if(!t)return'';
   const m=LEGACY_SUPP_UNIT_MAP.get(t.toLowerCase());
   return m||t;
+}
+/** Map saved catalog unit string to a dropdown value present in `units` (exact, legacy canon, or case-insensitive). */
+function resolveSuppUnitForSelect(saved,units){
+  const raw=String(saved||'').trim();
+  if(!raw)return'';
+  if(units.includes(raw))return raw;
+  const canon=canonSuppUnitLabel(raw);
+  if(units.includes(canon))return canon;
+  const low=raw.toLowerCase();
+  const hit=units.find(x=>x.toLowerCase()===low);
+  if(hit)return hit;
+  const lowC=canon.toLowerCase();
+  const hit2=units.find(x=>x.toLowerCase()===lowC);
+  if(hit2)return hit2;
+  return raw;
 }
 function normalizeSuppUnitsInState(){
   if(!Array.isArray(S.suppUnits)||!S.suppUnits.length)S.suppUnits=[...DEFAULT_SUPP_UNITS];
@@ -977,17 +992,23 @@ function rMSL(){
 function oESM(id){_esmId=id;const m=id?S.sm.find(x=>x.id===id):null;document.getElementById('esmT').textContent=id?'Edit Supplement':'Add Supplement';document.getElementById('esmMfr').value=m?.mfr||'';document.getElementById('esmNm').value=m?.name||'';fillSuppUnitsSelect(document.getElementById('esmU'),m?.units||'');document.getElementById('esmRt').value=m?.rat||'';document.getElementById('esmDl').style.display=id?'block':'none';openOvPush('ovESM');}
 function cfESM(){const d={mfr:document.getElementById('esmMfr').value,name:document.getElementById('esmNm').value,units:document.getElementById('esmU').value,rat:document.getElementById('esmRt').value};if(_esmId){const m=S.sm.find(x=>x.id===_esmId);if(m)Object.assign(m,d);}else S.sm.push({id:uid(),...d});normalizeSuppUnitsInState();sv();popOv();rMSL();rS();shT('Saved');}
 function dSM(){S.sm=S.sm.filter(x=>x.id!==_esmId);S.sch=S.sch.filter(x=>x.mid!==_esmId);sv();popOv();rMSL();rS();}
-function fillSuppUnitsSelect(sel,val){
+function fillSuppUnitsSelect(sel,valRaw){
+  if(!sel)return;
   const units=gSuppUnits();
-  const v=String(val||'').trim();
+  const pick=resolveSuppUnitForSelect(valRaw,units);
   sel.innerHTML='';
   const z=document.createElement('option');z.value='';z.textContent='\u2014 select unit \u2014';sel.appendChild(z);
   units.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;sel.appendChild(o);});
-  if(v&&!units.includes(v)){const o=document.createElement('option');o.value=v;o.textContent=v+' (custom)';sel.appendChild(o);}
-  if(v)sel.value=v;
+  if(pick&&!units.includes(pick)){const o=document.createElement('option');o.value=pick;o.textContent=pick+' (custom)';sel.appendChild(o);}
+  sel.value=pick||'';
+  if(pick&&sel.value!==pick){
+    const o=document.createElement('option');o.value=pick;o.textContent=pick+' (custom)';sel.appendChild(o);
+    sel.value=pick;
+  }
 }
 function refreshEsmUnitSelect(){const sel=document.getElementById('esmU');if(!sel)return;fillSuppUnitsSelect(sel,sel.value);}
 function oMSUp(){rMSUp();openOvPush('ovMSUp');}
+function oMSUpTab(){rMSUp();openOvRoot('ovMSUp');}
 function rMSUp(){
   const c=document.getElementById('msuL');if(!c)return;
   c.innerHTML='';
