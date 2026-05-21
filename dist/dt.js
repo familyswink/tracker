@@ -2,6 +2,143 @@
 (function (global) {
 'use strict';
 /**
+ * Tracker-head fenced `yaml journal` (`daily-log-requirements-v2` §3).
+ * Deterministic YAML blocks — browser-safe, zero npm deps.
+ */
+
+/** Matches opening fence `\`\`\`yaml journal`. */
+const YAML_JOURNAL_FENCE_MARKER = 'yaml journal';
+
+/**
+ * Omit nullish/empty subtrees (sparse emission §8).
+ *
+ * @param {unknown} v
+ * @returns {unknown | undefined}
+ */
+function pruneSparseJournalTree(v) {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'string') return v.trim() === '' ? undefined : v;
+  if (typeof v !== 'object') return v;
+  if (Array.isArray(v)) {
+    const out = [];
+    for (const el of v) {
+      const p = pruneSparseJournalTree(el);
+      if (p !== undefined) out.push(p);
+    }
+    return out.length === 0 ? undefined : out;
+  }
+  const obj = {};
+  for (const k of Object.keys(v)) {
+    const p = pruneSparseJournalTree(/** @type {Record<string, unknown>} */ (v)[k]);
+    if (p !== undefined) obj[k] = p;
+  }
+  return Object.keys(obj).length === 0 ? undefined : obj;
+}
+
+/**
+ * @param {string} k
+ */
+function yamlKeyScalar(k) {
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k)) return k;
+  return JSON.stringify(k);
+}
+
+/**
+ * @param {unknown} v
+ */
+function yamlScalar(v) {
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : 'null';
+  if (v === null || v === undefined) return 'null';
+  return JSON.stringify(String(v));
+}
+
+/**
+ * YAML list under a key (`key:\n  - …`).
+ *
+ * @param {unknown[]} arr
+ * @param {number} hyphenIndentLevel Indent depth (2 spaces each) where `- ` begins after the parent's key line.
+ */
+function emitArrayYaml(arr, hyphenIndentLevel) {
+  let s = '';
+  const hyphenPad = '  '.repeat(hyphenIndentLevel);
+  for (const raw of arr) {
+    const pr = pruneSparseJournalTree(raw);
+    if (pr === undefined) continue;
+    if (typeof pr !== 'object' || pr === null || Array.isArray(pr)) {
+      if (Array.isArray(pr)) {
+        s += `${hyphenPad}-\n`;
+        s += emitArrayYaml(
+          /** @type {unknown[]} */ (pr),
+          hyphenIndentLevel + 1,
+        );
+        continue;
+      }
+      s += `${hyphenPad}- ${yamlScalar(pr)}\n`;
+      continue;
+    }
+    const o = /** @type {Record<string, unknown>} */ (pr);
+    s += `${hyphenPad}-\n`;
+    s += emitMapYaml(o, hyphenIndentLevel + 1);
+  }
+  return s;
+}
+
+/**
+ * @param {Record<string, unknown>} obj
+ * @param {number} indent nesting level (starts at 0)
+ */
+function emitMapYaml(obj, indent) {
+  const pad = '  '.repeat(indent);
+  let s = '';
+  for (const rawKey of Object.keys(obj)) {
+    const valRaw = /** @type {unknown} */ (obj[rawKey]);
+    const k = yamlKeyScalar(rawKey);
+    const val = pruneSparseJournalTree(valRaw);
+    if (val === undefined) continue;
+
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      s += `${pad}${k}:\n`;
+      s += emitMapYaml(/** @type {Record<string, unknown>} */ (val), indent + 1);
+      continue;
+    }
+    if (Array.isArray(val)) {
+      s += `${pad}${k}:\n`;
+      s += emitArrayYaml(/** @type {unknown[]} */ (val), indent + 1);
+      continue;
+    }
+    s += `${pad}${k}: ${yamlScalar(val)}\n`;
+  }
+  return s;
+}
+
+/**
+ * Produce full `\`\`\`yaml journal … \`\`\`\n` block.
+ *
+ * @param {Record<string, unknown>} payload
+ */
+function formatYamlJournalFenceFromPayload(payload) {
+  const prunedRaw = pruneSparseJournalTree(JSON.parse(JSON.stringify(payload)));
+  const root =
+    typeof prunedRaw === 'object' &&
+    prunedRaw !== null &&
+    !Array.isArray(prunedRaw)
+      ? /** @type {Record<string, unknown>} */ (prunedRaw)
+      : {};
+
+  let body =
+    Object.keys(root).length === 0
+      ? `date: ${yamlScalar(payload?.date)}`
+      : emitMapYaml(root, 0).replace(/\s+$/, '');
+
+  if (!body.trim()) body = `date: ${yamlScalar(payload?.date)}`;
+
+  return (
+    '`'.repeat(3) + YAML_JOURNAL_FENCE_MARKER + `\n${body}\n` + '`'.repeat(3) + '\n'
+  );
+}
+
+/**
  * Dual-writer daily journal (.md): Tracker-head + verbatim Oura-tail.
  * @see docs/DAILY_LOG_DUAL_WRITER.md
  */
@@ -27,7 +164,8 @@ function isWearableOnlyRoot(obj) {
 function findJsonFences(content) {
   const fences = [];
   if (!content) return fences;
-  const re = /(^|\n)```(?:json|JSON)?\s*\r?\n([\s\S]*?)\r?\n```/g;
+  // Require ```json opener — avoids treating ```yaml/closing fences as generic JSON fences.
+  const re = /(^|\n)```(?:json|JSON)\s*\r?\n([\s\S]*?)\r?\n```/g;
   let m;
   while ((m = re.exec(content)) !== null) {
     const openerLen = m[1] ? m[1].length : 0;
@@ -84,7 +222,7 @@ function wearableFenceSpanByMarker(content) {
   if (midx < 0) return null;
   const before = content.slice(0, midx);
   let openIdx = -1;
-  for (const tag of ['```json', '```JSON', '```']) {
+  for (const tag of ['```json', '```JSON']) {
     const i = before.lastIndexOf(tag);
     if (i > openIdx) openIdx = i;
   }
@@ -160,7 +298,6 @@ function extractOuraTailByMarker(content) {
   const fence = Math.max(
     before.lastIndexOf('\n```json'),
     before.lastIndexOf('\n```JSON'),
-    before.lastIndexOf('\n```')
   );
   let start = -1;
   if (sep >= 0 && (fence < 0 || sep > fence)) start = sep + 1;
@@ -183,6 +320,14 @@ function splitJournalFile(content) {
     return { ok: true, hasTail: false, head: '', tail: null, wearableFenceCount: 0 };
   }
   const wearable = findWearableFences(text);
+  if (wearable.length > 1) {
+    return {
+      ok: false,
+      error:
+        'Daily log has more than one wearable_biometrics JSON fence. Leave only one tail block before saving.',
+      wearableFenceCount: wearable.length,
+    };
+  }
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }
@@ -268,5 +413,8 @@ global.DT = {
   parseWearableBiometricsReadOnly,
   isWearableOnlyRoot,
   findJsonFences,
+  formatYamlJournalFenceFromPayload,
+  pruneSparseJournalTree,
+  YAML_JOURNAL_FENCE_MARKER,
 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

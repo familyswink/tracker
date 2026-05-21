@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate hybrid Daily Log .md files from a Daily Tracker backup JSON."""
+"""Generate Daily Log Markdown from a Tracker backup (# daily-log-requirements-v2 fenced `yaml journal`)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,8 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+import yaml
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -36,12 +37,45 @@ def on_log_day(iso: str | None, dt: str) -> bool:
     return bool(iso) and str(iso)[:10] == dt
 
 
-def la_stamp(iso: str) -> str:
+FOOT_FENCE_MARKER = "yaml journal"  # synced with tracker/src/domain/journal-yaml-format.js
+
+
+def la_stamp(iso: str | None, fallback_iso: str = "") -> str:
+    raw = str(iso or fallback_iso).strip()
+    if not raw:
+        return ""
     try:
-        d = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        d = datetime.fromisoformat(raw.replace("Z", "+00:00").replace(" ", "T", 1))
     except ValueError:
         return ""
-    return d.strftime("%Y-%m-%d %H:%M")
+    if d.tzinfo is None:
+        d = d.replace(tzinfo=timezone.utc)
+    return d.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def prune_sparse_journal(v: Any) -> Any | None:
+    """Subset of tracker sparse rule — omit empties before YAML fencing."""
+    if v is None:
+        return None
+    if isinstance(v, str):
+        return None if not v.strip() else v
+    if isinstance(v, (bool, int, float)):
+        return v
+    if isinstance(v, list):
+        out = []
+        for x in v:
+            px = prune_sparse_journal(x)
+            if px is not None:
+                out.append(px)
+        return out if out else None
+    if isinstance(v, dict):
+        out_d: dict[str, Any] = {}
+        for k, x in v.items():
+            px = prune_sparse_journal(x)
+            if px is not None:
+                out_d[k] = px
+        return out_d if out_d else None
+    return None
 
 
 def f12(iso: str) -> str:
@@ -365,7 +399,16 @@ def build_markdown_top(state: dict[str, Any], dt: str, payload: dict[str, Any]) 
 def generate_daily_log(state: dict[str, Any], dt: str) -> str:
     payload = build_payload(state, dt)
     top = build_markdown_top(state, dt, payload)
-    return top + "\n\n---\n\n```json\n" + json.dumps(payload, indent=2) + "\n```\n"
+    pruned_raw = prune_sparse_journal(payload)
+    pruned = pruned_raw if isinstance(pruned_raw, dict) else {}
+    dumped = yaml.safe_dump(
+        pruned,
+        default_flow_style=False,
+        sort_keys=False,
+        allow_unicode=True,
+    ).rstrip("\n")
+    fence = f"```{FOOT_FENCE_MARKER}\n{dumped}\n```\n"
+    return top.rstrip() + "\n\n" + fence
 
 
 def collect_dates(state: dict[str, Any]) -> list[str]:

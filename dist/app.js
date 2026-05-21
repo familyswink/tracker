@@ -4,6 +4,143 @@ const APP_VERSION='2026.05.20.2';
 (function (global) {
 'use strict';
 /**
+ * Tracker-head fenced `yaml journal` (`daily-log-requirements-v2` §3).
+ * Deterministic YAML blocks — browser-safe, zero npm deps.
+ */
+
+/** Matches opening fence `\`\`\`yaml journal`. */
+const YAML_JOURNAL_FENCE_MARKER = 'yaml journal';
+
+/**
+ * Omit nullish/empty subtrees (sparse emission §8).
+ *
+ * @param {unknown} v
+ * @returns {unknown | undefined}
+ */
+function pruneSparseJournalTree(v) {
+  if (v === undefined || v === null) return undefined;
+  if (typeof v === 'string') return v.trim() === '' ? undefined : v;
+  if (typeof v !== 'object') return v;
+  if (Array.isArray(v)) {
+    const out = [];
+    for (const el of v) {
+      const p = pruneSparseJournalTree(el);
+      if (p !== undefined) out.push(p);
+    }
+    return out.length === 0 ? undefined : out;
+  }
+  const obj = {};
+  for (const k of Object.keys(v)) {
+    const p = pruneSparseJournalTree(/** @type {Record<string, unknown>} */ (v)[k]);
+    if (p !== undefined) obj[k] = p;
+  }
+  return Object.keys(obj).length === 0 ? undefined : obj;
+}
+
+/**
+ * @param {string} k
+ */
+function yamlKeyScalar(k) {
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k)) return k;
+  return JSON.stringify(k);
+}
+
+/**
+ * @param {unknown} v
+ */
+function yamlScalar(v) {
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : 'null';
+  if (v === null || v === undefined) return 'null';
+  return JSON.stringify(String(v));
+}
+
+/**
+ * YAML list under a key (`key:\n  - …`).
+ *
+ * @param {unknown[]} arr
+ * @param {number} hyphenIndentLevel Indent depth (2 spaces each) where `- ` begins after the parent's key line.
+ */
+function emitArrayYaml(arr, hyphenIndentLevel) {
+  let s = '';
+  const hyphenPad = '  '.repeat(hyphenIndentLevel);
+  for (const raw of arr) {
+    const pr = pruneSparseJournalTree(raw);
+    if (pr === undefined) continue;
+    if (typeof pr !== 'object' || pr === null || Array.isArray(pr)) {
+      if (Array.isArray(pr)) {
+        s += `${hyphenPad}-\n`;
+        s += emitArrayYaml(
+          /** @type {unknown[]} */ (pr),
+          hyphenIndentLevel + 1,
+        );
+        continue;
+      }
+      s += `${hyphenPad}- ${yamlScalar(pr)}\n`;
+      continue;
+    }
+    const o = /** @type {Record<string, unknown>} */ (pr);
+    s += `${hyphenPad}-\n`;
+    s += emitMapYaml(o, hyphenIndentLevel + 1);
+  }
+  return s;
+}
+
+/**
+ * @param {Record<string, unknown>} obj
+ * @param {number} indent nesting level (starts at 0)
+ */
+function emitMapYaml(obj, indent) {
+  const pad = '  '.repeat(indent);
+  let s = '';
+  for (const rawKey of Object.keys(obj)) {
+    const valRaw = /** @type {unknown} */ (obj[rawKey]);
+    const k = yamlKeyScalar(rawKey);
+    const val = pruneSparseJournalTree(valRaw);
+    if (val === undefined) continue;
+
+    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+      s += `${pad}${k}:\n`;
+      s += emitMapYaml(/** @type {Record<string, unknown>} */ (val), indent + 1);
+      continue;
+    }
+    if (Array.isArray(val)) {
+      s += `${pad}${k}:\n`;
+      s += emitArrayYaml(/** @type {unknown[]} */ (val), indent + 1);
+      continue;
+    }
+    s += `${pad}${k}: ${yamlScalar(val)}\n`;
+  }
+  return s;
+}
+
+/**
+ * Produce full `\`\`\`yaml journal … \`\`\`\n` block.
+ *
+ * @param {Record<string, unknown>} payload
+ */
+function formatYamlJournalFenceFromPayload(payload) {
+  const prunedRaw = pruneSparseJournalTree(JSON.parse(JSON.stringify(payload)));
+  const root =
+    typeof prunedRaw === 'object' &&
+    prunedRaw !== null &&
+    !Array.isArray(prunedRaw)
+      ? /** @type {Record<string, unknown>} */ (prunedRaw)
+      : {};
+
+  let body =
+    Object.keys(root).length === 0
+      ? `date: ${yamlScalar(payload?.date)}`
+      : emitMapYaml(root, 0).replace(/\s+$/, '');
+
+  if (!body.trim()) body = `date: ${yamlScalar(payload?.date)}`;
+
+  return (
+    '`'.repeat(3) + YAML_JOURNAL_FENCE_MARKER + `\n${body}\n` + '`'.repeat(3) + '\n'
+  );
+}
+
+/**
  * Dual-writer daily journal (.md): Tracker-head + verbatim Oura-tail.
  * @see docs/DAILY_LOG_DUAL_WRITER.md
  */
@@ -29,7 +166,8 @@ function isWearableOnlyRoot(obj) {
 function findJsonFences(content) {
   const fences = [];
   if (!content) return fences;
-  const re = /(^|\n)```(?:json|JSON)?\s*\r?\n([\s\S]*?)\r?\n```/g;
+  // Require ```json opener — avoids treating ```yaml/closing fences as generic JSON fences.
+  const re = /(^|\n)```(?:json|JSON)\s*\r?\n([\s\S]*?)\r?\n```/g;
   let m;
   while ((m = re.exec(content)) !== null) {
     const openerLen = m[1] ? m[1].length : 0;
@@ -86,7 +224,7 @@ function wearableFenceSpanByMarker(content) {
   if (midx < 0) return null;
   const before = content.slice(0, midx);
   let openIdx = -1;
-  for (const tag of ['```json', '```JSON', '```']) {
+  for (const tag of ['```json', '```JSON']) {
     const i = before.lastIndexOf(tag);
     if (i > openIdx) openIdx = i;
   }
@@ -162,7 +300,6 @@ function extractOuraTailByMarker(content) {
   const fence = Math.max(
     before.lastIndexOf('\n```json'),
     before.lastIndexOf('\n```JSON'),
-    before.lastIndexOf('\n```')
   );
   let start = -1;
   if (sep >= 0 && (fence < 0 || sep > fence)) start = sep + 1;
@@ -185,6 +322,14 @@ function splitJournalFile(content) {
     return { ok: true, hasTail: false, head: '', tail: null, wearableFenceCount: 0 };
   }
   const wearable = findWearableFences(text);
+  if (wearable.length > 1) {
+    return {
+      ok: false,
+      error:
+        'Daily log has more than one wearable_biometrics JSON fence. Leave only one tail block before saving.',
+      wearableFenceCount: wearable.length,
+    };
+  }
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }
@@ -270,6 +415,9 @@ global.DT = {
   parseWearableBiometricsReadOnly,
   isWearableOnlyRoot,
   findJsonFences,
+  formatYamlJournalFenceFromPayload,
+  pruneSparseJournalTree,
+  YAML_JOURNAL_FENCE_MARKER,
 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 
@@ -488,7 +636,15 @@ function isoToLocalYMD(iso){
 function logDateKey(){return isoToLocalYMD(gEDt());}
 function matchesLogDay(eDt,logIso){return!!(eDt&&logIso)&&isoToLocalYMD(eDt)===isoToLocalYMD(logIso);}
 function onLogDay(iso,dt){return iso&&isoToLocalYMD(iso)===dt;}
-function laStamp(iso){const d=new Date(iso);return isNaN(d.getTime())?'':d.toISOString().slice(0,16).replace('T',' ');}
+/** UTC ISO instant with trailing `Z` (daily-log-requirements-v2 §5). */
+function laStamp(iso){
+  if(iso==null||iso==='')return '';
+  const s=String(iso).trim();
+  if(!s)return '';
+  const d=new Date(s);
+  if(isNaN(d.getTime()))return '';
+  return d.toISOString().replace(/\.\d{3}Z$/,'Z');
+}
 function cleanMfr(mfr){if(!mfr||mfr==='--'||!String(mfr).trim())return null;return String(mfr).trim();}
 function suppWikiLink(mfr,name){
   const p=String(name||'').trim();
@@ -1023,13 +1179,34 @@ function oEFI(id){_efiId=id;const f=id?S.fd.find(x=>x.id===id):null;document.get
 function cfEFI(){const d={nm:document.getElementById('efiNm').value,sec:document.getElementById('efiSc').value,dg:parseFloat(document.getElementById('efiDG').value)||0,wg:parseInt(document.getElementById('efiWG').value)||0,srv:document.getElementById('efiSv').value,ceil:document.getElementById('efiCl').value,col:document.getElementById('efiCo').value||'auto',why:document.getElementById('efiWy').value};if(_efiId){const f=S.fd.find(x=>x.id===_efiId);if(f)Object.assign(f,d);}else S.fd.push({id:uid(),on:true,...d});sv();popOv();rMFL();rF();}
 function dFI(){S.fd=S.fd.filter(x=>x.id!==_efiId);sv();popOv();rMFL();rF();}
 
+/** Choices currently selected on a logged List field (`multi` ⇒ string[] stored in `S.al`, else string). */
+function optsChosenArray(f,val){
+  if(val===undefined||val===null||val==='')return[];
+  if(f.multi){
+    if(Array.isArray(val))return val.map(String).filter(Boolean);
+    if(typeof val==='string'){
+      try{const p=JSON.parse(val);if(Array.isArray(p))return p.map(String).filter(Boolean);}catch{}
+      return val.trim()?[val.trim()]:[];
+    }
+    return[];
+  }
+  if(typeof val==='string')return val.trim()? [val.trim()]:[];
+  if(Array.isArray(val)&&val.length)return[String(val[0])];
+  return[];
+}
+/** Human-readable for cards / history rows. */
+function formatOptsFldDisplay(f,v){
+  if(!f.multi)return(v!==undefined&&v!==null&&String(v)!=='')?String(v):'';
+  return optsChosenArray(f,v).join(', ');
+}
+
 // OTHER
 function actQuickField(a){
   if(a.inline===false)return null;
   if(!a.flds||a.flds.length!==1)return null;
   const f=a.flds[0];
   if(f.t==='yesno')return{field:f,type:'yesno'};
-  if(f.t==='opts'&&f.opts&&f.opts.length>=1&&f.opts.length<=5)return{field:f,type:'opts'};
+  if(f.t==='opts'&&f.opts&&f.opts.length>=1&&f.opts.length<=5&&!f.multi)return{field:f,type:'opts'};
   return null;
 }
 function pendOtherAct(aid,fieldNm,val){
@@ -1065,7 +1242,7 @@ function rA(){
     }else{
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
-      let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];if(f.t==='opts')return(v!==undefined&&v!=='')?'<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+' ('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
+      let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];const disp=f.t==='opts'?formatOptsFldDisplay(f,v):null;if(f.t==='opts')return disp?'<div class="ach">'+escHTML(f.nm)+': '+escHTML(disp)+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+(f.multi?' · multi ':' ')+'('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
       card.innerHTML='<div><div class="an">'+escHTML(a.nm)+'</div><div class="as2">'+(todayAL.length?todayAL.length+' logged \u2014 tap for new':'Tap to log')+(le?' \xb7 last '+f12(le.dt):'')+'</div></div><div class="af">'+fh+'</div>';
     }
     c.appendChild(card);
@@ -1080,16 +1257,30 @@ function oAE(aid,logId){
     const val=ex&&ex.flds?ex.flds[f.nm]:'';const div=document.createElement('div');div.className='fld';
     if(f.t==='opts'){
       const slug=f.nm.replace(/\s/g,'_');const opts=f.opts||[];
-      const hidVal=(val!==undefined&&val!==null&&val!=='')?String(val):'';
-      div.innerHTML='<div class="fl">'+escHTML(f.nm)+'</div><div class="bwg" id="pickBox-'+slug+'"></div><input type="hidden" id="pickVal-'+slug+'" value="'+escHTML(hidVal)+'">';
-      fd.appendChild(div);
-      const inner=document.getElementById('pickBox-'+slug);
-      if(!opts.length)inner.innerHTML='<div style="font-size:11px;color:var(--mt);padding:8px">No choices defined for this field.</div>';
+      const ttl=document.createElement('div');ttl.className='fl';ttl.textContent=f.nm+(f.multi?' · tap all that apply':'');
+      const outer=document.createElement('div');outer.className='bwg';outer.id='pickBox-'+slug;
+      const hid=document.createElement('input');hid.type='hidden';hid.id='pickVal-'+slug;
+      const picked=optsChosenArray(f,val);
+      hid.value=f.multi?JSON.stringify(picked):(picked[0]||'');
+      div.appendChild(ttl);div.appendChild(outer);div.appendChild(hid);fd.appendChild(div);
+      if(!opts.length)outer.innerHTML='<div style="font-size:11px;color:var(--mt);padding:8px">No choices defined for this field.</div>';
       else opts.forEach(o=>{
-        const row=document.createElement('div');row.className='bwo'+(hidVal===o.v?' sel':'');
-        row.onclick=()=>{document.querySelectorAll('#pickBox-'+slug+' .bwo').forEach(x=>x.classList.remove('sel'));row.classList.add('sel');document.getElementById('pickVal-'+slug).value=o.v;};
-        row.innerHTML='<div class="bwon">'+escHTML(o.v)+'</div><div class="bwod">'+escHTML(o.d||'')+'</div>';
-        inner.appendChild(row);
+        const isSel=f.multi ? picked.includes(o.v) : picked[0]===o.v;
+        const pickRow=document.createElement('div');pickRow.className='bwo'+(isSel?' sel':'');
+        pickRow.dataset.v=o.v;
+        pickRow.innerHTML='<div class="bwon">'+escHTML(o.v)+'</div><div class="bwod">'+escHTML(o.d||'')+'</div>';
+        pickRow.onclick=()=>{
+          if(!f.multi){
+            outer.querySelectorAll('.bwo').forEach(x=>x.classList.remove('sel'));
+            pickRow.classList.add('sel');
+            hid.value=o.v;
+          }else{
+            pickRow.classList.toggle('sel');
+            const vs=[...outer.querySelectorAll('.bwo.sel')].map(x=>/** @type {HTMLElement}*/(x).dataset.v||'').filter(Boolean);
+            hid.value=JSON.stringify(vs);
+          }
+        };
+        outer.appendChild(pickRow);
       });
       return;
     }
@@ -1131,9 +1322,18 @@ function oAE(aid,logId){
 }
 function togYN(slug,val){const y=document.getElementById('yn-y-'+slug),n=document.getElementById('yn-n-'+slug);if(y)y.className=val==='Yes'?'blg':'bcn';if(n)n.className=val==='No'?'blg':'bcn';}
 function cfAE(){const a=S.acts.find(x=>x.id===_cATId);if(!a)return;
-  for(const f of a.flds){if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(!h||!String(h.value||'').trim()){shT('Select: '+f.nm);return;}}}
+  for(const f of a.flds){
+    if(f.t!=='opts')continue;
+    const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);
+    if(!f.multi){
+      if(!h||!String(h.value||'').trim()){shT('Select: '+f.nm);return;}
+    }else{
+      let arr=[];try{arr=JSON.parse(String(h?.value||'[]'));}catch{arr=[];}
+      if(!Array.isArray(arr)||!arr.map(String).filter(Boolean).length){shT('Select at least one: '+f.nm);return;}
+    }
+  }
   const dt=gEDt();const nt=document.getElementById('aeNt').value;const flds={};
-a.flds.forEach(f=>{if(f.t==='number'){const idN='num-'+f.nm.replace(/\s/g,'_');const el=document.getElementById(idN);if(el)flds[f.nm]=el.tagName==='SELECT'?parseInt(el.value,10)||0:(parseFloat(el.value)||0);}else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h)flds[f.nm]=h.value||'';}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el)flds[f.nm]=el.value;}});
+a.flds.forEach(f=>{if(f.t==='number'){const idN='num-'+f.nm.replace(/\s/g,'_');const el=document.getElementById(idN);if(el)flds[f.nm]=el.tagName==='SELECT'?parseInt(el.value,10)||0:(parseFloat(el.value)||0);}else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el)flds[f.nm]=el.value;}});
 if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;markMod(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});markMod(dt);}sv();closeAllOv();S.gdt=null;rH();rA();document.getElementById('aeNt').value='';}
 function dAE(){markMod(S.al.find(x=>x.id===_cALId)?.dt);S.al=S.al.filter(x=>x.id!==_cALId);sv();closeAllOv();S.gdt=null;rH();rA();}
 function oMA(){rMAL();openOvRoot('ovMA');}
@@ -1190,6 +1390,13 @@ function mkEatOptsWrap(f){
   if(!(f?.opts||[]).length)appendEatOptRow(wrap,addBtn,null);
   return wrap;
 }
+/** Checkbox in setup: List fields may allow toggling multiple choices when logging (no quick-chip row — use full form). */
+function appendEatOptsMultiCheckbox(row,f){
+  const lab=document.createElement('label');lab.className='eat-multi-row';
+  const cb=document.createElement('input');cb.type='checkbox';cb.className='eat-opt-multi';cb.checked=!!f?.multi;
+  lab.appendChild(cb);lab.appendChild(document.createTextNode('Allow multiple selections'));
+  row.appendChild(lab);
+}
 function addFldRow(f){
   const list=document.getElementById('eatFldList');if(list.children.length>=5){shT('Max 5 fields');return;}
   const t=f?.t||'number';
@@ -1207,17 +1414,19 @@ function addFldRow(f){
   if(t==='number'){
     const ui=document.createElement('input');ui.type='text';ui.className='fld-u';ui.placeholder='Unit (e.g. minutes, F)';ui.value=f?.u||'';ui.style.marginTop='6px';row.appendChild(ui);
     const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional)';di.style.marginTop='6px';if(f?.def!==undefined&&f.def!==null&&String(f.def)!=='')di.value=f.def;row.appendChild(di);
-  }else if(t==='opts')row.appendChild(mkEatOptsWrap(f));
+  }else if(t==='opts'){
+    row.appendChild(mkEatOptsWrap(f));appendEatOptsMultiCheckbox(row,f);
+  }
   list.appendChild(row);document.getElementById('eatAddFld').style.display=list.children.length>=5?'none':'block';
 }
 function setFT(btn,t){
   const row=btn.closest('.fld-type-row');
   row.querySelectorAll('.ftb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');
-  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.eat-opts-wrap')?.remove();
+  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.eat-opts-wrap')?.remove();row.querySelector('.eat-multi-row')?.remove();
   if(t==='opts'){
     row.querySelector('.eat-fld-nm-wrap')?.remove();
     delete row.dataset.listKey;
-    row.appendChild(mkEatOptsWrap(null));
+    row.appendChild(mkEatOptsWrap(null));appendEatOptsMultiCheckbox(row,null);
     return;
   }
   if(!row.querySelector('input.eat-fld-nm')){
@@ -1264,7 +1473,10 @@ function cfEAT(){
       }
       const persisted=(row.dataset.listKey&&row.dataset.listKey.trim())||'';
       const fieldKey=persisted||(listRowsCount===1?nm:(listOrdinal===1?nm:nm+' ('+listOrdinal+')'));
-      flds.push({nm:fieldKey,t:'opts',opts});
+      const multiOn=!!row.querySelector('.eat-opt-multi')?.checked;
+      const listDef={nm:fieldKey,t:'opts',opts};
+      if(multiOn)listDef.multi=true;
+      flds.push(listDef);
       continue;
     }
     const nameInp=row.querySelector('input.eat-fld-nm');
@@ -1340,7 +1552,17 @@ function buildHistoryData(type){
     data=[...S.fl.filter(e=>e.fid!=='__meal__').map(e=>{const f=S.fd.find(x=>x.id===e.fid);const meal=mealMkrs.find(m=>m.dt===e.dt);return{...e,_lb:(f?.nm||'?')+' \xd7'+e.qty,_mealMkrId:meal?.id||null,_fn:"oFLEdit('"+e.id+"')"};}),...(S.fnotes||[]).map(n=>({...n,_lb:'Note: '+n.bd.slice(0,60),_fn:"oFNEdit('"+n.id+"')"}))];
   }
   if(type==='other'){
-    data=S.al.map(e=>{const a=S.acts.find(x=>x.id===e.aid);const fs=Object.entries(e.flds||{}).filter(([k,v])=>v!==''&&v!==undefined).map(([k,v])=>k+':'+v).join(' ');return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};});
+    data=S.al.map(e=>{
+      const a=S.acts.find(x=>x.id===e.aid);
+      const fs=Object.entries(e.flds||{})
+        .filter(([k,v])=>v!==''&&v!==undefined&&!(Array.isArray(v)&&!v.length))
+        .map(([k,v])=>{
+          const fld=a?.flds?.find(x=>x.nm===k);
+          const vs=fld?.t==='opts'?formatOptsFldDisplay(fld,v):null;
+          return k+':'+(vs||(Array.isArray(v)?v.join(', '):v));
+        }).join(' ');
+      return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};
+    });
     data.sort((a,b)=>b.dt.localeCompare(a.dt));
     return data;
   }
@@ -1731,12 +1953,12 @@ function gDailyLogJSON(dt){
     return{time:f12(e.dt),manufacturer:cleanMfr(m?.mfr),name:suppWikiLink(m?.mfr,m?.name),qty:e.qty,units:m?.units||null};
   });
   const waterEntries=S.wl.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt));
-  const water_logged=waterEntries.map(e=>({logged_at:laStamp(e.la),time:f12(e.dt),qty_oz:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null}));
+  const water_logged=waterEntries.map(e=>({logged_at:laStamp(e.la||e.dt),time:f12(e.dt),qty_oz:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null}));
   const total_water_intake_oz=Math.round(waterEntries.reduce((s,e)=>s+(parseFloat(e.qty)||0),0));
   const foodEntries=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid!=='__meal__').sort((a,b)=>a.dt.localeCompare(b.dt));
   const food_logged=foodEntries.map(e=>{
     const f=S.fd.find(x=>x.id===e.fid);
-    return{logged_at:laStamp(e.la),time:f12(e.dt),item:f?.nm||'Unknown',servings:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null};
+    return{logged_at:laStamp(e.la||e.dt),time:f12(e.dt),item:f?.nm||'Unknown',servings:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null};
   });
   const food_categories_served=emptyFoodCategories();
   foodEntries.forEach(e=>{
@@ -1751,11 +1973,11 @@ function gDailyLogJSON(dt){
   S.al.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt)).forEach(e=>{
     const a=S.acts.find(x=>x.id===e.aid);
     const type=a?.nm||'Other';
-    const ls=laStamp(e.la);
+    const ls=laStamp(e.la||e.dt);
     const tm=f12(e.dt);
     if(type==='Bowel Health'){
-      const status=Object.values(e.flds||{}).find(v=>v!==undefined&&v!=='');
-      if(status)giEvents.push({time:tm,logged_at:ls,status:String(status)});
+      const status=Object.values(e.flds||{}).find(v=>v!==undefined&&v!==''&&!(Array.isArray(v)&&v.length===0));
+      if(status!==undefined)giEvents.push({time:tm,logged_at:ls,status:Array.isArray(status)?status.join(', '):String(status)});
       return;
     }
     if(type==='Cold Plunge'){
@@ -1772,7 +1994,7 @@ function gDailyLogJSON(dt){
     }
     lifestyle_protocols.push({type,time:tm,logged_at:ls,fields:e.flds||{},notes:e.nt&&String(e.nt).trim()?e.nt:null});
   });
-  const supplement_notes=(S.snotes||[]).filter(e=>onLogDay(e.dt,dt)).map(n=>({time:f12(n.dt),logged_at:laStamp(n.la),note:n.bd}));
+  const supplement_notes=(S.snotes||[]).filter(e=>onLogDay(e.dt,dt)).map(n=>({time:f12(n.dt),logged_at:laStamp(n.la||n.dt),note:n.bd}));
   const meals_executed=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid==='__meal__').map(e=>e.mnm+(e.nt&&String(e.nt).trim()?' -- '+e.nt:''));
   return{
     date:dt,
@@ -1854,7 +2076,10 @@ function timeSortKey(t){
 }
 function gDailyLogForDate(dt){
   const payload=gDailyLogJSON(dt);
-  return gDailyLogMarkdownTop(dt,payload)+'\n\n---\n\n```json\n'+JSON.stringify(payload,null,2)+'\n```\n';
+  const head=gDailyLogMarkdownTop(dt,payload)+'\n\n';
+  if(typeof DT!=='undefined'&&DT.formatYamlJournalFenceFromPayload)
+    return head+DT.formatYamlJournalFenceFromPayload(/** @type {Record<string,unknown>} */(payload));
+  return head+'```yaml journal\n'+JSON.stringify(payload,null,2)+'\n```\n';
 }
 /** Tracker-head only; Oura-tail preserved on Drive/export save (see docs/DAILY_LOG_DUAL_WRITER.md). */
 function composeDailyLogContent(existingContent,dt){

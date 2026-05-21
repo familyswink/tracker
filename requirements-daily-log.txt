@@ -1,0 +1,2 @@
+# Optional: offline `scripts/generate_daily_log.py` (YAML fenced journal)
+PyYAML>=6

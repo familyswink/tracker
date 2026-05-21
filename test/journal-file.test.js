@@ -8,22 +8,20 @@ import {
   parseWearableBiometricsReadOnly,
   extractOuraTailByMarker,
 } from '../src/domain/journal-file.js';
+import { formatYamlJournalFenceFromPayload } from '../src/domain/journal-yaml-format.js';
 
+const TRACKER_PAYLOAD = {
+  date: '2026-05-19',
+  day_of_week: 'Monday',
+  total_water_intake_oz: 32,
+};
 const TRACKER_HEAD = `# Monday — 2026-05-19
 
 ## Notes
 * test
 
----
 
-\`\`\`json
-{
-  "date": "2026-05-19",
-  "day_of_week": "Monday",
-  "total_water_intake_oz": 32
-}
-\`\`\`
-`;
+${formatYamlJournalFenceFromPayload(/** @type {Record<string, unknown>} */ (TRACKER_PAYLOAD))}`;
 
 const OURA_TAIL = `---
 \`\`\`json
@@ -67,13 +65,11 @@ describe('splitJournalFile', () => {
     assert.equal(r.tail, OURA_TAIL);
   });
 
-  it('uses last wearable fence when multiple present', () => {
+  it('multiple wearable fenced blocks refuse split', () => {
     const second = '\n---\n```json\n{"wearable_biometrics":{"stale":true}}\n```\n';
     const r = splitJournalFile(FULL + second);
-    assert.equal(r.ok, true);
-    assert.equal(r.hasTail, true);
-    assert.equal(r.tail, second.trimStart());
-    assert.ok(r.tail.includes('"stale":true'));
+    assert.equal(r.ok, false);
+    assert.match(r.error, /more than one/i);
   });
 
   it('allows blank line between --- and wearable fence', () => {

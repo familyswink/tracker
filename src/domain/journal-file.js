@@ -24,7 +24,8 @@ export function isWearableOnlyRoot(obj) {
 export function findJsonFences(content) {
   const fences = [];
   if (!content) return fences;
-  const re = /(^|\n)```(?:json|JSON)?\s*\r?\n([\s\S]*?)\r?\n```/g;
+  // Require ```json opener — avoids treating ```yaml/closing fences as generic JSON fences.
+  const re = /(^|\n)```(?:json|JSON)\s*\r?\n([\s\S]*?)\r?\n```/g;
   let m;
   while ((m = re.exec(content)) !== null) {
     const openerLen = m[1] ? m[1].length : 0;
@@ -81,7 +82,7 @@ function wearableFenceSpanByMarker(content) {
   if (midx < 0) return null;
   const before = content.slice(0, midx);
   let openIdx = -1;
-  for (const tag of ['```json', '```JSON', '```']) {
+  for (const tag of ['```json', '```JSON']) {
     const i = before.lastIndexOf(tag);
     if (i > openIdx) openIdx = i;
   }
@@ -157,7 +158,6 @@ export function extractOuraTailByMarker(content) {
   const fence = Math.max(
     before.lastIndexOf('\n```json'),
     before.lastIndexOf('\n```JSON'),
-    before.lastIndexOf('\n```')
   );
   let start = -1;
   if (sep >= 0 && (fence < 0 || sep > fence)) start = sep + 1;
@@ -180,6 +180,14 @@ export function splitJournalFile(content) {
     return { ok: true, hasTail: false, head: '', tail: null, wearableFenceCount: 0 };
   }
   const wearable = findWearableFences(text);
+  if (wearable.length > 1) {
+    return {
+      ok: false,
+      error:
+        'Daily log has more than one wearable_biometrics JSON fence. Leave only one tail block before saving.',
+      wearableFenceCount: wearable.length,
+    };
+  }
   if (wearable.length === 0) {
     return { ok: true, hasTail: false, head: text, tail: null, wearableFenceCount: 0 };
   }

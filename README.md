@@ -3,7 +3,8 @@
 A personal health tracking app for supplements, food, water, activity, and daily notes. Runs entirely in the browser — no account required. Data lives in your browser's local storage and can be synced to Google Drive.
 
 **Refactor plan:** see [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for phased architecture work, invariants, and acceptance criteria.  
-**Developers:** Edit `src/app.js`, bump **`src/version.js`** on every release, run `npm run build`, then `npm test`. Settings → About shows the deployed version. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).
+**Developers:** Edit `src/app.js`, bump **`src/version.js`** on every release, run `npm run build`, then `npm test`. Settings → About shows the deployed version. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).  
+**Sibling `oura_loader` repo:** hub [INTEGRATION](../oura_loader/docs/INTEGRATION.md) · [`PRODUCT_SPEC`](../oura_loader/PRODUCT_SPEC.md) · [spec cheat sheet](../oura_loader/docs/spec-locations.md) · [daily log format v2 (MD)](../oura_loader/docs/daily-log-requirements-v2.md) — relative links work when `oura_loader` is cloned beside this repo.
 
 ---
 

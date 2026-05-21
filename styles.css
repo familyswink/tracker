@@ -170,6 +170,8 @@ textarea{resize:none;height:75px;line-height:1.5}
 .pick-li:active{background:var(--sf2)}
 .pick-li .pl-nm{font-size:13px;font-weight:600}
 .pick-li .pl-mm{font-family:Courier New,monospace;font-size:9px;color:var(--mt);margin-top:2px}
+.eat-multi-row{display:flex;align-items:center;gap:8px;margin-top:9px;font-family:Courier New,monospace;font-size:11px;color:var(--tx);cursor:pointer;user-select:none}
+.eat-multi-row input{width:15px;height:15px;margin:0;cursor:pointer;flex-shrink:0;accent-color:var(--gr)}
 .hd{margin-bottom:14px}
 .hdl2{font-family:Courier New,monospace;font-size:9px;letter-spacing:1px;color:var(--mt);text-transform:uppercase;margin-bottom:5px;padding-left:2px}
 .he{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:11px 13px;margin-bottom:5px;display:flex;align-items:center;gap:9px;width:100%;cursor:pointer}

@@ -7,7 +7,7 @@ Daily log files (`YYYY-MM-DD.md` on Google Drive) are co-authored by two systems
 
 | System | Role |
 |--------|------|
-| **Daily Tracker** | User-facing journal: prose, meals, notes, Tracker’s own JSON block |
+| **Daily Tracker** | User-facing journal: prose, meals, structured log in fenced **`yaml journal`** (**not** `wearable_biometrics`) |
 | **oura_loader** (`oura_journal_injector.py`) | Reads Oura export JSON from Drive, writes/updates the `wearable_biometrics` JSON block at the bottom of the same file |
 
 Oura ring data is fetched only by **oura-export**, not by Tracker and not by oura_loader talking to Oura’s API. After export + optional GitHub/manual run, the injector updates the journal tail.
@@ -35,7 +35,7 @@ Partition each `YYYY-MM-DD.md` into two byte ranges:
 
 - **Start:** beginning of file (BOF)
 - **End:** last byte before the Oura-tail (if Oura-tail exists)
-- **Contains:** Markdown preamble, horizontal rules above the wearable section, and Tracker’s fenced `json` block with the Tracker daily payload (not `wearable_biometrics`).
+- **Contains:** Markdown preamble (`gDailyLogMarkdownTop` parity) plus the fenced **`yaml journal`** structured payload (sparse subtree; **omit** empties — same logical content as **`gDailyLogJSON`**).
 - On every save, Tracker may **fully regenerate** Tracker-head from its internal state (same logical output as `generate_daily_log()` / `gDailyLogForDate()` parity). It does not need to be byte-identical to the previous save.
 
 ### Oura-tail (Tracker must not touch)
@@ -57,10 +57,10 @@ Implement detection by **parse**, not loose regex:
 
 1. Find fenced code blocks marked `json` (triple-backtick fences).
 2. Parse each block’s JSON.
-3. The Oura-tail starts at the `---` above the **last** fence whose content includes `wearable_biometrics` (blank lines between `---` and the fence are OK). JSON does not have to parse. If the injector omitted `---`, the tail starts at that fence’s opening ` ```json `.
+3. Find the wearable fence (**last** fenced `json` block whose root parses to **`wearable_biometrics`**, or heuristic marker `"wearable_biometrics"` when malformed). Start Oura-tail at the **thematic **`---`** line immediately above** that fence (blank lines between `---` and the fence may exist). **If injector omitted **`---`** before the wearable fence**, the tail starts at the fence’s opening ` ```json ` line.
 4. If Oura data is present but the tail cannot be extracted, Tracker **must not** write a head-only file (that would delete Oura).
 5. **Zero** wearable markers → save Tracker-head only.
-6. **More than one** wearable fence → use the **last** block (bottom of file).
+6. **More than one** wearable fenced block ⇒ **reject save/export** (`splitJournalFile` returns an error — don’t splice/silent-repair).
 
 Do not use a loose regex for `script_execution_utc_timestamp` across the whole file.
 
@@ -82,7 +82,7 @@ On Save for date `D` → file `YYYY-MM-DD.md`:
    - Else:
      - `tracker_head_original` = entire file (or empty if new day)
      - `oura_tail_verbatim` = (none)
-3. **REGENERATE** `tracker_head_new` from Tracker app state only (meals, pills, notes, Tracker JSON — **no** wearable block).
+3. **REGENERATE** `tracker_head_new` from Tracker app state only (meals, pills, Markdown + **`yaml journal`** — **never** regenerate `wearable_biometrics`).
 4. **COMPOSE:**
    - If `oura_tail_verbatim` present: `file_out = tracker_head_new + oura_tail_verbatim`
    - Else: `file_out = tracker_head_new`
@@ -101,7 +101,7 @@ On Save for date `D` → file `YYYY-MM-DD.md`:
 | Section | Owner | On Tracker save |
 |---------|-------|-------------------|
 | Title / date heading, human Markdown | Tracker | Regenerate |
-| Tracker daily data fenced `json` | Tracker | Regenerate |
+| Structured log fenced **`yaml journal`** (`gDailyLogForDate` parity) | Tracker | Regenerate |
 | Separator + `wearable_biometrics` fenced `json` | oura_loader only | Preserve verbatim if present; omit if absent |
 
 Tracker UI may read wearable JSON for **read-only** display (`parseWearableBiometricsReadOnly`) if product needs it, but must **not** write it back through the save pipeline.
@@ -128,7 +128,7 @@ Tracker UI may read wearable JSON for **read-only** display (`parseWearableBiome
 | Injector not run yet for that day | Save head-only file; injector may append tail later |
 | User “clears” Oura in UI | Do not delete wearable fence from Tracker save |
 | File edited on Drive outside Tracker | On next save, re-read file, re-detect tail, then splice |
-| Corrupt file (two wearable fences) | Refuse silent repair; user sees clear error |
+| Corrupt file (duplicate wearable fences) | **Refuse save** with clear UI error — user repairs Markdown manually |
 
 ---
 
@@ -139,7 +139,7 @@ Tracker UI may read wearable JSON for **read-only** display (`parseWearableBiome
 - [ ] No injector call on Tracker save (network tab / logs).
 - [ ] After injector run: Tracker save again still preserves the new Oura-tail verbatim.
 - [ ] No duplicate wearable fences after repeated Tracker saves.
-- [ ] Corrupt file (two wearable fences): Tracker refuses silent repair; user sees clear error.
+- [ ] Corrupt file (two wearable fences): Tracker **does not splice** silently; save/export/errors surface from `composeJournalFile` / preview.
 
 **Automated:** `test/journal-file.test.js`
 
@@ -153,10 +153,10 @@ Tracker UI may read wearable JSON for **read-only** display (`parseWearableBiome
 ## 📝 Subjective Notes & Food Logs
 …
 
----
-
-```json
-{ "date": "2026-05-19", … }
+```yaml journal
+date: "2026-05-19"
+day_of_week: monday
+# …sparse sections only…
 ```
 
 ---                    ← start of Oura-tail
@@ -166,8 +166,9 @@ Tracker UI may read wearable JSON for **read-only** display (`parseWearableBiome
 ```
 ```
 
+
 ---
 
 ## One-line summary
 
-On save: regenerate everything Tracker owns from the top through the Tracker JSON block; if the file already has a `wearable_biometrics` JSON fence at the bottom, copy from the `---` above that fence through EOF unchanged and concatenate. **Never merge Oura data in Tracker.**
+On save: regenerate Tracker-head (Markdown + fenced **`yaml journal`**); when a canonical `wearable_biometrics` fenced `json` block exists, concatenate the existing Oura-tail (from **`---`** before that fence through EOF) verbatim. **Never merge Oura JSON in Tracker.**
