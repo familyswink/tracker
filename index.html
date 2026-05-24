@@ -16,13 +16,13 @@
   <div class="gdt" id="gdtB" onclick="oGDT()"><span style="font-size:13px">&#128336;</span><div class="gdtt" id="gdtT">Now</div></div>
 </div>
 <div class="tabs">
-  <div class="tab act" onclick="sw('water',this)"><div class="tbi">&#128167;</div>Water</div>
-  <div class="tab" onclick="sw('supps',this)"><div class="tbi">&#128138;</div>Supps</div>
-  <div class="tab" onclick="sw('food',this)"><div class="tbi">&#129367;</div>Food</div>
-  <div class="tab" onclick="sw('other',this)"><div class="tbi">&#128202;</div>Other</div>
-  <div class="tab" onclick="sw('notes',this)"><div class="tbi">&#128203;</div>Notes</div>
-  <div class="tab" onclick="sw('log',this)"><div class="tbi">&#128221;</div>Log</div>
-  <div class="tab" onclick="sw('settings',this)"><div class="tbi">&#9881;</div>Settings</div>
+  <div class="tab act" data-tab="water" onclick="sw('water',this)"><div class="tbi">&#128167;</div>Water</div>
+  <div class="tab" data-tab="supps" onclick="sw('supps',this)"><div class="tbi">&#128138;</div>Supps</div>
+  <div class="tab" data-tab="food" onclick="sw('food',this)"><div class="tbi">&#129367;</div>Food</div>
+  <div class="tab" data-tab="other" onclick="sw('other',this)"><div class="tbi">&#128202;</div>Other</div>
+  <div class="tab" data-tab="notes" onclick="sw('notes',this)"><div class="tbi">&#128203;</div>Notes</div>
+  <div class="tab" data-tab="log" onclick="sw('log',this)"><div class="tbi">&#128221;</div>Log</div>
+  <div class="tab" data-tab="settings" onclick="sw('settings',this)"><div class="tbi">&#9881;</div>Settings</div>
 </div>
 <div id="pg-water" class="pg act"><div class="con">
   <div class="ta"><div class="bs" onclick="oWE(null)">+ Custom</div><div class="bs g" onclick="oMWB()">Edit Buttons</div><div class="bs" onclick="oH('water')">History</div></div>
@@ -59,10 +59,12 @@
   <div class="lc"><pre id="mdO">Save entries to generate log.</pre></div>
 </div></div>
 <div id="pg-settings" class="pg"><div class="con">
+  <div class="sh"><div class="sl">System</div></div>
+  <div class="card" id="tabTogglesCard"></div>
   <div class="sh"><div class="sl">Google Drive</div></div>
   <div class="card">
     <div class="set-row"><div class="mii"><div class="mn">Drive Folder IDs</div><div class="mm">Tap to configure Daily Logs and backup paths</div></div><div class="bs" onclick="oSetDrive()">Edit</div></div>
-    <div class="set-row"><div class="mii"><div class="mn">Auto-sync on Save</div><div class="mm">Push today's Daily Log to Drive every time you press Save. Signs in with Google on first use.</div></div><div class="tg" id="tgAutoSync" onclick="togAutoSync()"></div></div>
+    <div class="set-row"><div class="mii"><div class="mn">Auto-sync after saves</div><div class="mm">Push affected daily log(s) to Drive after water, food, Other card Save, and bottom Save. Turn off to sync manually only.</div></div><div class="tg on" id="tgAutoSync" onclick="togAutoSync()"></div></div>
   </div>
   <div class="sh"><div class="sl">Export</div></div>
   <div class="card">
@@ -145,7 +147,18 @@
 
 <div class="ov" id="ovBulkDT"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Edit Date &amp; Time</div><div class="ssb" id="bulkSub">Applies to selected entries</div><div class="fld"><div class="fl">Date</div><input type="date" id="bulkDate"></div><div class="fld"><div class="fl">Time</div><input type="time" id="bulkTime" step="60"></div></div><div class="sa"><button class="bcn" onclick="popOv()">Cancel</button><button class="blg" id="bulkApplyBtn" onclick="cfBulkDT()">Apply</button></div></div></div>
 
-<div class="ov" id="ovExport"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Export</div><div class="ssb" id="expSub"></div><div class="fr2" style="margin-bottom:13px"><div class="fld" style="margin-bottom:0"><div class="fl">From</div><input type="date" id="expStart" onchange="rExpSub()"></div><div class="fld" style="margin-bottom:0"><div class="fl">To</div><input type="date" id="expEnd" onchange="rExpSub()"></div></div><div class="card" style="margin-bottom:0">
+<div class="ov" id="ovExport"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Export</div><div class="ssb" id="expSub"></div><div class="fr2" style="margin-bottom:13px"><div class="fld" style="margin-bottom:0"><div class="fl">From</div><input type="date" id="expStart" onchange="rExpSub()"></div><div class="fld" style="margin-bottom:0"><div class="fl">To</div><input type="date" id="expEnd" onchange="rExpSub()"></div></div>
+<div class="ssb" style="margin-bottom:8px">Daily log format</div>
+<div class="card" style="margin-bottom:13px">
+  <div class="set-row" onclick="setExpMode('multi')" style="cursor:pointer"><div class="mii"><div class="mn">One file per day</div><div class="mm">Preserves Oura tail when an existing file is available (same as Sync)</div></div><div class="hcb" id="expModeMulti" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
+  <div class="set-row" onclick="setExpMode('single')" style="cursor:pointer"><div class="mii"><div class="mn">Single combined file</div><div class="mm">Fresh Tracker-only content — no Oura read or merge</div></div><div class="hcb" id="expModeSingle" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
+</div>
+<div class="ssb" style="margin-bottom:8px">Destination</div>
+<div class="card" style="margin-bottom:13px">
+  <div class="set-row" onclick="setExpDest('drive')" style="cursor:pointer"><div class="mii"><div class="mn">Google Drive Daily Logs</div><div class="mm">Upload to the folder ID in Settings</div></div><div class="hcb" id="expDestDrive" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
+  <div class="set-row" onclick="setExpDest('other')" style="cursor:pointer"><div class="mii"><div class="mn">Other (Share / folder / download)</div><div class="mm">iPhone Share sheet, linked folder, or browser download</div></div><div class="hcb" id="expDestOther" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
+</div>
+<div class="card" style="margin-bottom:0">
   <div class="set-row" onclick="togExpAll()" style="cursor:pointer"><div class="mii"><div class="mn" style="font-weight:800">All files</div></div><div class="hcb" id="expAllCb" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
   <div class="set-row" onclick="togExpCb('expDailyLog')" style="cursor:pointer"><div class="mii"><div class="mn">Daily Log (.md)</div><div class="mm">Hybrid markdown + embedded JSON (one file per day)</div></div><div class="hcb" id="expDailyLog" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>
   <div class="set-row" onclick="togExpCb('expCfg')" style="cursor:pointer"><div class="mii"><div class="mn">Config snapshot (.json)</div><div class="mm">Supplements, food protocol, settings</div></div><div class="hcb" id="expCfg" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--bd2);flex-shrink:0;display:flex;align-items:center;justify-content:center"></div></div>

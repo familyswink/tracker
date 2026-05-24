@@ -76,7 +76,7 @@ View today's full log as a formatted Markdown document.
 ### Settings
 Configure the app behavior and integrations.
 
-- **Auto-sync on Save** — automatically push today's Daily Log to Google Drive every time you press Save
+- **Auto-sync:** after **every log commit** (bottom Save, Other card Save, water/food immediate saves) → Drive sync for affected day(s), same Oura-per-day rules as Sync. Log → **Sync Drive** button unchanged. See [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md).
 - **Drive Folder IDs** — set the Google Drive folder IDs for Daily Logs and backups. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **Help** — links to this README
 - **Backup Now** — save a full JSON backup of all your data (logs + config) to the Drive backups folder

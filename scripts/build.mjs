@@ -1,23 +1,32 @@
 #!/usr/bin/env node
 /**
- * Phase 1 build: journal helpers + app → dist/app.js
+ * Phase 1 build: journal helpers + domain modules + app → dist/app.js
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 
 mkdirSync('dist', { recursive: true });
 
-const journalYamlFmt = readFileSync('src/domain/journal-yaml-format.js', 'utf8')
-  .replace(/^export const /gm, 'const ')
-  .replace(/^export function /gm, 'function ');
-const journalSrc = readFileSync('src/domain/journal-file.js', 'utf8')
-  .replace(/^export function /gm, 'function ')
-  .replace(/^export \{[^}]+\};?\s*$/gm, '');
+function stripExports(src) {
+  return src
+    .replace(/^export const /gm, 'const ')
+    .replace(/^export function /gm, 'function ')
+    .replace(/^export \{[^}]+\};?\s*$/gm, '');
+}
 
-const journalPart = `/* Daily Tracker — journal (dual-writer) */
+const journalYamlFmt = stripExports(readFileSync('src/domain/journal-yaml-format.js', 'utf8'));
+const journalSrc = stripExports(readFileSync('src/domain/journal-file.js', 'utf8'));
+const activityFieldSrc = stripExports(readFileSync('src/domain/activity-field.js', 'utf8'));
+const tabsSrc = stripExports(readFileSync('src/domain/tabs.js', 'utf8'));
+const logStoreSrc = stripExports(readFileSync('src/domain/log-store.js', 'utf8'));
+
+const journalPart = `/* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
 ${journalYamlFmt}
 ${journalSrc}
+${activityFieldSrc}
+${tabsSrc}
+${logStoreSrc}
 global.DT = {
   composeJournalFile,
   splitJournalFile,
@@ -27,6 +36,28 @@ global.DT = {
   formatYamlJournalFenceFromPayload,
   pruneSparseJournalTree,
   YAML_JOURNAL_FENCE_MARKER,
+  numberFieldSpec,
+  shouldUseNumberSelect,
+  coalesceNumberValue,
+  actListCardProfile,
+  defaultsFromFirstOpt,
+  buildCardActivityFlds,
+  formatCardDefaultSummary,
+  TAB_IDS,
+  DEFAULT_TAB_VISIBILITY,
+  normalizeTabVisibility,
+  isTabVisible,
+  visibleTabIds,
+  logEntryDay,
+  filterByDay,
+  listLogs,
+  removeLogIds,
+  combinedTrackerLogText,
+  LOG_TYPES,
+  arraysForType,
+  getLog,
+  updateLogDt,
+  updateLogs,
 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 `;

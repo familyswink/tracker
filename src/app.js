@@ -8,7 +8,7 @@ const DSM=[{id:'sm1',mfr:'Himalayan Gold',name:'Water',units:'oz',rat:'Hydration
 const DSCH=[{id:'sc1',mid:'sm1',grp:'morning-water',qty:14,tag:'',on:true},{id:'sc2',mid:'sm2',grp:'morning-water',qty:0.125,tag:'',on:true},{id:'sc3',mid:'sm3',grp:'morning-water',qty:1,tag:'optional',on:true},{id:'sc4',mid:'sm4',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc5',mid:'sm5',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc6',mid:'sm6',grp:'breakfast',qty:1,tag:'interim',on:true},{id:'sc7',mid:'sm7',grp:'breakfast',qty:6,tag:'',on:true},{id:'sc8',mid:'sm8',grp:'breakfast',qty:2,tag:'',on:true},{id:'sc9',mid:'sm9',grp:'breakfast',qty:5,tag:'',on:true},{id:'sc10',mid:'sm10',grp:'breakfast',qty:1,tag:'',on:true},{id:'sc11',mid:'sm11',grp:'breakfast',qty:50,tag:'',on:true},{id:'sc12',mid:'sm5',grp:'lunch',qty:3,tag:'',on:true},{id:'sc13',mid:'sm4',grp:'bedtime',qty:3,tag:'',on:true},{id:'sc14',mid:'sm12',grp:'bedtime',qty:1,tag:'',on:true},{id:'sc15',mid:'sm13',grp:'bedtime',qty:500,tag:'',on:true},{id:'sc16',mid:'sm14',grp:'bedtime',qty:50,tag:'',on:true},{id:'sc17',mid:'sm15',grp:'bedtime',qty:4,tag:'',on:true},{id:'sc18',mid:'sm16',grp:'bedtime',qty:2.5,tag:'',on:true}];
 const DFD=[{id:'f1',nm:'Betaine Greens',sec:'Vegetables',dg:1,wg:0,on:true,srv:'85g cooked spinach, beet greens, or Swiss chard',ceil:'200g daily',col:'auto',why:'BHMT+PEMT variants reduce homocysteine clearance. Dietary betaine targets homocysteine <7.2 since TMG is excluded.'},{id:'f2',nm:'Dark Greens / Cruciferous',sec:'Vegetables',dg:1,wg:0,on:true,srv:'85g cooked kale, arugula, collards, broccoli, Brussels sprouts, cauliflower',ceil:'No limit',col:'auto',why:'Activates NRF2 pathway for APOE4 cellular defense. Nitrates support vascular function via NOS3 variant.'},{id:'f3',nm:'Colorful Veg',sec:'Vegetables',dg:1.5,wg:0,on:true,srv:'85g red bell pepper, carrots, beets, tomatoes, red cabbage',ceil:'No limit',col:'auto',why:'BCO1 variants reduce beta-carotene conversion. SLC23A2 variant demands food-form vitamin C.'},{id:'f4',nm:'Other Veg',sec:'Vegetables',dg:0,wg:0,on:true,srv:'85g any vegetable including onions, mushrooms, zucchini, asparagus. Half avocado = 1 serving.',ceil:'No limit',col:'auto',why:'Counts toward daily vegetable total. Avocado moved here: healthy monounsaturated fats, potassium, enhances fat-soluble vitamin absorption.'},{id:'f5',nm:'Berries',sec:'Fruit',dg:1,wg:0,on:true,srv:'85g blueberries, blackberries, strawberries, or raspberries',ceil:'200g combined daily fruit',col:'auto',why:'SIRT1 rs932658 AA genotype responds well to berry polyphenols. Strongest food-based evidence for APOE4 neuroinflammation reduction.'},{id:'f6',nm:'Other Fruit',sec:'Fruit',dg:1,wg:0,on:true,srv:'1 piece citrus, kiwi, pomegranate, or green-tipped banana',ceil:'200g combined daily fruit',col:'auto',why:'SLC23A2 variant demands higher vitamin C. Pomegranate has specific APOE4 neuroprotective evidence.'},{id:'f7',nm:'Eggs',sec:'Protein',dg:1,wg:0,on:true,srv:'2 whole eggs',ceil:'3 daily',col:'auto',why:'Primary choline delivery for APOE4/PEMT variants (~294mg). Ceiling reflects APOE4 dietary cholesterol sensitivity.'},{id:'f8',nm:'Fish',sec:'Protein',dg:0,wg:5,on:true,srv:'140g cooked salmon, sardines, mackerel, trout, cod, or halibut. Tuna max 2x/week.',ceil:'200g per sitting',col:'auto',why:'FADS1/FADS2 variants impair ALA to EPA/DHA conversion. Maintains omega index 9.8%.'},{id:'f9',nm:'Fowl',sec:'Protein',dg:0,wg:5,on:true,srv:'140g cooked chicken or turkey breast, skinless preferred',ceil:'No limit',col:'auto',why:'Primary weekly protein anchor for leucine threshold. AMPD1 variant increases post-exercise protein requirement.'},{id:'f10',nm:'Red Meat / Pork',sec:'Protein',dg:0,wg:1,on:true,srv:'140g cooked grass-fed beef, bison, or pork tenderloin',ceil:'0=amber 1-2=green 3=yellow 4+=red weekly',col:'auto',why:'Heme iron for iron saturation at 24%. Always pair with vitamin C. ApoB 57 well controlled.'},{id:'f11',nm:'Smart Carbs',sec:'Grains',dg:1,wg:0,on:true,srv:'40g dry steel cut oats OR 100g cooked quinoa, basmati, sweet potato, sourdough, farro, or barley',ceil:'150g cooked at any sitting',col:'auto',why:'PPARD and AMPD1 variants require adequate carbohydrate for performance.'},{id:'f12',nm:'Refined Grains',sec:'Grains',dg:0,wg:0,on:true,srv:'150g cooked white pasta, white rice, white bread, risotto, or white potato',ceil:'Minimize',col:'amber',why:'Refined carbs spike glucose - track for awareness.'},{id:'f13',nm:'Extra Virgin Olive Oil',sec:'Fats',dg:1,wg:0,on:true,srv:'14g (1 tbsp) first cold press with vegetables - never high heat',ceil:'28g (2 tbsp) daily',col:'auto',why:'Oleocanthal provides NF-kB suppression relevant to APOE4 inflammation.'},{id:'f14',nm:'Legumes',sec:'Legumes',dg:1,wg:0,on:true,srv:'85g cooked lentils, black beans, edamame, chickpeas, navy or kidney beans',ceil:'170g daily',col:'auto',why:'Magnesium delivery supporting TRPM6 variant. Plant sterols address elevated lathosterol.'},{id:'f15',nm:'Nuts and Seeds',sec:'Nuts and Seeds',dg:1,wg:0,on:true,srv:'30g walnuts, pecans, pumpkin seeds, or sesame seeds. No peanuts.',ceil:'60g daily',col:'auto',why:'Primary food source for gamma tocopherol (currently 0.6 mg/L, below optimal).'},{id:'f16',nm:'Fermented Foods',sec:'Fermented Foods',dg:0,wg:3,on:true,srv:'180ml kefir, 150g Greek yogurt, 85g kimchi or sauerkraut, or 17g miso',ceil:'No ceiling',col:'auto',why:'WBC consistently low (3.5-3.8). APOE4 gut-brain axis research links microbiome to neuroinflammation.'},{id:'f17',nm:'Sunflower Lecithin',sec:'Choline',dg:1,wg:0,on:true,srv:'2 tsp (5g) Now Foods Sunflower Lecithin Powder with a meal',ceil:'1 tbsp (7.5g) daily',col:'auto',why:'Phosphatidylcholine for APOE4/PEMT variants. Total daily target 700-800mg choline.'}];
 const FSGS={'Vegetables':4,'Fruit':2,'Protein':2};
-const DAT=[{id:'a1',nm:'Cold Plunge',on:true,flds:[{nm:'Duration',t:'number',u:'minutes'},{nm:'Temperature',t:'number',u:'F'}]},{id:'a2',nm:'Sauna',on:true,flds:[{nm:'Duration',t:'number',u:'minutes'},{nm:'Temperature',t:'number',u:'F'}]},{id:'a3',nm:'Meditation',on:true,flds:[{nm:'Duration',t:'number',u:'minutes'}]}];
+const DAT=[{id:'a1',nm:'Cold Plunge',on:true,flds:[{nm:'Duration',t:'number',u:'minutes',min:0,max:60,step:1,def:5},{nm:'Temperature',t:'number',u:'F',min:32,max:120,step:1,def:45}]},{id:'a2',nm:'Sauna',on:true,flds:[{nm:'Duration',t:'number',u:'minutes',min:0,max:120,step:1,def:15},{nm:'Temperature',t:'number',u:'F',min:80,max:220,step:1,def:170}]},{id:'a3',nm:'Meditation',on:true,flds:[{nm:'Duration',t:'number',u:'minutes',min:0,max:180,step:1,def:10}]}];
 const BWL_OPTS=[{v:'Normal',d:''},{v:'Loose',d:''},{v:'Watery',d:''},{v:'Hard',d:''}];
 const DAT_BH={id:'a0bh',nm:'Bowel Health',on:true,flds:[{nm:'Bowel Health',t:'opts',opts:[{v:'Normal',d:''},{v:'Loose',d:''},{v:'Watery',d:''},{v:'Hard',d:''}]}]};
 const DWB=[8,16,20,24,32],WT=90;
@@ -32,7 +32,7 @@ const IDB_FS_STORE='kv';
 const IDB_KEY_LOCAL_EXPORT_DIR='localExportDir';
 
 const STORAGE_KEY='dt6';
-let S={gdt:null,flSave:null,sm:[],sch:[],sl:[],wb:[...DWB],wl:[],fd:[],meals:[],fl:[],ind:[],acts:[],al:[],bwl:[],fnotes:[],snotes:[],notes:[],exportModDates:[],foodGroups:[],suppGroups:[],suppUnits:[],cfg:{autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}}};
+let S={gdt:null,flSave:null,sm:[],sch:[],sl:[],wb:[...DWB],wl:[],fd:[],meals:[],fl:[],ind:[],acts:[],al:[],bwl:[],fnotes:[],snotes:[],notes:[],exportModDates:[],foodGroups:[],suppGroups:[],suppUnits:[],cfg:{autoSync:true,shareOnSave:true,tabs:null,driveIds:{...DRIVE_IDS}}};
 let _ovStack=[],_esmId=null,_escId=null,_efiId=null,_emId=null,_eatId=null;
 let _cSLId=null,_cSSId=null,_cWLId=null,_cFId=null,_cALId=null,_cATId=null,_cNId=null,_cFNId=null,_cSNId=null,_cIId=null,_cMId=null;
 let _hType=null,_hData=[],_hDataAll=[],_hFilterDay='',_hSel=new Set(),_hSelMode=true;
@@ -41,6 +41,9 @@ let _listPickCtx=null;
 let _bwlMigrated=false;
 let _localExportDirPromise=null,_migratedDriveOff=false;
 let _gToken=null,_gTokenExpiry=0;
+let _autoSyncTimer=null;
+const _autoSyncPendingDays=new Set();
+let _expMode='multi',_expDest='drive';
 
 function canonSuppUnitLabel(u){
   const t=String(u||'').trim();
@@ -99,9 +102,13 @@ function normalizeS(){
   if(S.cfg.driveIds.md&&!S.cfg.driveIds.dailyLogs)S.cfg.driveIds.dailyLogs=S.cfg.driveIds.md;
   delete S.cfg.driveIds.md;
   delete S.cfg.driveIds.json;
-  if(typeof S.cfg.autoSync!=='boolean')S.cfg.autoSync=false;
-  if(S.cfg.autoSync&&S.cfg._driveAutoSyncMigrated2026!==true){S.cfg.autoSync=false;S.cfg._driveAutoSyncMigrated2026=true;_migratedDriveOff=true;}
+  if(typeof S.cfg.autoSync!=='boolean')S.cfg.autoSync=true;
+  if(S.cfg._autoSyncAllSaves2026!==true){S.cfg.autoSync=true;S.cfg._autoSyncAllSaves2026=true;}
+  if(S.cfg.autoSync&&S.cfg._driveAutoSyncMigrated2026!==true){S.cfg._driveAutoSyncMigrated2026=true;}
   if(typeof S.cfg.shareOnSave!=='boolean')S.cfg.shareOnSave=true;
+  if(typeof DT!=='undefined'&&DT.normalizeTabVisibility)S.cfg.tabs=DT.normalizeTabVisibility(S.cfg.tabs);
+  else if(!S.cfg.tabs||typeof S.cfg.tabs!=='object')S.cfg.tabs={water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true};
+  else S.cfg.tabs.settings=true;
   if(!Array.isArray(S.exportModDates))S.exportModDates=[];
   S.exportModDates=[...new Set(S.exportModDates.filter(d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort();
   _modDates=new Set(S.exportModDates);
@@ -141,7 +148,7 @@ function ld(){
   if(_migratedDriveOff){_migratedDriveOff=false;flushLocalQuiet();}
   if(_bwlMigrated){_bwlMigrated=false;flushLocalQuiet();}
 }
-function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
+function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:true,shareOnSave:true,tabs:{water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true},driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
 
 function gFoodGroups(){return(S.foodGroups&&S.foodGroups.length)?S.foodGroups:[...new Set(S.fd.filter(f=>f.on).map(f=>f.sec).filter(Boolean))];}
 function gSuppGroups(){return(S.suppGroups&&S.suppGroups.length)?S.suppGroups:SGP;}
@@ -289,6 +296,103 @@ function emptyFoodCategories(){
 function ck(c){return '<svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5L4 7.5L10 1" stroke="'+(c||'#000')+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';}
 function xk(){return '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1L9 9M9 1L1 9" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>';}
 function markMod(dt){_modDates.add(isoToLocalYMD(dt||now()));}
+function queueAutoSync(days){
+  const arr=Array.isArray(days)?days:(days?[days]:[]);
+  arr.forEach(d=>{
+    const y=typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)?d:isoToLocalYMD(d);
+    if(y)_autoSyncPendingDays.add(y);
+  });
+  clearTimeout(_autoSyncTimer);
+  _autoSyncTimer=setTimeout(runQueuedAutoSync,1200);
+}
+async function runQueuedAutoSync(){
+  if(S.cfg.autoSync===false)return;
+  const dates=[..._autoSyncPendingDays];
+  _autoSyncPendingDays.clear();
+  if(!dates.length)return;
+  if(!S.cfg.driveIds?.dailyLogs)return;
+  if(!gDriveTokenValid())return;
+  try{await syncDrive(dates);}catch(e){console.warn('auto-sync',e);}
+}
+function commitLogChange(dt){
+  markMod(dt);
+  const ok=sv();
+  if(ok)queueAutoSync([isoToLocalYMD(dt||now())]);
+  return ok;
+}
+function tabVisible(id){return typeof DT!=='undefined'&&DT.isTabVisible?DT.isTabVisible(S.cfg.tabs,id):S.cfg.tabs?.[id]!==false;}
+function rTabVisibility(){
+  document.querySelectorAll('.tabs .tab[data-tab]').forEach(el=>{
+    const id=el.dataset.tab;
+    el.style.display=tabVisible(id)?'':'none';
+  });
+  const actPg=document.querySelector('.pg.act');
+  if(actPg){
+    const cur=actPg.id.replace('pg-','');
+    if(!tabVisible(cur)){
+      const first=(typeof DT!=='undefined'&&DT.visibleTabIds?DT.visibleTabIds(S.cfg.tabs):['water','supps','food','other','notes','log','settings']).find(tabVisible);
+      if(first){
+        const tabEl=document.querySelector('.tab[data-tab="'+first+'"]');
+        if(tabEl)sw(first,tabEl);
+      }
+    }
+  }
+}
+function rTabToggles(){
+  const c=document.getElementById('tabTogglesCard');if(!c)return;
+  const labels={water:'Water',supps:'Supplements',food:'Food',other:'Other',notes:'Notes',log:'Log'};
+  let h='';
+  Object.keys(labels).forEach(id=>{
+    const on=tabVisible(id);
+    h+='<div class="set-row" onclick="togTabVis(\''+id+'\')" style="cursor:pointer"><div class="mii"><div class="mn">'+labels[id]+' tab</div><div class="mm">'+(on?'Visible — you can log here':'Hidden — no new logging; past data stays on phone and in Sync/Export')+'</div></div><div class="tg'+(on?' on':'')+'" id="tgTab-'+id+'"></div></div>';
+  });
+  c.innerHTML=h;
+}
+function togTabVis(id){
+  if(!S.cfg.tabs)S.cfg.tabs={};
+  S.cfg.tabs[id]=!tabVisible(id);
+  if(typeof DT!=='undefined'&&DT.normalizeTabVisibility)S.cfg.tabs=DT.normalizeTabVisibility(S.cfg.tabs);
+  sv();rTabVisibility();rTabToggles();
+}
+function numSpec(f){return typeof DT!=='undefined'&&DT.numberFieldSpec?DT.numberFieldSpec(f):{min:null,max:null,step:null,def:null};}
+function appendNumberFieldDom(div,fd,f,val){
+  const spec=numSpec(f);
+  const idN='num-'+f.nm.replace(/\s/g,'_');
+  const coerced=typeof DT!=='undefined'&&DT.coalesceNumberValue?DT.coalesceNumberValue(val,spec):(val!==''&&val!==undefined&&val!==null?Number(val):spec.def);
+  let numVal='';
+  if(coerced!==undefined&&coerced!==null&&Number.isFinite(coerced))numVal=String(coerced);
+  const useSel=typeof DT!=='undefined'&&DT.shouldUseNumberSelect&&DT.shouldUseNumberSelect(spec);
+  const ttl='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>';
+  if(useSel){
+    const min=spec.min,max=spec.max,step=spec.step||1;
+    let selVal=parseFloat(numVal);
+    if(!Number.isFinite(selVal))selVal=min;
+    selVal=Math.min(max,Math.max(min,selVal));
+    const opts=[];
+    for(let v=min;v<=max+1e-9;v+=step){
+      const t=Math.round(v*1000)/1000;
+      opts.push('<option value="'+t+'"'+(Math.abs(t-selVal)<1e-6?' selected':'')+'>'+t+(f.u?' '+escHTML(f.u):'')+'</option>');
+    }
+    div.innerHTML=ttl+'<select id="'+idN+'">'+opts.join('')+'</select>';
+  }else{
+    let attrs='type="number" id="'+idN+'"';
+    if(spec.step!=null)attrs+=' step="'+spec.step+'"';
+    if(spec.min!=null)attrs+=' min="'+spec.min+'"';
+    if(spec.max!=null)attrs+=' max="'+spec.max+'"';
+    if(numVal!=='')attrs+=' value="'+escHTML(numVal)+'"';
+    div.innerHTML=ttl+'<input '+attrs+'>';
+  }
+  fd.appendChild(div);
+}
+function readNumberFieldValue(f){
+  const idN='num-'+f.nm.replace(/\s/g,'_');
+  const el=document.getElementById(idN);
+  if(!el)return undefined;
+  const raw=el.tagName==='SELECT'?el.value:el.value;
+  if(raw===''||raw===undefined||raw===null)return undefined;
+  const n=el.tagName==='SELECT'?parseInt(raw,10):parseFloat(raw);
+  return Number.isFinite(n)?n:undefined;
+}
 function resetAfterSave(){
   ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('note-dirty');}});
   _cMId=null;
@@ -310,7 +414,7 @@ function rAppVersion(){
 }
 function init(){
   rAppVersion();
-  ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',!!S.cfg.autoSync);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);setInterval(rH,60000);initSwipe();gDriveCheckHash();
+  ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);rTabVisibility();rTabToggles();setInterval(rH,60000);initSwipe();gDriveCheckHash();
   const en=document.getElementById('eatNm');if(en)en.addEventListener('input',function(){this.classList.remove('eat-miss-err');});
   ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});
   window.addEventListener('pagehide',flushLocalQuiet);
@@ -411,7 +515,7 @@ function rH(){
 function oGDT(){const b=S.gdt||now();document.getElementById('gdtDate').value=isoToLocalYMD(b);document.getElementById('gdtTime').value=isoToTimeLocal(b);openOvRoot('ovGDT');}
 function cfGDT(){S.gdt=dateAndTimeToISO(document.getElementById('gdtDate').value,document.getElementById('gdtTime').value);sv();rH();closeAllOv();}
 function rGDT(){S.gdt=null;sv();rH();closeAllOv();}
-function sw(n,el){document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));document.getElementById('pg-'+n).classList.add('act');el.classList.add('act');if(n==='log')rLog();if(n==='settings'){rLocalExportLbl();document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);}}
+function sw(n,el){if(!tabVisible(n))return;document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));document.getElementById('pg-'+n).classList.add('act');el.classList.add('act');if(n==='log')rLog();if(n==='settings'){rLocalExportLbl();rTabToggles();document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);}}
 
 // WATER
 function rW(){
@@ -419,15 +523,15 @@ function rW(){
   document.getElementById('wT').textContent=tot;const pct=Math.min(100,Math.round(tot/WT*100));
   document.getElementById('wB').style.width=pct+'%';document.getElementById('wP').textContent=pct+'%';
   const g=document.getElementById('wQB');g.innerHTML='';
-  S.wb.forEach(oz=>{if(!oz||oz<=0)return;const b=document.createElement('div');b.className='qb';b.textContent='+'+oz;b.onclick=()=>{S.wl.push({id:uid(),dt:gEDt(),la:now(),qty:oz,nt:''});markMod();sv();rW();};g.appendChild(b);});
+  S.wb.forEach(oz=>{if(!oz||oz<=0)return;const b=document.createElement('div');b.className='qb';b.textContent='+'+oz;b.onclick=()=>{S.wl.push({id:uid(),dt:gEDt(),la:now(),qty:oz,nt:''});commitLogChange(gEDt());rW();};g.appendChild(b);});
   const l=document.getElementById('wL');
   if(!es.length){l.innerHTML='<div style="padding:13px;font-family:Courier New,monospace;font-size:10px;color:var(--mt)">No entries yet</div>';return;}
   l.innerHTML=es.map(e=>'<div class="row" onclick="oWE(\''+e.id+'\')"><div class="ri"><div class="rn">+'+e.qty+' oz</div>'+(e.nt?'<div class="rm">'+escHTML(e.nt)+'</div>':'')+'</div><div class="wlt">'+f12(e.dt)+'</div></div>').join('')+'<div style="display:flex;justify-content:space-between;padding:10px 13px;font-family:Courier New,monospace;font-size:11px;border-top:1px solid var(--bd)"><span>Total</span><span style="color:var(--bl);font-weight:700">'+tot+' oz</span></div>';
 }
 function oWE(id){_cWLId=id;const e=id?S.wl.find(x=>x.id===id):null;document.getElementById('weT').textContent=id?'Edit Water':'Log Water';document.getElementById('weQ').value=e?e.qty:16;document.getElementById('weNt').value=e?(e.nt||''):'';document.getElementById('weDl').style.display=id?'block':'none';openOvRoot('ovWE');}
 function aWQ(d){const el=document.getElementById('weQ');el.value=Math.max(0,parseFloat(el.value||0)+d);}
-function cfWE(){const qty=parseFloat(document.getElementById('weQ').value)||0;const nt=document.getElementById('weNt').value;if(_cWLId){const e=S.wl.find(x=>x.id===_cWLId);if(e){e.qty=qty;e.nt=nt;markMod(e.dt);}}else{const dt=gEDt();S.wl.push({id:uid(),dt,la:now(),qty,nt});markMod(dt);}sv();closeAllOv();rW();document.getElementById('weQ').value=16;document.getElementById('weNt').value='';}
-function dWE(){markMod(S.wl.find(x=>x.id===_cWLId)?.dt);S.wl=S.wl.filter(x=>x.id!==_cWLId);sv();closeAllOv();rW();}
+function cfWE(){const qty=parseFloat(document.getElementById('weQ').value)||0;const nt=document.getElementById('weNt').value;if(_cWLId){const e=S.wl.find(x=>x.id===_cWLId);if(e){e.qty=qty;e.nt=nt;commitLogChange(e.dt);}}else{const dt=gEDt();S.wl.push({id:uid(),dt,la:now(),qty,nt});commitLogChange(dt);}closeAllOv();rW();document.getElementById('weQ').value=16;document.getElementById('weNt').value='';}
+function dWE(){const e=S.wl.find(x=>x.id===_cWLId);S.wl=S.wl.filter(x=>x.id!==_cWLId);if(e)commitLogChange(e.dt);else sv();closeAllOv();rW();}
 function oMWB(){document.getElementById('wBF').innerHTML=S.wb.map((v,i)=>'<div class="fld"><div class="fl">Button '+(i+1)+' oz</div><input type="number" id="wb'+i+'" value="'+v+'" step="1" min="0"></div>').join('');openOvRoot('ovMWB');}
 function svWB(){S.wb=[0,1,2,3,4].map(i=>parseFloat(document.getElementById('wb'+i).value)||0);sv();closeAllOv();rW();}
 
@@ -538,7 +642,7 @@ function cfSE(){
   }
   const sid=document.getElementById('ovSE').dataset.sid;const logId=document.getElementById('ovSE').dataset.logId;
   const qty=parseFloat(document.getElementById('seQ').value)||0;const nt=document.getElementById('seNt').value;const sk=qty===0;
-  if(logId){const e=S.sl.find(x=>x.id===logId);if(e){e.qty=qty;e.nt=nt;e.sk=sk;markMod(e.dt);}sv();}
+  if(logId){const e=S.sl.find(x=>x.id===logId);if(e){e.qty=qty;e.nt=nt;e.sk=sk;commitLogChange(e.dt);}}
   else{_supSt[sid]={qty,nt,sk};}
   closeAllOv();rS();document.getElementById('seNt').value='';
 }
@@ -546,7 +650,7 @@ function dSE(){
   const mid=document.getElementById('ovSE').dataset.mid;
   if(mid){delete _supAdhoc[mid];document.getElementById('ovSE').dataset.mid='';closeAllOv();rS();return;}
   const sid=document.getElementById('ovSE').dataset.sid;const logId=document.getElementById('ovSE').dataset.logId;
-  if(logId){markMod(S.sl.find(x=>x.id===logId)?.dt);S.sl=S.sl.filter(x=>x.id!==logId);sv();}
+  if(logId){const e=S.sl.find(x=>x.id===logId);S.sl=S.sl.filter(x=>x.id!==logId);if(e)commitLogChange(e.dt);else sv();}
   else{delete _supSt[sid];if(isWaterSup(sid))_pendingWater=null;}
   closeAllOv();rS();
 }
@@ -725,11 +829,11 @@ function qF(fid,d,e){
   const cur=gTFQ(fid);const next=Math.max(0,Math.round((cur+d)*10)/10);
   S.fl=S.fl.filter(x=>!(String(x.fid)===String(fid)&&isoToLocalYMD(x.dt)===logDay&&(!fs||new Date(x.la)>=new Date(fs))));
   if(next>0)S.fl.push({id:uid(),fid,dt:gEDt(),la:now(),qty:next,nt:''});
-  markMod();sv();rF();
+  commitLogChange(gEDt());rF();
 }
 function oFD(fid){const f=S.fd.find(x=>x.id===fid);if(!f)return;_cFId=fid;document.getElementById('fdN').textContent=f.nm;let gs='';if(f.dg>0)gs+='Daily: '+f.dg+' servings';if(f.wg>0)gs+=(gs?' - ':'')+('Weekly: '+f.wg+'x');document.getElementById('fdG').textContent=gs||'Tracking only';document.getElementById('fdW').textContent=f.why||'';document.getElementById('fdS').textContent=f.srv||'--';document.getElementById('fdC').textContent=f.ceil||'--';document.getElementById('fdQ').value=gTFQ(fid);document.getElementById('fdNt').value='';openOvRoot('ovFD');}
 function aFQ(d){const el=document.getElementById('fdQ');el.value=Math.max(0,Math.round((parseFloat(el.value||0)+d)*10)/10);}
-function cfFD(){const qty=parseFloat(document.getElementById('fdQ').value)||0;const nt=document.getElementById('fdNt').value;const dt=gEDt();const logDay=isoToLocalYMD(dt);const fs=S.flSave;S.fl=S.fl.filter(e=>!(String(e.fid)===String(_cFId)&&isoToLocalYMD(e.dt)===logDay&&(!fs||new Date(e.la)>=new Date(fs))));if(qty>0)S.fl.push({id:uid(),fid:_cFId,dt,la:now(),qty,nt});markMod(dt);sv();closeAllOv();rF();document.getElementById('fdQ').value=0;document.getElementById('fdNt').value='';}
+function cfFD(){const qty=parseFloat(document.getElementById('fdQ').value)||0;const nt=document.getElementById('fdNt').value;const dt=gEDt();const logDay=isoToLocalYMD(dt);const fs=S.flSave;S.fl=S.fl.filter(e=>!(String(e.fid)===String(_cFId)&&isoToLocalYMD(e.dt)===logDay&&(!fs||new Date(e.la)>=new Date(fs))));if(qty>0)S.fl.push({id:uid(),fid:_cFId,dt,la:now(),qty,nt});commitLogChange(dt);closeAllOv();rF();document.getElementById('fdQ').value=0;document.getElementById('fdNt').value='';}
 function oFDInfo(fid){
   const f=S.fd.find(x=>x.id===fid);if(!f)return;
   document.getElementById('fdiN').textContent=f.nm;let gs='';if(f.dg>0)gs+='Daily: '+f.dg+' servings';if(f.wg>0)gs+=(gs?' - ':'')+('Weekly: '+f.wg+'x');document.getElementById('fdiG').textContent=gs||'Tracking only';document.getElementById('fdiW').textContent=f.why||'';document.getElementById('fdiS').textContent=f.srv||'--';document.getElementById('fdiC').textContent=f.ceil||'--';
@@ -737,8 +841,8 @@ function oFDInfo(fid){
   if(top==='ovML'||top==='ovEM')openOvPush('ovFDInfo');else openOvRoot('ovFDInfo');
 }
 function oInd(id){_cIId=id;const i=id?S.ind.find(x=>x.id===id):null;document.getElementById('indT').textContent=id?'Edit Indulgence':'Log Indulgence';document.getElementById('indTx').value=i?i.txt:'';document.getElementById('indNt').value=i?(i.nt||''):'';document.getElementById('indDl').style.display=id?'block':'none';openOvRoot('ovIND');}
-function cfInd(){const txt=document.getElementById('indTx').value.trim();const nt=document.getElementById('indNt').value;if(!txt){closeAllOv();return;}const dt=gEDt();if(_cIId){const i=S.ind.find(x=>x.id===_cIId);if(i){i.txt=txt;i.nt=nt;markMod(i.dt);}}else{S.ind.push({id:uid(),dt,la:now(),txt,nt});markMod(dt);}sv();closeAllOv();rF();document.getElementById('indTx').value='';document.getElementById('indNt').value='';}
-function dInd(){markMod(S.ind.find(x=>x.id===_cIId)?.dt);S.ind=S.ind.filter(x=>x.id!==_cIId);sv();closeAllOv();rF();}
+function cfInd(){const txt=document.getElementById('indTx').value.trim();const nt=document.getElementById('indNt').value;if(!txt){closeAllOv();return;}const dt=gEDt();if(_cIId){const i=S.ind.find(x=>x.id===_cIId);if(i){i.txt=txt;i.nt=nt;commitLogChange(i.dt);}}else{S.ind.push({id:uid(),dt,la:now(),txt,nt});commitLogChange(dt);}closeAllOv();rF();document.getElementById('indTx').value='';document.getElementById('indNt').value='';}
+function dInd(){const i=S.ind.find(x=>x.id===_cIId);S.ind=S.ind.filter(x=>x.id!==_cIId);if(i)commitLogChange(i.dt);else sv();closeAllOv();rF();}
 
 // MEALS
 function mkFP(mItems,pfx){
@@ -801,12 +905,12 @@ function cfML(upd){
   bumpFlSave(saveTs);
   if(upd===true){m.items=newItems;if(nt)m.nt=nt;}
   S.fl.push({id:uid(),fid:'__meal__',mnm:m.nm,dt,la:saveTs,qty:1,nt});
-  markMod(dt);sv();closeAllOv();_cMId=null;
+  commitLogChange(dt);closeAllOv();_cMId=null;
   if(mlRoot)mlRoot.innerHTML='';
   document.getElementById('mlNt').value='';
   S.gdt=null;rH();
   // Navigate to food tab and reset
-  const ft=document.querySelector('.tab[onclick*="\'food\'"]');if(ft)sw('food',ft);else rF();
+  const ft=document.querySelector('.tab[data-tab="food"]');if(ft)sw('food',ft);else rF();
   shT(upd===true?'Saved + Updated':'Saved');
 }
 function oMM(){rMML();openOvRoot('ovMM');}
@@ -901,6 +1005,42 @@ function pendOtherAct(aid,fieldNm,val,isMulti,optsOrder){
   else _otherSt[aid]={fieldNm,val};
   rA();
 }
+function actListCardProfile(a){return typeof DT!=='undefined'&&DT.actListCardProfile?DT.actListCardProfile(a):null;}
+function cfOtherCardSave(aid){
+  const a=S.acts.find(x=>x.id===aid);if(!a)return;
+  const pend=_otherSt[aid];if(!pend)return;
+  const profile=actListCardProfile(a);
+  let flds={};
+  if(profile){
+    flds=typeof DT!=='undefined'&&DT.buildCardActivityFlds?DT.buildCardActivityFlds(profile,pend):{};
+    const vals=pend.multi&&Array.isArray(pend.vals)?pend.vals.filter(Boolean):(pend.val!==undefined&&pend.val!==null&&String(pend.val)!==''?[String(pend.val)]:[]);
+    if(!vals.length){shT('Select at least one');return;}
+  }else{
+    if(pend.multi){
+      const vals=Array.isArray(pend.vals)?pend.vals.map(String).filter(Boolean):[];
+      if(!vals.length){shT('Select at least one');return;}
+      flds[pend.fieldNm]=vals;
+    }else{
+      if(pend.val===undefined||pend.val===null||String(pend.val)===''){shT('Select a value');return;}
+      flds[pend.fieldNm]=pend.val;
+    }
+  }
+  const dt=gEDt();
+  S.al.push({id:uid(),aid,dt,la:now(),flds,nt:''});
+  delete _otherSt[aid];
+  commitLogChange(dt);
+  rA();shT('Saved');
+}
+function appendOtherCardSaveBtn(card,aid,enabled){
+  const b=document.createElement('div');
+  b.className='aqb aqbs'+(enabled?'':'');
+  b.textContent='Save';
+  b.style.opacity=enabled?'1':'0.45';
+  b.style.pointerEvents=enabled?'auto':'none';
+  b.addEventListener('click',ev=>{ev.stopPropagation();if(enabled)cfOtherCardSave(aid);});
+  const row=document.createElement('div');row.className='aq';row.style.marginTop='8px';row.appendChild(b);
+  card.appendChild(row);
+}
 function rA(){
   const c=document.getElementById('aList');c.innerHTML='';
   const day=logDateKey();
@@ -908,7 +1048,35 @@ function rA(){
     const todayAL=S.al.filter(e=>e.aid===a.id&&isoToLocalYMD(e.dt)===day);
     const card=document.createElement('div');
     const qf=actQuickField(a);
-    if(qf){
+    const profile=actListCardProfile(a);
+    if(profile){
+      const listField=profile.listField;
+      const stacked=(listField.opts||[]).length>=3;
+      card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
+      const pend=_otherSt[a.id];
+      const pendVals=new Set(
+        pend&&pend.fieldNm===listField.nm
+          ? (pend.multi&&Array.isArray(pend.vals)?pend.vals:(pend.val!==undefined&&pend.val!==null&&String(pend.val)!==''?[String(pend.val)]:[]))
+          : []
+      );
+      const selArr=[...pendVals];
+      const defSum=typeof DT!=='undefined'&&DT.formatCardDefaultSummary?DT.formatCardDefaultSummary(profile,selArr):'';
+      const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
+      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for custom entry'+(selArr.length?' · pending: '+selArr.join(', '):'')):(selArr.length?'Pending: '+selArr.join(', ')+(defSum?' · '+defSum:' '):'Tap list, then Save · tap name for overlay');
+      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(selArr.length?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
+      const btnsDiv=document.createElement('div');btnsDiv.className='aq';
+      (listField.opts||[]).forEach(o=>{
+        const v=o.v;
+        const isPend=pendVals.has(v);
+        const b=document.createElement('div');
+        b.className='aqb'+(isPend?' aqbp':'');
+        b.textContent=v;
+        b.addEventListener('click',ev=>{ev.stopPropagation();pendOtherAct(a.id,listField.nm,v,!!listField.multi,(listField.opts||[]).map(x=>x.v));});
+        btnsDiv.appendChild(b);
+      });
+      card.appendChild(left);card.appendChild(btnsDiv);
+      appendOtherCardSaveBtn(card,a.id,selArr.length>0);
+    }else if(qf){
       const stacked=qf.type==='opts'&&qf.field.opts.length>=3;
       card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
       const pend=_otherSt[a.id];
@@ -936,6 +1104,8 @@ function rA(){
         btnsDiv.appendChild(b);
       });
       card.appendChild(left);card.appendChild(btnsDiv);
+      const hasPend=pendVals.size>0;
+      appendOtherCardSaveBtn(card,a.id,hasPend);
     }else{
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
@@ -982,33 +1152,7 @@ function oAE(aid,logId){
       return;
     }
     if(f.t==='number'){
-      const idN='num-'+f.nm.replace(/\s/g,'_');
-      const ulow=(f.u||'').toLowerCase();
-      const isMin=ulow==='minutes'||ulow==='minute'||ulow==='min';
-      const isFahr=f.u==='F'||ulow==='f'||ulow==='fahrenheit'||ulow==='\u00b0f';
-      let numVal='';
-      if(val!==undefined&&val!=='')numVal=String(val);
-      else if(f.def!==undefined&&f.def!==null&&isFinite(Number(f.def)))numVal=String(f.def);
-      else if(!isMin&&!isFahr)numVal='0';
-      if(isMin){
-        const maxM=300;const selVal=Math.min(maxM,Math.max(0,parseInt(numVal,10)||0));
-        const opts=Array.from({length:maxM+1},(_,m)=>'<option value="'+m+'"'+(m===selVal?' selected':'')+'>'+m+'</option>').join('');
-        div.innerHTML='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div><select id="'+idN+'">'+opts+'</select>';
-        fd.appendChild(div);
-        return;
-      }
-      if(isFahr){
-        const minT=32,maxT=120;
-        let selVal=parseInt(numVal,10);if(!isFinite(selVal))selVal=55;
-        selVal=Math.min(maxT,Math.max(minT,selVal));
-        const opts=Array.from({length:maxT-minT+1},(_,i)=>{const tt=minT+i;return'<option value="'+tt+'"'+(tt===selVal?' selected':'')+'>'+tt+' \u00b0F</option>';}).join('');
-        div.innerHTML='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div><select id="'+idN+'">'+opts+'</select>';
-        fd.appendChild(div);
-        return;
-      }
-      const max=f.u==='seconds'?599:2000;
-      div.innerHTML='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div><input type="number" id="'+idN+'" step="1" min="0" max="'+max+'" value="'+escHTML(numVal)+'">';
-      fd.appendChild(div);
+      appendNumberFieldDom(div,fd,f,val);
       return;
     }else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');div.innerHTML='<div class="fl">'+escHTML(f.nm)+'</div><div style="display:flex;gap:9px"><button class="'+(val==='Yes'?'blg':'bcn')+'" id="yn-y-'+ys+'" onclick="togYN(\''+ys+'\',\'Yes\')">Yes</button><button class="'+(val==='No'?'blg':'bcn')+'" id="yn-n-'+ys+'" onclick="togYN(\''+ys+'\',\'No\')">No</button></div>';}
     else{const as=f.nm.replace(/\s/g,'_');div.innerHTML='<div class="fl">'+escHTML(f.nm)+'</div><textarea id="af-'+as+'"></textarea>';const tael=div.querySelector('textarea');if(tael)tael.value=val||'';}
@@ -1030,9 +1174,14 @@ function cfAE(){const a=S.acts.find(x=>x.id===_cATId);if(!a)return;
     }
   }
   const dt=gEDt();const nt=document.getElementById('aeNt').value;const flds={};
-a.flds.forEach(f=>{if(f.t==='number'){const idN='num-'+f.nm.replace(/\s/g,'_');const el=document.getElementById(idN);if(el)flds[f.nm]=el.tagName==='SELECT'?parseInt(el.value,10)||0:(parseFloat(el.value)||0);}else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el)flds[f.nm]=el.value;}});
-if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;markMod(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});markMod(dt);}sv();closeAllOv();S.gdt=null;rH();rA();document.getElementById('aeNt').value='';}
-function dAE(){markMod(S.al.find(x=>x.id===_cALId)?.dt);S.al=S.al.filter(x=>x.id!==_cALId);sv();closeAllOv();S.gdt=null;rH();rA();}
+a.flds.forEach(f=>{
+  if(f.t==='number'){
+    const n=readNumberFieldValue(f);
+    if(n!==undefined)flds[f.nm]=n;
+  }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
+});
+if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}closeAllOv();S.gdt=null;rH();rA();document.getElementById('aeNt').value='';}
+function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();closeAllOv();S.gdt=null;rH();rA();}
 function oMA(){rMAL();openOvRoot('ovMA');}
 function rMAL(){
   const c=document.getElementById('maL');c.innerHTML='';
@@ -1076,8 +1225,42 @@ function appendEatOptRow(wrap,addBtn,o){
   const l2=document.createElement('div');l2.className='fl';l2.style.fontSize='8px';l2.textContent='Explanation';
   const ta=document.createElement('textarea');ta.className='eat-opt-d';ta.placeholder='When to pick this...';ta.value=o?.d||'';ta.style.height='44px';
   f2.appendChild(l2);f2.appendChild(ta);
-  div.appendChild(fr);div.appendChild(f2);
+  const defs=document.createElement('div');defs.className='eat-opt-defs';defs.style.marginTop='6px';
+  div.appendChild(fr);div.appendChild(f2);div.appendChild(defs);
   wrap.insertBefore(div,addBtn);
+  refreshEatOptDefaultInputs(o?.defaults||null,div);
+}
+function eatNumberFieldNames(){
+  return [...document.querySelectorAll('#eatFldList .fld-type-row')].flatMap(row=>{
+    if(eatRowType(row)!=='number')return[];
+    const nm=(row.querySelector('input.eat-fld-nm')?.value||'').trim();
+    return nm?[nm]:[];
+  });
+}
+function refreshEatOptDefaultInputs(seedDefaults,onlyRow){
+  const nums=eatNumberFieldNames();
+  const rows=onlyRow?[onlyRow]:[...document.querySelectorAll('#eatFldList .eat-opt-row')];
+  rows.forEach(row=>{
+    const wrap=row.querySelector('.eat-opt-defs');if(!wrap)return;
+    const existing={...(seedDefaults||{})};
+    wrap.querySelectorAll('.eat-opt-def').forEach(inp=>{if(inp.dataset.defNm&&inp.value!=='')existing[inp.dataset.defNm]=inp.value;});
+    wrap.innerHTML='';
+    nums.forEach(nm=>{
+      const fdiv=document.createElement('div');fdiv.className='fld';fdiv.style.marginBottom='4px';
+      const lab=document.createElement('div');lab.className='fl';lab.style.fontSize='8px';lab.textContent='Default '+nm;
+      const inp=document.createElement('input');inp.type='number';inp.className='eat-opt-def';inp.dataset.defNm=nm;
+      if(existing[nm]!==undefined&&existing[nm]!==null&&existing[nm]!=='')inp.value=existing[nm];
+      fdiv.appendChild(lab);fdiv.appendChild(inp);wrap.appendChild(fdiv);
+    });
+  });
+}
+function appendEatNumberExtras(row,f){
+  const fr=document.createElement('div');fr.className='fr2';fr.style.marginTop='6px';
+  const mk=(cls,ph,val)=>{const inp=document.createElement('input');inp.type='number';inp.className=cls;inp.placeholder=ph;if(val!==undefined&&val!==null&&val!=='')inp.value=val;inp.style.marginTop='0';return inp;};
+  const fMin=document.createElement('div');fMin.className='fld';fMin.innerHTML='<div class="fl" style="font-size:8px">Min</div>';fMin.appendChild(mk('fld-min','optional',f?.min));
+  const fMax=document.createElement('div');fMax.className='fld';fMax.innerHTML='<div class="fl" style="font-size:8px">Max</div>';fMax.appendChild(mk('fld-max','optional',f?.max));
+  const fSt=document.createElement('div');fSt.className='fld';fSt.innerHTML='<div class="fl" style="font-size:8px">Step</div>';fSt.appendChild(mk('fld-step','optional',f?.step));
+  fr.appendChild(fMin);fr.appendChild(fMax);fr.appendChild(fSt);row.appendChild(fr);
 }
 function mkEatOptsWrap(f){
   const wrap=document.createElement('div');wrap.className='eat-opts-wrap';
@@ -1105,7 +1288,7 @@ function addFldRow(f){
   if(t!=='opts'){
     const wrap=document.createElement('div');wrap.className='eat-fld-nm-wrap';
     const nmInp=document.createElement('input');nmInp.type='text';nmInp.className='eat-fld-nm';nmInp.placeholder='Field name (e.g. Duration)';nmInp.value=f?.nm||'';
-    nmInp.addEventListener('input',()=>nmInp.classList.remove('eat-miss-err'));
+    nmInp.addEventListener('input',()=>{nmInp.classList.remove('eat-miss-err');refreshEatOptDefaultInputs();});
     wrap.appendChild(nmInp);row.appendChild(wrap);
   }
   function mkFT(lbl,typ,on){const b=document.createElement('div');b.className='ftb'+(on?' sel':'');b.textContent=lbl;b.onclick=()=>setFT(b,typ);return b;}
@@ -1113,7 +1296,8 @@ function addFldRow(f){
   const rm=document.createElement('div');rm.style.cssText='cursor:pointer;color:var(--rd);font-size:16px;flex-shrink:0;padding:6px';rm.textContent='\u00d7';rm.onclick=()=>rmFldRow(rm);row.appendChild(rm);
   if(t==='number'){
     const ui=document.createElement('input');ui.type='text';ui.className='fld-u';ui.placeholder='Unit (e.g. minutes, F)';ui.value=f?.u||'';ui.style.marginTop='6px';row.appendChild(ui);
-    const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional)';di.style.marginTop='6px';if(f?.def!==undefined&&f.def!==null&&String(f.def)!=='')di.value=f.def;row.appendChild(di);
+    const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional; blank = omit on save)';di.style.marginTop='6px';if(f?.def!==undefined&&f.def!==null&&String(f.def)!=='')di.value=f.def;row.appendChild(di);
+    appendEatNumberExtras(row,f);
   }else if(t==='opts'){
     row.appendChild(mkEatOptsWrap(f));appendEatOptsMultiCheckbox(row,f);
   }
@@ -1122,7 +1306,7 @@ function addFldRow(f){
 function setFT(btn,t){
   const row=btn.closest('.fld-type-row');
   row.querySelectorAll('.ftb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');
-  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.eat-opts-wrap')?.remove();row.querySelector('.eat-multi-row')?.remove();
+  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.fr2')?.remove();row.querySelector('.eat-opts-wrap')?.remove();row.querySelector('.eat-multi-row')?.remove();
   if(t==='opts'){
     row.querySelector('.eat-fld-nm-wrap')?.remove();
     delete row.dataset.listKey;
@@ -1138,10 +1322,11 @@ function setFT(btn,t){
   delete row.dataset.listKey;
   if(t==='number'){
     const ui=document.createElement('input');ui.type='text';ui.className='fld-u';ui.placeholder='Unit (e.g. minutes, F)';ui.style.marginTop='6px';row.appendChild(ui);
-    const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional)';di.style.marginTop='6px';row.appendChild(di);
+    const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional; blank = omit on save)';di.style.marginTop='6px';row.appendChild(di);
+    appendEatNumberExtras(row,null);
   }
 }
-function rmFldRow(el){const list=document.getElementById('eatFldList');el.closest('.fld-type-row').remove();document.getElementById('eatAddFld').style.display=list.children.length>=5?'none':'block';}
+function rmFldRow(el){const list=document.getElementById('eatFldList');el.closest('.fld-type-row').remove();document.getElementById('eatAddFld').style.display=list.children.length>=5?'none':'block';refreshEatOptDefaultInputs();}
 function clrEatFldErr(){
   const en=document.getElementById('eatNm');if(en)en.classList.remove('eat-miss-err');
   document.querySelectorAll('#eatFldList .eat-miss-err').forEach(el=>el.classList.remove('eat-miss-err'));
@@ -1164,7 +1349,13 @@ function cfEAT(){
         const v=vi?.value.trim()||'';
         const d=sub.querySelector('.eat-opt-d')?.value.trim()||'';
         if(!v){if(vi&&!firstEmptyInp)firstEmptyInp=vi;return;}
-        opts.push({v,d});
+        const defaults={};
+        sub.querySelectorAll('.eat-opt-def').forEach(inp=>{
+          const nm=inp.dataset.defNm;if(!nm||inp.value==='')return;
+          const dv=parseFloat(inp.value);if(Number.isFinite(dv))defaults[nm]=dv;
+        });
+        const opt={v,d};if(Object.keys(defaults).length)opt.defaults=defaults;
+        opts.push(opt);
       });
       if(!opts.length){
         if(firstEmptyInp){firstEmptyInp.classList.add('eat-miss-err');firstEmptyInp.scrollIntoView({behavior:'smooth',block:'nearest'});}
@@ -1183,9 +1374,20 @@ function cfEAT(){
     const n=(nameInp?.value||'').trim();
     if(!n){nameInp?.classList.add('eat-miss-err');nameInp?.scrollIntoView({behavior:'smooth',block:'nearest'});shT('Enter a field name (or remove the row with \u00d7)');return;}
     const uIn=row.querySelector('input.fld-u');const dIn=row.querySelector('input.fld-def');
+    const minIn=row.querySelector('input.fld-min');const maxIn=row.querySelector('input.fld-max');const stepIn=row.querySelector('input.fld-step');
     const u=t==='number'?(uIn?.value||''):'';
-    let def=undefined;if(t==='number'&&dIn&&dIn.value!==''){const dv=parseFloat(dIn.value);if(isFinite(dv))def=dv;}
-    const o={nm:n,t,u};if(def!==undefined)o.def=def;
+    let def=undefined;
+    if(t==='number'){
+      if(dIn&&dIn.value!==''){const dv=parseFloat(dIn.value);if(Number.isFinite(dv))def=dv;}
+      else def=null;
+    }
+    const o={nm:n,t,u};
+    if(def!==undefined)o.def=def;
+    if(t==='number'){
+      if(minIn&&minIn.value!==''){const v=parseFloat(minIn.value);if(Number.isFinite(v))o.min=v;}
+      if(maxIn&&maxIn.value!==''){const v=parseFloat(maxIn.value);if(Number.isFinite(v))o.max=v;}
+      if(stepIn&&stepIn.value!==''){const v=parseFloat(stepIn.value);if(Number.isFinite(v))o.step=v;}
+    }
     flds.push(o);
   }
   const inlineOn=document.getElementById('eatInline').classList.contains('on');
@@ -1195,9 +1397,9 @@ function cfEAT(){
 function dAT(){S.acts=S.acts.filter(x=>x.id!==_eatId);sv();popOv();rMAL();rA();}
 
 // NOTES
-function svQuickNote(){const el=document.getElementById('noteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.notes.push({id:uid(),dt,la:now(),bd});markMod(dt);sv();el.value='';el.classList.remove('note-dirty');rN();shT('Note saved');}
-function svFoodNote(){const el=document.getElementById('foodNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.fnotes.push({id:uid(),dt,la:now(),bd});markMod(dt);sv();el.value='';el.classList.remove('note-dirty');rF();}
-function svSuppNote(){const el=document.getElementById('suppNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.snotes.push({id:uid(),dt,la:now(),bd});markMod(dt);sv();el.value='';el.classList.remove('note-dirty');rS();}
+function svQuickNote(){const el=document.getElementById('noteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.notes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rN();shT('Note saved');}
+function svFoodNote(){const el=document.getElementById('foodNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.fnotes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rF();}
+function svSuppNote(){const el=document.getElementById('suppNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.snotes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rS();}
 function rN(){
   const day=logDateKey();
   const tn=S.notes.filter(n=>isoToLocalYMD(n.dt)===day).sort((a,b)=>b.dt.localeCompare(a.dt));
@@ -1208,8 +1410,8 @@ function rN(){
 function oNoteEdit(id){_cNId=id;_cFNId=null;_cSNId=null;const n=id?S.notes.find(x=>x.id===id):null;document.getElementById('neBd').value=n?.bd||'';document.getElementById('neDl').style.display=id?'block':'none';openOvRoot('ovNoteEdit');}
 function oFNEdit(id){_cFNId=id;_cNId=null;_cSNId=null;const n=id?S.fnotes.find(x=>x.id===id):null;document.getElementById('neBd').value=n?.bd||'';document.getElementById('neDl').style.display=id?'block':'none';openOvRoot('ovNoteEdit');}
 function oSNEdit(id){_cSNId=id;_cNId=null;_cFNId=null;const n=id?S.snotes.find(x=>x.id===id):null;document.getElementById('neBd').value=n?.bd||'';document.getElementById('neDl').style.display=id?'block':'none';openOvRoot('ovNoteEdit');}
-function cfNE(){const bd=document.getElementById('neBd').value;const dt=gEDt();if(_cSNId){const n=S.snotes.find(x=>x.id===_cSNId);if(n){n.bd=bd;markMod(n.dt);}sv();closeAllOv();rS();return;}if(_cFNId){const n=S.fnotes.find(x=>x.id===_cFNId);if(n){n.bd=bd;markMod(n.dt);}sv();closeAllOv();rF();return;}if(_cNId){const n=S.notes.find(x=>x.id===_cNId);if(n){n.bd=bd;markMod(n.dt);}}else{S.notes.push({id:uid(),dt,la:now(),bd});markMod(dt);}sv();closeAllOv();rN();}
-function dNE(){if(_cSNId){markMod(S.snotes.find(x=>x.id===_cSNId)?.dt);S.snotes=S.snotes.filter(x=>x.id!==_cSNId);sv();closeAllOv();rS();return;}if(_cFNId){markMod(S.fnotes.find(x=>x.id===_cFNId)?.dt);S.fnotes=S.fnotes.filter(x=>x.id!==_cFNId);sv();closeAllOv();rF();return;}markMod(S.notes.find(x=>x.id===_cNId)?.dt);S.notes=S.notes.filter(x=>x.id!==_cNId);sv();closeAllOv();rN();}
+function cfNE(){const bd=document.getElementById('neBd').value;const dt=gEDt();if(_cSNId){const n=S.snotes.find(x=>x.id===_cSNId);if(n){n.bd=bd;commitLogChange(n.dt);}closeAllOv();rS();return;}if(_cFNId){const n=S.fnotes.find(x=>x.id===_cFNId);if(n){n.bd=bd;commitLogChange(n.dt);}closeAllOv();rF();return;}if(_cNId){const n=S.notes.find(x=>x.id===_cNId);if(n){n.bd=bd;commitLogChange(n.dt);}}else{S.notes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);}closeAllOv();rN();}
+function dNE(){if(_cSNId){const n=S.snotes.find(x=>x.id===_cSNId);S.snotes=S.snotes.filter(x=>x.id!==_cSNId);if(n)commitLogChange(n.dt);else sv();closeAllOv();rS();return;}if(_cFNId){const n=S.fnotes.find(x=>x.id===_cFNId);S.fnotes=S.fnotes.filter(x=>x.id!==_cFNId);if(n)commitLogChange(n.dt);else sv();closeAllOv();rF();return;}const n=S.notes.find(x=>x.id===_cNId);S.notes=S.notes.filter(x=>x.id!==_cNId);if(n)commitLogChange(n.dt);else sv();closeAllOv();rN();}
 
 // FOOD HISTORY EDIT
 let _cFLId=null;
@@ -1228,31 +1430,44 @@ function cfFLE(){
   const e=S.fl.find(x=>x.id===_cFLId);if(!e)return;
   e.qty=parseFloat(document.getElementById('flEditQ').value)||0;
   e.nt=document.getElementById('flEditNt').value;
-  markMod(e.dt);sv();closeAllOv();
+  commitLogChange(e.dt);closeAllOv();
   oH(_hType||'food');
 }
 function dFLE(){
-  const e=S.fl.find(x=>x.id===_cFLId);if(e)markMod(e.dt);
-  S.fl=S.fl.filter(x=>x.id!==_cFLId);sv();closeAllOv();
+  const e=S.fl.find(x=>x.id===_cFLId);
+  S.fl=S.fl.filter(x=>x.id!==_cFLId);
+  if(e)commitLogChange(e.dt);else sv();
+  closeAllOv();
   oH(_hType||'food');
   rF();
 }
 
 // HISTORY
-function buildHistoryData(type){
-  let data=[];
-  if(type==='water')data=S.wl.map(e=>({...e,_lb:'+'+e.qty+' oz'+(e.nt?' - '+e.nt:''),_fn:"oWE('"+e.id+"')"}));
+function logStoreAPI(){return typeof DT!=='undefined'?DT:null;}
+function decorateHistoryRows(type,rows){
+  if(type==='water')return rows.map(e=>({...e,_lb:'+'+e.qty+' oz'+(e.nt?' - '+e.nt:''),_fn:"oWE('"+e.id+"')"}));
   if(type==='supps'){
-    const fromSl=S.sl.map(e=>{const sc=S.sch.find(x=>x.id===e.sid);const m=S.sm.find(x=>x.id===sc?.mid);return{...e,_lb:(m?.mfr?m.mfr+' \u2014 ':'')+( m?.name||'?')+' '+e.qty+' '+(m?.units||'')+(e.sk?' (skipped)':''),_fn:"oSEbyLId('"+e.id+"')"};});
-    const fromSn=(S.snotes||[]).map(n=>({...n,_lb:'Note: '+(n.bd||'').slice(0,60),_fn:"oSNEdit('"+n.id+"')"}));
-    data=[...fromSl,...fromSn];
+    return rows.map(e=>{
+      if(e.sid!==undefined){
+        const sc=S.sch.find(x=>x.id===e.sid);const m=S.sm.find(x=>x.id===sc?.mid);
+        return{...e,_lb:(m?.mfr?m.mfr+' \u2014 ':'')+(m?.name||'?')+' '+e.qty+' '+(m?.units||'')+(e.sk?' (skipped)':''),_fn:"oSEbyLId('"+e.id+"')"};
+      }
+      return{...e,_lb:'Note: '+(e.bd||'').slice(0,60),_fn:"oSNEdit('"+e.id+"')"};
+    });
   }
   if(type==='food'){
     const mealMkrs=S.fl.filter(e=>e.fid==='__meal__');
-    data=[...S.fl.filter(e=>e.fid!=='__meal__').map(e=>{const f=S.fd.find(x=>x.id===e.fid);const meal=mealMkrs.find(m=>m.dt===e.dt);return{...e,_lb:(f?.nm||'?')+' \xd7'+e.qty,_mealMkrId:meal?.id||null,_fn:"oFLEdit('"+e.id+"')"};}),...(S.fnotes||[]).map(n=>({...n,_lb:'Note: '+n.bd.slice(0,60),_fn:"oFNEdit('"+n.id+"')"}))];
+    return rows.map(e=>{
+      if(e.fid!==undefined){
+        const f=S.fd.find(x=>x.id===e.fid);
+        const meal=mealMkrs.find(m=>m.dt===e.dt);
+        return{...e,_lb:(f?.nm||'?')+' \xd7'+e.qty,_mealMkrId:meal?.id||null,_fn:"oFLEdit('"+e.id+"')"};
+      }
+      return{...e,_lb:'Note: '+(e.bd||'').slice(0,60),_fn:"oFNEdit('"+e.id+"')"};
+    });
   }
   if(type==='other'){
-    data=S.al.map(e=>{
+    return rows.map(e=>{
       const a=S.acts.find(x=>x.id===e.aid);
       const fs=Object.entries(e.flds||{})
         .filter(([k,v])=>v!==''&&v!==undefined&&!(Array.isArray(v)&&!v.length))
@@ -1263,12 +1478,14 @@ function buildHistoryData(type){
         }).join(' ');
       return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};
     });
-    data.sort((a,b)=>b.dt.localeCompare(a.dt));
-    return data;
   }
-  if(type==='notes')data=S.notes.map(e=>({...e,_lb:e.bd?e.bd.slice(0,60):'(empty)',_fn:"oNoteEdit('"+e.id+"')"}));
-  data.sort((a,b)=>b.dt.localeCompare(a.dt));
-  return data;
+  if(type==='notes')return rows.map(e=>({...e,_lb:e.bd?e.bd.slice(0,60):'(empty)',_fn:"oNoteEdit('"+e.id+"')"}));
+  return rows;
+}
+function buildHistoryData(type){
+  const api=logStoreAPI();
+  const rows=api&&api.listLogs?api.listLogs(S,type,{},isoToLocalYMD):[];
+  return decorateHistoryRows(type,rows);
 }
 function applyHDataFilter(){
   _hData=_hFilterDay?_hDataAll.filter(e=>logEntryDay(e)===_hFilterDay):_hDataAll.slice();
@@ -1330,7 +1547,7 @@ function heRow(e,indent){
 function heToggleSel(id){if(_hSel.has(id))_hSel.delete(id);else _hSel.add(id);rHList();}
 function heRowBodyClick(id,pay){if(pay){try{eval(decodeURIComponent(escape(atob(pay))));}catch(x){}}else heToggleSel(id);}
 function exitHSel(){_hSel=new Set();}
-function bulkDel(){if(!_hSel.size){shT('Select entries first');return;}if(!confirm('Delete '+_hSel.size+' selected entr'+(_hSel.size>1?'ies':'y')+'?'))return;const ids=new Set(_hSel);_hData.filter(e=>ids.has(e.id)).forEach(e=>markMod(e.dt));if(_hType==='water')S.wl=S.wl.filter(x=>!ids.has(x.id));if(_hType==='supps'){S.sl=S.sl.filter(x=>!ids.has(x.id));S.snotes=S.snotes.filter(x=>!ids.has(x.id));}if(_hType==='food'){S.fl=S.fl.filter(x=>!ids.has(x.id));S.fnotes=S.fnotes.filter(x=>!ids.has(x.id));}if(_hType==='other'){S.al=S.al.filter(x=>!ids.has(x.id));}if(_hType==='notes')S.notes=S.notes.filter(x=>!ids.has(x.id));sv();_hDataAll=_hDataAll.filter(x=>!ids.has(x.id));_hSel=new Set();applyHDataFilter();rW();rS();rF();rA();rN();shT('Deleted');}
+function bulkDel(){if(!_hSel.size){shT('Select entries first');return;}if(!confirm('Delete '+_hSel.size+' selected entr'+(_hSel.size>1?'ies':'y')+'?'))return;const ids=[..._hSel];const affected=new Set();_hData.filter(e=>ids.includes(e.id)).forEach(e=>affected.add(isoToLocalYMD(e.dt)));const api=logStoreAPI();if(api&&api.removeLogIds)api.removeLogIds(S,_hType,ids);sv();queueAutoSync([...affected]);_hDataAll=_hDataAll.filter(x=>!ids.includes(x.id));_hSel=new Set();applyHDataFilter();rW();rS();rF();rA();rN();shT('Deleted');}
 function bulkDT(){
   if(!_hSel.size){shT('Select entries first');return;}
   const n=_hSel.size;
@@ -1349,13 +1566,17 @@ function cfBulkDT(){
   if(!dateStr){shT('Pick a date');return;}
   const newDt=dateAndTimeToISO(dateStr,timeStr||'12:00');
   if(isNaN(new Date(newDt).getTime())){shT('Invalid date or time');return;}
-  const ids=new Set(_hSel);
-  let updated=0;
-  const patch=arr=>{if(!Array.isArray(arr))return;arr.forEach(e=>{if(ids.has(e.id)){markMod(e.dt);e.dt=newDt;markMod(newDt);updated++;}});};
-  patch(S.wl);patch(S.sl);patch(S.fl);patch(S.al);patch(S.ind);patch(S.fnotes);patch(S.snotes);patch(S.notes);
+  const ids=[..._hSel];
+  const affected=new Set();
+  _hData.filter(e=>ids.includes(e.id)).forEach(e=>{affected.add(isoToLocalYMD(e.dt));markMod(e.dt);});
+  const api=logStoreAPI();
+  const updated=api&&api.updateLogDt?api.updateLogDt(S,_hType,ids,newDt):0;
   if(!updated){shT('No entries updated');return;}
+  affected.add(isoToLocalYMD(newDt));
+  markMod(newDt);
   _hDataAll=buildHistoryData(_hType);
   if(!sv())return;
+  queueAutoSync([...affected]);
   const newDay=isoToLocalYMD(newDt);
   if(_hFilterDay&&_hFilterDay!==newDay)clearHDayFilter();
   popOv();
@@ -1364,8 +1585,13 @@ function cfBulkDT(){
   rW();rS();rF();rA();rN();
   shT('Updated '+updated+' entr'+(updated>1?'ies':'y')+' to '+newDay);
 }
-function oSEbyLId(lid){const le=S.sl.find(x=>x.id===lid);if(le)oSE(le.sid,lid);}
-function oAEbyLId(lid){const le=S.al.find(x=>x.id===lid);if(le)oAE(le.aid,lid);}
+function oSEbyLId(lid){
+  const api=logStoreAPI();
+  const le=api?.getLog?api.getLog(S,'supps',lid):S.sl.find(x=>x.id===lid)||(S.snotes||[]).find(x=>x.id===lid);
+  if(!le)return;
+  if(le.sid)oSE(le.sid,lid);else oSNEdit(lid);
+}
+function oAEbyLId(lid){const le=logStoreAPI()?.getLog?logStoreAPI().getLog(S,'other',lid):S.al.find(x=>x.id===lid);if(le)oAE(le.aid,lid);}
 
 // Local disk export (File System Access API; paths under chosen folder)
 function idbOpenFs(){
@@ -1468,19 +1694,25 @@ async function buildExportFileBlobs(logDateKeys){
   files.push(new File([gConfigSnapshotJSON()],'config-'+cfgDay+'.json',{type:'application/json;charset=utf-8'}));
   return files;
 }
-async function tryLocalDiskExport(logDateKeys,wantDailyLog=true,wantCfg=true){
+async function tryLocalDiskExport(logDateKeys,wantDailyLog=true,wantCfg=true,mode='multi'){
   const root=await getLocalExportDirHandle();
   if(!root)return false;
   try{
     const base=await fsGetSubdir(root,[LOCAL_EXPORT_ROOT]);
-    const uniq=[...new Set(logDateKeys.map(d=>ymdFromLogKey(d)).filter(Boolean))];
+    const uniq=[...new Set(logDateKeys.map(d=>ymdFromLogKey(d)).filter(Boolean))].sort();
     if(wantDailyLog){
       const logDir=await fsGetSubdir(base,[LOCAL_EXPORT_DAILY_LOGS_DIR]);
-      for(const d of uniq){
-        const existing=await fsReadTextFile(logDir,d+'.md');
-        const text=composeDailyLogContent(existing,d);
-        if(text===null)return false;
-        await fsWriteTextFile(logDir,d+'.md',text);
+      if(mode==='single'){
+        const text=gCombinedTrackerLogRange(uniq);
+        const fn=uniq[0]+'_'+uniq[uniq.length-1]+'.md';
+        await fsWriteTextFile(logDir,fn,text);
+      }else{
+        for(const d of uniq){
+          const existing=await fsReadTextFile(logDir,d+'.md');
+          const text=composeDailyLogContent(existing,d);
+          if(text===null)return false;
+          await fsWriteTextFile(logDir,d+'.md',text);
+        }
       }
     }
         if(wantCfg){const cfgDay=isoToLocalYMD(now());const configDir=await fsGetSubdir(base,[LOCAL_EXPORT_CONFIG_DIR]);await fsWriteTextFile(configDir,'config-'+cfgDay+'.json',gConfigSnapshotJSON());await pruneConfigSnapshots(configDir);}
@@ -1827,12 +2059,48 @@ function rExpSub(){
   if(!s||!e)return;
   const start=s.value||td();const end=e.value||td();
   const dates=datesInRange(start,end);
-  const sub=dates.length===1?dates[0]:dates.length+' days ('+dates[0]+' – '+dates[dates.length-1]+')';
+  const modeLbl=_expMode==='single'?' · single combined file':' · one file per day';
+  const sub=(dates.length===1?dates[0]:dates.length+' days ('+dates[0]+' – '+dates[dates.length-1]+')')+modeLbl;
   document.getElementById('expSub').textContent=sub;
+}
+function setExpMode(mode){_expMode=mode==='single'?'single':'multi';setExpCb('expModeMulti',_expMode==='multi');setExpCb('expModeSingle',_expMode==='single');rExpSub();}
+function setExpDest(dest){_expDest=dest==='other'?'other':'drive';setExpCb('expDestDrive',_expDest==='drive');setExpCb('expDestOther',_expDest==='other');}
+function gCombinedTrackerLogRange(dates){
+  if(typeof DT!=='undefined'&&DT.combinedTrackerLogText)return DT.combinedTrackerLogText(dates,gDailyLogForDate);
+  return dates.map(d=>gDailyLogForDate(d)).join('\n\n');
+}
+async function exportToDrive(wantDailyLog,wantCfg,dates,mode){
+  if(!gDriveTokenValid()){gDriveAuth('sync');return false;}
+  const ids=S.cfg.driveIds||{};
+  if(wantDailyLog){
+    if(!ids.dailyLogs){setDS('No Daily Logs folder ID — go to Settings → Drive Folder IDs','err');return false;}
+    if(mode==='single'){
+      const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
+      const ok=await driveWrite(fn,gCombinedTrackerLogRange(dates),ids.dailyLogs);
+      if(!ok)return false;
+    }else{
+      for(const d of dates){
+        const content=await dailyLogContentForSave(d);
+        if(content===null)return false;
+        const ok=await driveWrite(d+'.md',content,ids.dailyLogs);
+        if(!ok)return false;
+      }
+    }
+  }
+  if(wantCfg){
+    const cfgDay=isoToLocalYMD(now());
+    const cfgJson=gConfigSnapshotJSON();
+    if(ids.backups)await driveWrite('config-'+cfgDay+'.json',cfgJson,ids.backups);
+    else if(ids.dailyLogs)await driveWrite('config-'+cfgDay+'.json',cfgJson,ids.dailyLogs);
+  }
+  setDS('Exported to Drive '+new Date().toLocaleTimeString(),'ok');
+  return true;
 }
 function oExport(){
   if(Object.keys(_supSt).length||Object.keys(_otherSt).length){shT('Save first — pending items not committed');return;}
   ['expDailyLog','expCfg','expAllCb'].forEach(id=>setExpCb(id,true));
+  setExpMode('multi');
+  setExpDest('drive');
   const modDates=_modDates.size?[..._modDates].sort():[td()];
   document.getElementById('expStart').value=modDates[0];
   document.getElementById('expEnd').value=modDates[modDates.length-1];
@@ -1845,76 +2113,95 @@ async function cfExport(){
   if(!wantDailyLog&&!wantCfg){shT('Select at least one file type');return;}
   const start=document.getElementById('expStart').value||td();
   const end=document.getElementById('expEnd').value||td();
-  const dates=datesInRange(start,end);
+  let dates=datesInRange(start,end);
+  if(start>end)dates=datesInRange(end,start);
   closeAllOv();
-  await exportExternal(wantDailyLog,wantCfg,dates);
+  await exportExternal(wantDailyLog,wantCfg,dates,{mode:_expMode,dest:_expDest});
 }
 function downloadBlob(filename,text){
   const a=document.createElement('a');
   a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(text);
   a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
-async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates){
+async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
+  opts=opts||{};
+  const mode=opts.mode||_expMode||'multi';
+  const dest=opts.dest||_expDest||'drive';
   if(!exportDates||!exportDates.length)exportDates=_modDates.size?[..._modDates]:[td()];
   const uniq=[...new Set(exportDates.map(d=>ymdFromLogKey(d)).filter(Boolean))].sort();
-  const day=uniq.length?uniq[uniq.length-1]:td();
+  const dates=uniq.length?uniq:[td()];
   const cfgDay=isoToLocalYMD(now());
-  // Build file list based on selections
+  if(dest==='drive'){
+    const ok=await exportToDrive(wantDailyLog,wantCfg,dates,mode);
+    if(ok)clearExportDirty();
+    return;
+  }
   async function buildFiles(){
     const files=[];
     if(wantDailyLog){
-      for(const d of uniq){
-        const text=await dailyLogContentForSave(d);
-        if(text===null)return null;
-        files.push(new File([text],d+'.md',{type:'text/plain'}));
+      if(mode==='single'){
+        const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
+        files.push(new File([gCombinedTrackerLogRange(dates)],fn,{type:'text/plain'}));
+      }else{
+        for(const d of dates){
+          const text=await dailyLogContentForSave(d);
+          if(text===null)return null;
+          files.push(new File([text],d+'.md',{type:'text/plain'}));
+        }
       }
     }
     if(wantCfg)files.push(new File([gConfigSnapshotJSON()],'config-'+cfgDay+'.json',{type:'text/plain'}));
     return files;
   }
-  // 1. Share sheet — Safari (iPhone + Mac)
-  if(typeof navigator.share==='function'){
+  const shareOk=S.cfg.shareOnSave!==false&&typeof navigator.share==='function';
+  if(shareOk){
     const files=await buildFiles();
     if(files===null)return;
     try{
-      await navigator.share({files,title:'DailyTracker '+day});
+      await navigator.share({files,title:'DailyTracker '+dates[dates.length-1]});
       clearExportDirty();shT('Exported');return;
     }catch(e){
       if(e&&e.name==='AbortError')return;
-      console.warn('share files failed, trying text',e);
-      try{
-        await navigator.share({title:'DailyTracker '+day,text:gDailyLogForDate(day)});
-        clearExportDirty();shT('Exported');return;
-      }catch(e2){if(e2&&e2.name==='AbortError')return;}
+      console.warn('share files failed',e);
     }
   }
-  // 2. Linked folder — Chrome/Edge desktop
   if(wantDailyLog||wantCfg){
-    const didDisk=await tryLocalDiskExport(exportDates,wantDailyLog,wantCfg);
+    const didDisk=await tryLocalDiskExport(dates,wantDailyLog,wantCfg,mode);
     if(didDisk){clearExportDirty();shT('Exported');return;}
   }
-  // 3. Save-file picker — Chrome/Edge desktop, no folder linked
   if(typeof window.showSaveFilePicker==='function'){
     try{
       if(wantDailyLog){
-        const logText=await dailyLogContentForSave(day);
-        if(logText===null)return;
-        const fh=await window.showSaveFilePicker({suggestedName:day+'.md',types:[{description:'Markdown',accept:{'text/plain':['.md']}}]});
-        const w=await fh.createWritable();await w.write(logText);await w.close();
+        if(mode==='single'){
+          const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
+          const fh=await window.showSaveFilePicker({suggestedName:fn,types:[{description:'Markdown',accept:{'text/plain':['.md']}}]});
+          const w=await fh.createWritable();await w.write(gCombinedTrackerLogRange(dates));await w.close();
+        }else{
+          for(const d of dates){
+            const logText=await dailyLogContentForSave(d);
+            if(logText===null)return;
+            const fh=await window.showSaveFilePicker({suggestedName:d+'.md',types:[{description:'Markdown',accept:{'text/plain':['.md']}}]});
+            const w=await fh.createWritable();await w.write(logText);await w.close();
+          }
+        }
       }
       if(wantCfg){const fh=await window.showSaveFilePicker({suggestedName:'config-'+cfgDay+'.json',types:[{description:'JSON',accept:{'text/plain':['.json']}}]});const w=await fh.createWritable();await w.write(gConfigSnapshotJSON());await w.close();}
       clearExportDirty();shT('Exported');return;
     }catch(e){if(e&&e.name==='AbortError')return;console.warn('showSaveFilePicker',e);}
   }
-  // 4. Download fallback
   if(wantDailyLog){
-    const logText=await dailyLogContentForSave(day);
-    if(logText===null)return;
-    downloadBlob(day+'.md',logText);
+    if(mode==='single'){
+      downloadBlob(dates[0]+'_'+dates[dates.length-1]+'.md',gCombinedTrackerLogRange(dates));
+    }else{
+      for(const d of dates){
+        const logText=await dailyLogContentForSave(d);
+        if(logText===null)return;
+        downloadBlob(d+'.md',logText);
+      }
+    }
   }
   if(wantCfg)downloadBlob('config-'+cfgDay+'.json',gConfigSnapshotJSON());
   clearExportDirty();shT('Downloaded to Downloads folder');
-  // Phase 2: if(S.cfg.autoGoogleSync) await pushExportToGoogleDrive(exportDates);
 }
 async function svAll(){
   const nq=document.getElementById('noteQuick');if(nq&&nq.value.trim())svQuickNote();
@@ -1963,16 +2250,14 @@ async function svAll(){
   _supSt={};_supAdhoc={};_pendingWater=null;_otherSt={};
   resetAfterSave();
   rH();rW();rS();rF();rA();rN();shT('Saved');
-  if(S.cfg.autoSync){
-    if(!gDriveTokenValid()){gDriveAuth();return;}
-    const dates=[..._modDates].filter(Boolean);
-    syncDrive(dates.length?dates:[td()]).catch(e=>{console.warn('Drive sync',e);setDS('Sync failed: '+e.message,'err');});
-    const isFirstSaveToday=!prevFl||isoToLocalYMD(prevFl)!==td();
-    if(isFirstSaveToday&&S.cfg.driveIds.backups){
-      driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups)
-        .then(ok=>{if(ok){setDS('Synced + daily backup saved','ok');shT('Daily backup saved');}})
-        .catch(e=>console.warn('Daily backup',e));
-    }
+  const hadCommits=sids.length||adhocMids.length||oaids.length;
+  if(hadCommits)queueAutoSync([batchDay]);
+  if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
+  const isFirstSaveToday=!prevFl||isoToLocalYMD(prevFl)!==td();
+  if(isFirstSaveToday&&S.cfg.driveIds.backups&&gDriveTokenValid()){
+    driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups)
+      .then(ok=>{if(ok)shT('Daily backup saved');})
+      .catch(e=>console.warn('Daily backup',e));
   }
 }
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});

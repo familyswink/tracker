@@ -81,7 +81,7 @@ html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMa
 .aq{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;align-items:center}
 .aqb{background:var(--sf2);border:1px solid var(--bd2);border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent;min-height:36px;display:flex;align-items:center;justify-content:center}
 .aqb.aqba{background:var(--grd);border-color:var(--gr);color:var(--gr)}.aqb.aqbp{background:var(--ord);border-color:var(--or);color:var(--or)}
-.aqb:active{opacity:.7}
+.aqb.aqbs{background:var(--grd);border-color:var(--gr);color:var(--gr);font-weight:800;min-width:72px}
 .ac-ql-st{flex-direction:column;align-items:stretch}.ac-ql-st .aq{flex-shrink:1;flex-wrap:wrap;width:100%;margin-top:9px;gap:6px}.ac-ql-st .aqb{flex:1 0 calc(50% - 3px)}
 .af{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .ach{background:var(--sf2);border:1px solid var(--bd);border-radius:6px;padding:3px 9px;font-family:Courier New,monospace;font-size:10px;color:var(--tx2)}

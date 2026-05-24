@@ -6,7 +6,7 @@
 
 This document is the source of truth for restructuring the tracker codebase. Implementation proceeds in **phases**. Each phase is deployed and used for 1–2 days before the next phase starts. Do not begin phase N+1 until phase N passes its acceptance criteria.
 
-User-facing behavior is documented in [README.md](README.md). This spec covers **architecture, invariants, and engineering workflow**.
+User-facing behavior is documented in [README.md](README.md). Planned features (draft): [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md). This spec covers **architecture, invariants, and engineering workflow**.
 
 ---
 
@@ -122,6 +122,13 @@ Normative detail: **[docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.m
 - **Save path:** `driveRead` → `composeJournalFile(existing, trackerHeadNew)` → `driveWrite`. No Oura API, no injector, no `JSON.stringify` on wearable bytes.
 - **Corrupt file** (two wearable fences): refuse save; surface error (no silent repair).
 - **Read-only:** `parseWearableBiometricsReadOnly` for UI display only.
+
+### 4.8 Configurable values (no hardcoded UI limits)
+
+Normative for new features: see **[docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md)** § cross-cutting principle.
+
+- Numeric and ranged controls (activity fields, water goals, etc.) use **schema/config** (`min`, `max`, `def`, `step`), not literals in render/save code.
+- One-time seed defaults live in migration/factory data only.
 
 ---
 
