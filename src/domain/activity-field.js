@@ -89,6 +89,14 @@ export function formatOptDefaultsLines(listField, valueFields) {
     .filter((x) => x.text);
 }
 
+/** Field-level def on number siblings (when list opts have no per-option defaults). */
+export function formatFieldDefLines(valueFields) {
+  if (!valueFields?.length) return [];
+  return valueFields
+    .filter((f) => f.def !== null && f.def !== undefined && f.def !== '')
+    .map((f) => ({ text: `${f.nm}: ${f.def}${f.u ? ' ' + f.u : ''}` }));
+}
+
 export function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);

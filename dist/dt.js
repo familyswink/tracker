@@ -498,6 +498,14 @@ function formatOptDefaultsLines(listField, valueFields) {
     .filter((x) => x.text);
 }
 
+/** Field-level def on number siblings (when list opts have no per-option defaults). */
+function formatFieldDefLines(valueFields) {
+  if (!valueFields?.length) return [];
+  return valueFields
+    .filter((f) => f.def !== null && f.def !== undefined && f.def !== '')
+    .map((f) => ({ text: `${f.nm}: ${f.def}${f.u ? ' ' + f.u : ''}` }));
+}
+
 function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);
@@ -673,6 +681,7 @@ global.DT = {
   buildCardActivityFlds,
   formatCardDefaultSummary,
   formatOptDefaultsLines,
+  formatFieldDefLines,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,

@@ -44,6 +44,7 @@ global.DT = {
   buildCardActivityFlds,
   formatCardDefaultSummary,
   formatOptDefaultsLines,
+  formatFieldDefLines,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,

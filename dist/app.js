@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.7';
+const APP_VERSION='2026.05.20.8';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -500,6 +500,14 @@ function formatOptDefaultsLines(listField, valueFields) {
     .filter((x) => x.text);
 }
 
+/** Field-level def on number siblings (when list opts have no per-option defaults). */
+function formatFieldDefLines(valueFields) {
+  if (!valueFields?.length) return [];
+  return valueFields
+    .filter((f) => f.def !== null && f.def !== undefined && f.def !== '')
+    .map((f) => ({ text: `${f.nm}: ${f.def}${f.u ? ' ' + f.u : ''}` }));
+}
+
 function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);
@@ -675,6 +683,7 @@ global.DT = {
   buildCardActivityFlds,
   formatCardDefaultSummary,
   formatOptDefaultsLines,
+  formatFieldDefLines,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,
@@ -1701,16 +1710,24 @@ function pendOtherAct(aid,fieldNm,val,isMulti,optsOrder){
   rA();
 }
 function actListCardProfile(a){return typeof DT!=='undefined'&&DT.actListCardProfile?DT.actListCardProfile(a):null;}
+function otherCardSub(todayCount,pendingText){
+  const parts=[];
+  if(todayCount)parts.push(todayCount+' logged today');
+  if(pendingText)parts.push('pending: '+pendingText);
+  return parts.join(' \u00b7 ');
+}
 function otherCardDefaultsHtml(profile,selArr){
-  if(!profile||!profile.valueFields?.length)return'';
-  const lines=typeof DT!=='undefined'&&DT.formatOptDefaultsLines?DT.formatOptDefaultsLines(profile.listField,profile.valueFields):[];
-  if(!lines.length)return'';
+  if(!profile)return'';
+  const optLines=typeof DT!=='undefined'&&DT.formatOptDefaultsLines?DT.formatOptDefaultsLines(profile.listField,profile.valueFields||[]):[];
+  const fieldLines=(!optLines.length&&typeof DT!=='undefined'&&DT.formatFieldDefLines)?DT.formatFieldDefLines(profile.valueFields||[]):[];
+  if(!optLines.length&&!fieldLines.length)return'';
   let h='<div class="a-defs">';
-  lines.forEach(line=>{
+  optLines.forEach(line=>{
     const hot=selArr.length&&String(selArr[0])===String(line.label);
     h+='<div class="ach ach-ro'+(hot?' ach-ro-sel':'')+'"><span class="ach-l">'+escHTML(line.label)+'</span> '+escHTML(line.text)+'</div>';
   });
-  if(selArr.length){
+  fieldLines.forEach(line=>{h+='<div class="ach ach-ro">'+escHTML(line.text)+'</div>';});
+  if(selArr.length&&optLines.length){
     const defSum=typeof DT!=='undefined'&&DT.formatCardDefaultSummary?DT.formatCardDefaultSummary(profile,selArr):'';
     if(defSum)h+='<div class="ach ach-ro ach-ro-pend">Will log: '+escHTML(defSum)+'</div>';
   }
@@ -1736,8 +1753,8 @@ function rA(){
       );
       const selArr=[...pendVals];
       const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for custom entry'+(selArr.length?' · pending: '+selArr.join(', '):'')):(selArr.length?'Pending: '+selArr.join(', '):'Tap name for custom entry');
-      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(selArr.length?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
+      const sub=otherCardSub(todayAL.length,selArr.length?selArr.join(', '):'');
+      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2" style="color:'+(selArr.length?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>':'');
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       (listField.opts||[]).forEach(o=>{
         const v=o.v;
@@ -1766,8 +1783,8 @@ function rA(){
         else if(!pend.multi&&pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')pendDisp=String(pend.val);
       }
       const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for new entry'+(pendDisp?' · pending: '+pendDisp:'')):(pendDisp?'Pending: '+pendDisp:'Tap to select');
-      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(pendDisp?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
+      const sub=otherCardSub(todayAL.length,pendDisp);
+      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2" style="color:'+(pendDisp?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>':'');
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       const opts=qf.type==='yesno'?['Yes','No']:qf.field.opts.map(o=>o.v);
       opts.forEach(v=>{
@@ -1783,7 +1800,7 @@ function rA(){
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
       let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];const disp=f.t==='opts'?formatOptsFldDisplay(f,v):null;if(f.t==='opts')return disp?'<div class="ach">'+escHTML(f.nm)+': '+escHTML(disp)+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+(f.multi?' · multi ':' ')+'('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
-      card.innerHTML='<div><div class="an">'+escHTML(a.nm)+'</div><div class="as2">'+(todayAL.length?todayAL.length+' logged \u2014 tap for new':'Tap to log')+(le?' \xb7 last '+f12(le.dt):'')+'</div></div><div class="af">'+fh+'</div>';
+      card.innerHTML='<div><div class="an">'+escHTML(a.nm)+'</div>'+(todayAL.length?'<div class="as2">'+todayAL.length+' logged today'+(le?' \xb7 last '+f12(le.dt):'')+'</div>':'')+'</div><div class="af">'+fh+'</div>';
     }
     c.appendChild(card);
   });
