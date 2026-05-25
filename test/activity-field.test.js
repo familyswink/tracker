@@ -6,6 +6,13 @@ import {
   buildCardActivityFlds,
   defaultsFromFirstOpt,
   actListCardProfile,
+  parseStepSpec,
+  isColonStepField,
+  colonSelectOptions,
+  formatFieldDefaultValue,
+  secondsToMmSs,
+  minutesToHourMin,
+  stepFieldHelpText,
 } from '../src/domain/activity-field.js';
 
 describe('numberFieldSpec', () => {
@@ -24,6 +31,68 @@ describe('shouldUseNumberSelect', () => {
   it('allows bounded select up to 300 options', () => {
     assert.equal(shouldUseNumberSelect({ min: 0, max: 10, step: 1 }), true);
     assert.equal(shouldUseNumberSelect({ min: 0, max: 500, step: 1 }), false);
+  });
+});
+
+describe('colon step fields', () => {
+  const minField = { t: 'number', u: 'minutes', min: 0, max: 10, step: ':30' };
+  const hrField = { t: 'number', u: 'hours', min: 0, max: 3, step: ':15' };
+
+  it('parseStepSpec detects minute-second colon steps', () => {
+    const s = parseStepSpec(':30', 'minutes');
+    assert.equal(s.mode, 'colon');
+    assert.equal(s.colonKind, 'minute_seconds');
+    assert.equal(s.step, 30);
+  });
+
+  it('parseStepSpec detects hour-minute colon steps', () => {
+    const s = parseStepSpec(':15', 'hours');
+    assert.equal(s.mode, 'colon');
+    assert.equal(s.colonKind, 'hour_minutes');
+    assert.equal(s.step, 15);
+  });
+
+  it('colonSelectOptions for minutes uses M:SS labels', () => {
+    const opts = colonSelectOptions(minField);
+    assert.ok(opts.length >= 2);
+    assert.equal(opts[0].value, '0:00');
+    assert.equal(opts[1].value, '0:30');
+  });
+
+  it('colonSelectOptions for hours uses H:MM labels', () => {
+    const opts = colonSelectOptions(hrField);
+    assert.ok(opts.length >= 2);
+    assert.equal(opts[0].value, '0:00');
+    assert.equal(opts[1].value, '0:15');
+  });
+
+  it('formatFieldDefaultValue preserves colon strings', () => {
+    assert.equal(formatFieldDefaultValue(minField, '5:30'), '5:30');
+    assert.equal(formatFieldDefaultValue(hrField, '1:30'), '1:30');
+  });
+
+  it('shouldUseNumberSelect true for colon fields with bounded options', () => {
+    const spec = numberFieldSpec(minField);
+    assert.equal(isColonStepField(minField), true);
+    assert.equal(shouldUseNumberSelect(spec, minField), true);
+  });
+
+  it('stepFieldHelpText varies by unit', () => {
+    assert.match(stepFieldHelpText('minutes'), /30-second/);
+    assert.match(stepFieldHelpText('hours'), /15-minute/);
+  });
+
+  it('buildCardActivityFlds formats colon defaults', () => {
+    const a = {
+      inline: true,
+      flds: [
+        { nm: 'Activity', t: 'opts', opts: [{ v: 'Run', defaults: { Duration: '5:30' } }] },
+        { nm: 'Duration', t: 'number', u: 'minutes', step: ':30', def: null },
+      ],
+    };
+    const profile = actListCardProfile(a);
+    const flds = buildCardActivityFlds(profile, { fieldNm: 'Activity', val: 'Run' });
+    assert.equal(flds.Duration, '5:30');
   });
 });
 

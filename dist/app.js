@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.8';
+const APP_VERSION='2026.05.20.9';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -411,20 +411,143 @@ function parseWearableBiometricsReadOnly(content) {
 
 /** Number field schema + Other card Save helpers (REQ-4, REQ-5). */
 
+function isHourUnit(u) {
+  const x = String(u || '').toLowerCase();
+  return x === 'hour' || x === 'hours' || x === 'hr' || x === 'h';
+}
+
+function isMinuteUnit(u) {
+  const x = String(u || '').toLowerCase();
+  return x === 'minutes' || x === 'minute' || x === 'min' || x === 'mins';
+}
+
+/** Step: number / decimal, or `:N` for colon-stepped UI (:N = seconds if unit is minutes, else minutes if unit is hours). */
+function parseStepSpec(step, unit) {
+  if (step === undefined || step === null || step === '') {
+    return { mode: 'number', step: null, colonKind: null };
+  }
+  const s = String(step).trim();
+  if (s.startsWith(':')) {
+    const n = parseFloat(s.slice(1));
+    if (!Number.isFinite(n) || n <= 0) return { mode: 'number', step: null, colonKind: null };
+    if (isHourUnit(unit)) return { mode: 'colon', colonKind: 'hour_minutes', step: n };
+    return { mode: 'colon', colonKind: 'minute_seconds', step: n };
+  }
+  const n = parseFloat(s);
+  if (Number.isFinite(n)) return { mode: 'number', step: n, colonKind: null };
+  return { mode: 'number', step: null, colonKind: null };
+}
+
+function fieldStepSpec(f) {
+  return parseStepSpec(f?.step, f?.u);
+}
+
+function isColonStepField(f) {
+  return fieldStepSpec(f).mode === 'colon';
+}
+
 function numberFieldSpec(f) {
-  const spec = { min: null, max: null, step: null, def: null };
+  const spec = {
+    min: null,
+    max: null,
+    step: null,
+    def: null,
+    stepSpec: null,
+    colon: false,
+  };
   if (!f || f.t !== 'number') return spec;
   if (f.def === null) spec.def = null;
-  for (const k of ['min', 'max', 'step', 'def']) {
+  for (const k of ['min', 'max', 'def']) {
     if (f[k] === undefined || f[k] === null || f[k] === '') continue;
     if (k === 'def' && f.def === null) continue;
     const n = Number(f[k]);
     if (Number.isFinite(n)) spec[k] = n;
   }
+  if (f.step !== undefined && f.step !== null && f.step !== '') {
+    const ss = String(f.step).trim();
+    if (ss.startsWith(':')) spec.step = ss;
+    else {
+      const n = Number(f.step);
+      if (Number.isFinite(n)) spec.step = n;
+    }
+  }
+  spec.stepSpec = fieldStepSpec(f);
+  spec.colon = spec.stepSpec.mode === 'colon';
   return spec;
 }
 
-function shouldUseNumberSelect(spec) {
+function secondsToMmSs(totalSec) {
+  const sec = Math.max(0, Math.round(totalSec));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function parseMmSs(str) {
+  if (str === undefined || str === null || str === '') return null;
+  if (typeof str === 'number' && Number.isFinite(str)) return Math.round(str * 60);
+  const s = String(str).trim();
+  if (!s.includes(':')) {
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? Math.round(n * 60) : null;
+  }
+  const parts = s.split(':');
+  const m = parseInt(parts[0], 10) || 0;
+  const sec = parseInt(parts[1], 10) || 0;
+  return m * 60 + sec;
+}
+
+function minutesToHourMin(totalMin) {
+  const min = Math.max(0, Math.round(totalMin));
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h + ':' + String(m).padStart(2, '0');
+}
+
+function parseHourMin(str) {
+  if (str === undefined || str === null || str === '') return null;
+  if (typeof str === 'number' && Number.isFinite(str)) return Math.round(str * 60);
+  const s = String(str).trim();
+  if (!s.includes(':')) {
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? Math.round(n * 60) : null;
+  }
+  const parts = s.split(':');
+  const h = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return h * 60 + m;
+}
+
+function colonSelectOptions(f) {
+  const spec = fieldStepSpec(f);
+  if (spec.mode !== 'colon') return [];
+  const min = f.min != null ? Number(f.min) : 0;
+  const max = f.max != null ? Number(f.max) : null;
+  const opts = [];
+  if (spec.colonKind === 'minute_seconds') {
+    const minSec = min * 60;
+    const maxSec = max != null ? max * 60 : minSec + 3600;
+    for (let t = minSec; t <= maxSec + 1e-9; t += spec.step) {
+      const v = secondsToMmSs(t);
+      opts.push({ value: v, label: v });
+      if (opts.length >= 300) break;
+    }
+  } else {
+    const startMin = min * 60;
+    const endMin = (max != null ? max : min + 4) * 60;
+    for (let t = startMin; t <= endMin + 1e-9; t += spec.step) {
+      const v = minutesToHourMin(t);
+      opts.push({ value: v, label: v });
+      if (opts.length >= 300) break;
+    }
+  }
+  return opts;
+}
+
+function shouldUseNumberSelect(spec, f) {
+  if (spec.colon || (f && isColonStepField(f))) {
+    return colonSelectOptions(f).length >= 1 && colonSelectOptions(f).length <= 300;
+  }
   if (spec.min == null || spec.max == null || spec.step == null) return false;
   const step = spec.step || 1;
   if (step <= 0) return false;
@@ -432,8 +555,35 @@ function shouldUseNumberSelect(spec) {
   return count >= 1 && count <= 300;
 }
 
+function formatFieldDefaultValue(f, raw) {
+  if (raw === undefined || raw === null || raw === '') return undefined;
+  if (isColonStepField(f)) {
+    if (typeof raw === 'string' && String(raw).includes(':')) return String(raw);
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return undefined;
+    const kind = fieldStepSpec(f).colonKind;
+    if (kind === 'minute_seconds') return secondsToMmSs(Math.round(n * 60));
+    if (kind === 'hour_minutes') return minutesToHourMin(Math.round(n * 60));
+  }
+  const spec = numberFieldSpec(f);
+  return coalesceNumberValue(raw, spec);
+}
+
+function coalesceColonValue(val, f) {
+  if (val !== undefined && val !== null && val !== '') {
+    if (typeof val === 'string' && val.includes(':')) return val;
+    const formatted = formatFieldDefaultValue(f, val);
+    if (formatted !== undefined) return formatted;
+  }
+  if (f.def !== undefined && f.def !== null && f.def !== '') {
+    return formatFieldDefaultValue(f, f.def);
+  }
+  return undefined;
+}
+
 function coalesceNumberValue(val, spec) {
   if (val !== undefined && val !== null && val !== '') {
+    if (typeof val === 'string' && val.includes(':')) return val;
     const n = Number(val);
     return Number.isFinite(n) ? n : undefined;
   }
@@ -446,9 +596,9 @@ function coalesceNumberValue(val, spec) {
 /** Activity with list field suitable for card Save (list first, optional number siblings). */
 function actListCardProfile(a) {
   if (!a || a.inline === false || !Array.isArray(a.flds) || !a.flds.length) return null;
-  const listField = a.flds.find((f) => f.t === 'opts');
+  const listField = a.flds.find((ff) => ff.t === 'opts');
   if (!listField) return null;
-  const valueFields = a.flds.filter((f) => f.t === 'number');
+  const valueFields = a.flds.filter((ff) => ff.t === 'number');
   return { listField, valueFields };
 }
 
@@ -474,12 +624,11 @@ function buildCardActivityFlds(profile, pending) {
   if (!vals.length) return flds;
   flds[listField.nm] = listField.multi ? vals : vals[0];
   const defs = defaultsFromFirstOpt(listField, vals);
-  for (const f of valueFields) {
-    const raw = defs[f.nm];
+  for (const ff of valueFields) {
+    const raw = defs[ff.nm];
     if (raw === undefined || raw === null || raw === '') continue;
-    const spec = numberFieldSpec(f);
-    const n = coalesceNumberValue(raw, spec);
-    if (n !== undefined) flds[f.nm] = n;
+    const v = formatFieldDefaultValue(ff, raw);
+    if (v !== undefined) flds[ff.nm] = v;
   }
   return flds;
 }
@@ -489,10 +638,11 @@ function formatOptDefaultsLines(listField, valueFields) {
   return listField.opts
     .map((o) => {
       const parts = valueFields
-        .map((f) => {
-          const v = o.defaults?.[f.nm];
+        .map((ff) => {
+          const v = o.defaults?.[ff.nm];
           if (v === undefined || v === null || v === '') return '';
-          return `${f.nm}: ${v}${f.u ? ' ' + f.u : ''}`;
+          const disp = isColonStepField(ff) ? formatFieldDefaultValue(ff, v) : v;
+          return `${ff.nm}: ${disp}${ff.u && !isColonStepField(ff) ? ' ' + ff.u : ''}`;
         })
         .filter(Boolean);
       return { label: o.v, text: parts.join(' · ') };
@@ -504,21 +654,35 @@ function formatOptDefaultsLines(listField, valueFields) {
 function formatFieldDefLines(valueFields) {
   if (!valueFields?.length) return [];
   return valueFields
-    .filter((f) => f.def !== null && f.def !== undefined && f.def !== '')
-    .map((f) => ({ text: `${f.nm}: ${f.def}${f.u ? ' ' + f.u : ''}` }));
+    .filter((ff) => ff.def !== null && ff.def !== undefined && ff.def !== '')
+    .map((ff) => {
+      const disp = isColonStepField(ff) ? formatFieldDefaultValue(ff, ff.def) : ff.def;
+      return { text: `${ff.nm}: ${disp}${ff.u && !isColonStepField(ff) ? ' ' + ff.u : ''}` };
+    });
 }
 
 function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);
   const parts = profile.valueFields
-    .map((f) => {
-      const v = defs[f.nm];
+    .map((ff) => {
+      const v = defs[ff.nm];
       if (v === undefined || v === null || v === '') return '';
-      return `${f.nm}: ${v}${f.u ? ' ' + f.u : ''}`;
+      const disp = isColonStepField(ff) ? formatFieldDefaultValue(ff, v) : v;
+      return `${ff.nm}: ${disp}${ff.u && !isColonStepField(ff) ? ' ' + ff.u : ''}`;
     })
     .filter(Boolean);
   return parts.join(' · ');
+}
+
+function stepFieldHelpText(unit) {
+  if (isHourUnit(unit)) {
+    return 'Step: number = hours, or :15 = 15-minute steps (saves H:MM, e.g. 1:30)';
+  }
+  if (isMinuteUnit(unit)) {
+    return 'Step: number = minutes, or :30 = 30-second steps (saves M:SS, e.g. 5:30)';
+  }
+  return 'Step: number = field units, or :N = colon steps (seconds for minutes, minutes for hours)';
 }
 
 /** Tab visibility config (REQ-1). */
@@ -684,6 +848,13 @@ global.DT = {
   formatCardDefaultSummary,
   formatOptDefaultsLines,
   formatFieldDefLines,
+  isColonStepField,
+  fieldStepSpec,
+  colonSelectOptions,
+  coalesceColonValue,
+  formatFieldDefaultValue,
+  stepFieldHelpText,
+  parseStepSpec,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,
@@ -1058,29 +1229,42 @@ function togTabVis(id){
   if(typeof DT!=='undefined'&&DT.normalizeTabVisibility)S.cfg.tabs=DT.normalizeTabVisibility(S.cfg.tabs);
   sv();rTabVisibility();rTabToggles();
 }
-function numSpec(f){return typeof DT!=='undefined'&&DT.numberFieldSpec?DT.numberFieldSpec(f):{min:null,max:null,step:null,def:null};}
+function numSpec(f){return typeof DT!=='undefined'&&DT.numberFieldSpec?DT.numberFieldSpec(f):{min:null,max:null,step:null,def:null,colon:false};}
+function fieldUsesColon(f){return typeof DT!=='undefined'&&DT.isColonStepField?DT.isColonStepField(f):false;}
 function appendNumberFieldDom(div,fd,f,val){
   const spec=numSpec(f);
   const idN='num-'+f.nm.replace(/\s/g,'_');
+  const ttl='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>';
+  if(fieldUsesColon(f)){
+    const opts=typeof DT!=='undefined'&&DT.colonSelectOptions?DT.colonSelectOptions(f):[];
+    let sel=typeof DT!=='undefined'&&DT.coalesceColonValue?DT.coalesceColonValue(val,f):undefined;
+    if(sel===undefined&&val!==undefined&&val!==null&&String(val)!=='')sel=String(val);
+    if(opts.length){
+      div.innerHTML=ttl+'<select id="'+idN+'">'+opts.map(o=>'<option value="'+escHTML(o.value)+'"'+(String(o.value)===String(sel||'')?' selected':'')+'>'+escHTML(o.label)+'</option>').join('')+'</select>';
+    }else{
+      div.innerHTML=ttl+'<input type="text" id="'+idN+'" inputmode="numeric" placeholder="M:SS or H:MM" value="'+escHTML(sel!==undefined&&sel!==null?String(sel):'')+'">';
+    }
+    fd.appendChild(div);
+    return;
+  }
   const coerced=typeof DT!=='undefined'&&DT.coalesceNumberValue?DT.coalesceNumberValue(val,spec):(val!==''&&val!==undefined&&val!==null?Number(val):spec.def);
   let numVal='';
-  if(coerced!==undefined&&coerced!==null&&Number.isFinite(coerced))numVal=String(coerced);
-  const useSel=typeof DT!=='undefined'&&DT.shouldUseNumberSelect&&DT.shouldUseNumberSelect(spec);
-  const ttl='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>';
+  if(coerced!==undefined&&coerced!==null&&Number.isFinite(Number(coerced)))numVal=String(coerced);
+  const useSel=typeof DT!=='undefined'&&DT.shouldUseNumberSelect&&DT.shouldUseNumberSelect(spec,f);
   if(useSel){
     const min=spec.min,max=spec.max,step=spec.step||1;
     let selVal=parseFloat(numVal);
     if(!Number.isFinite(selVal))selVal=min;
     selVal=Math.min(max,Math.max(min,selVal));
-    const opts=[];
+    const optHtml=[];
     for(let v=min;v<=max+1e-9;v+=step){
       const t=Math.round(v*1000)/1000;
-      opts.push('<option value="'+t+'"'+(Math.abs(t-selVal)<1e-6?' selected':'')+'>'+t+(f.u?' '+escHTML(f.u):'')+'</option>');
+      optHtml.push('<option value="'+t+'"'+(Math.abs(t-selVal)<1e-6?' selected':'')+'>'+t+(f.u?' '+escHTML(f.u):'')+'</option>');
     }
-    div.innerHTML=ttl+'<select id="'+idN+'">'+opts.join('')+'</select>';
+    div.innerHTML=ttl+'<select id="'+idN+'">'+optHtml.join('')+'</select>';
   }else{
     let attrs='type="number" id="'+idN+'"';
-    if(spec.step!=null)attrs+=' step="'+spec.step+'"';
+    if(spec.step!=null&&typeof spec.step==='number')attrs+=' step="'+spec.step+'"';
     if(spec.min!=null)attrs+=' min="'+spec.min+'"';
     if(spec.max!=null)attrs+=' max="'+spec.max+'"';
     if(numVal!=='')attrs+=' value="'+escHTML(numVal)+'"';
@@ -1092,13 +1276,14 @@ function readNumberFieldValue(f){
   const idN='num-'+f.nm.replace(/\s/g,'_');
   const el=document.getElementById(idN);
   if(!el)return undefined;
-  const raw=el.tagName==='SELECT'?el.value:el.value;
+  const raw=el.value;
   if(raw===''||raw===undefined||raw===null)return undefined;
-  const n=el.tagName==='SELECT'?parseInt(raw,10):parseFloat(raw);
+  if(fieldUsesColon(f))return String(raw).trim();
+  const n=el.tagName==='SELECT'?parseFloat(raw):parseFloat(raw);
   return Number.isFinite(n)?n:undefined;
 }
 function resetAfterSave(){
-  ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('note-dirty');}});
+  ['noteQuick','foodNoteQuick','suppNoteQuick','otherNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.classList.remove('note-dirty');}});
   _cMId=null;
 }
 
@@ -1120,7 +1305,7 @@ function init(){
   rAppVersion();
   ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);rTabVisibility();rTabToggles();setInterval(rH,60000);initSwipe();gDriveCheckHash();
   const en=document.getElementById('eatNm');if(en)en.addEventListener('input',function(){this.classList.remove('eat-miss-err');});
-  ['noteQuick','foodNoteQuick','suppNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});
+  ['noteQuick','foodNoteQuick','suppNoteQuick','otherNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});
   window.addEventListener('pagehide',flushLocalQuiet);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushLocalQuiet();});
   rLocalExportLbl();
@@ -1927,30 +2112,64 @@ function eatNumberFieldNames(){
     return nm?[nm]:[];
   });
 }
+function eatFldRowMeta(row){
+  if(eatRowType(row)!=='number')return null;
+  const nm=(row.querySelector('input.eat-fld-nm')?.value||'').trim();
+  const u=row.querySelector('input.fld-u')?.value||'';
+  const step=row.querySelector('input.fld-step')?.value||'';
+  return nm?{nm,u,step,t:'number'}:null;
+}
+function rowUsesColon(row){
+  const m=eatFldRowMeta(row);if(!m)return false;
+  return typeof DT!=='undefined'&&DT.isColonStepField?DT.isColonStepField(m):String(m.step||'').trim().startsWith(':');
+}
+function syncEatDefInput(row){
+  const di=row.querySelector('input.fld-def');if(!di)return;
+  const colon=rowUsesColon(row);
+  const val=di.value;
+  if(colon&&di.type!=='text'){
+    const nd=document.createElement('input');nd.type='text';nd.className='fld-def';nd.placeholder='Default M:SS or H:MM';nd.style.marginTop='6px';nd.value=val;di.replaceWith(nd);
+  }else if(!colon&&di.type!=='number'){
+    const nd=document.createElement('input');nd.type='number';nd.className='fld-def';nd.placeholder='Default # (optional; blank = omit on save)';nd.style.marginTop='6px';nd.value=val;di.replaceWith(nd);
+  }
+}
 function refreshEatOptDefaultInputs(seedDefaults,onlyRow){
-  const nums=eatNumberFieldNames();
+  const metas=[...document.querySelectorAll('#eatFldList .fld-type-row')].map(eatFldRowMeta).filter(Boolean);
   const rows=onlyRow?[onlyRow]:[...document.querySelectorAll('#eatFldList .eat-opt-row')];
   rows.forEach(row=>{
     const wrap=row.querySelector('.eat-opt-defs');if(!wrap)return;
     const existing={...(seedDefaults||{})};
     wrap.querySelectorAll('.eat-opt-def').forEach(inp=>{if(inp.dataset.defNm&&inp.value!=='')existing[inp.dataset.defNm]=inp.value;});
     wrap.innerHTML='';
-    nums.forEach(nm=>{
+    metas.forEach(meta=>{
       const fdiv=document.createElement('div');fdiv.className='fld';fdiv.style.marginBottom='4px';
-      const lab=document.createElement('div');lab.className='fl';lab.style.fontSize='8px';lab.textContent='Default '+nm;
-      const inp=document.createElement('input');inp.type='number';inp.className='eat-opt-def';inp.dataset.defNm=nm;
-      if(existing[nm]!==undefined&&existing[nm]!==null&&existing[nm]!=='')inp.value=existing[nm];
+      const lab=document.createElement('div');lab.className='fl';lab.style.fontSize='8px';lab.textContent='Default '+meta.nm;
+      const colon=typeof DT!=='undefined'&&DT.isColonStepField?DT.isColonStepField(meta):String(meta.step||'').trim().startsWith(':');
+      const inp=document.createElement('input');inp.type=colon?'text':'number';inp.className='eat-opt-def';inp.dataset.defNm=meta.nm;
+      if(colon)inp.placeholder='M:SS or H:MM';
+      if(existing[meta.nm]!==undefined&&existing[meta.nm]!==null&&existing[meta.nm]!=='')inp.value=existing[meta.nm];
       fdiv.appendChild(lab);fdiv.appendChild(inp);wrap.appendChild(fdiv);
     });
   });
 }
 function appendEatNumberExtras(row,f){
   const fr=document.createElement('div');fr.className='fr2';fr.style.marginTop='6px';
-  const mk=(cls,ph,val)=>{const inp=document.createElement('input');inp.type='number';inp.className=cls;inp.placeholder=ph;if(val!==undefined&&val!==null&&val!=='')inp.value=val;inp.style.marginTop='0';return inp;};
-  const fMin=document.createElement('div');fMin.className='fld';fMin.innerHTML='<div class="fl" style="font-size:8px">Min</div>';fMin.appendChild(mk('fld-min','optional',f?.min));
-  const fMax=document.createElement('div');fMax.className='fld';fMax.innerHTML='<div class="fl" style="font-size:8px">Max</div>';fMax.appendChild(mk('fld-max','optional',f?.max));
-  const fSt=document.createElement('div');fSt.className='fld';fSt.innerHTML='<div class="fl" style="font-size:8px">Step</div>';fSt.appendChild(mk('fld-step','optional',f?.step));
+  const mkNum=(cls,ph,val)=>{const inp=document.createElement('input');inp.type='number';inp.className=cls;inp.placeholder=ph;if(val!==undefined&&val!==null&&val!=='')inp.value=val;inp.style.marginTop='0';return inp;};
+  const fMin=document.createElement('div');fMin.className='fld';fMin.innerHTML='<div class="fl" style="font-size:8px">Min</div>';fMin.appendChild(mkNum('fld-min','optional',f?.min));
+  const fMax=document.createElement('div');fMax.className='fld';fMax.innerHTML='<div class="fl" style="font-size:8px">Max</div>';fMax.appendChild(mkNum('fld-max','optional',f?.max));
+  const fSt=document.createElement('div');fSt.className='fld';fSt.innerHTML='<div class="fl" style="font-size:8px">Step</div>';
+  const stInp=document.createElement('input');stInp.type='text';stInp.className='fld-step';stInp.placeholder='1 or :30';stInp.style.marginTop='0';
+  if(f?.step!==undefined&&f?.step!==null&&f?.step!=='')stInp.value=String(f.step);
+  fSt.appendChild(stInp);
   fr.appendChild(fMin);fr.appendChild(fMax);fr.appendChild(fSt);row.appendChild(fr);
+  const hint=document.createElement('div');hint.className='ssb';hint.style.marginTop='4px';hint.style.fontSize='9px';
+  hint.textContent=typeof DT!=='undefined'&&DT.stepFieldHelpText?DT.stepFieldHelpText(f?.u||''):'Step: number, or :N for colon steps';
+  row.appendChild(hint);
+  const uInp=row.querySelector('input.fld-u');
+  const sync=()=>{syncEatDefInput(row);refreshEatOptDefaultInputs();hint.textContent=typeof DT!=='undefined'&&DT.stepFieldHelpText?DT.stepFieldHelpText(uInp?.value||''):hint.textContent;};
+  if(uInp)uInp.addEventListener('input',sync);
+  stInp.addEventListener('input',sync);
+  syncEatDefInput(row);
 }
 function mkEatOptsWrap(f){
   const wrap=document.createElement('div');wrap.className='eat-opts-wrap';
@@ -1986,7 +2205,10 @@ function addFldRow(f){
   const rm=document.createElement('div');rm.style.cssText='cursor:pointer;color:var(--rd);font-size:16px;flex-shrink:0;padding:6px';rm.textContent='\u00d7';rm.onclick=()=>rmFldRow(rm);row.appendChild(rm);
   if(t==='number'){
     const ui=document.createElement('input');ui.type='text';ui.className='fld-u';ui.placeholder='Unit (e.g. minutes, F)';ui.value=f?.u||'';ui.style.marginTop='6px';row.appendChild(ui);
-    const di=document.createElement('input');di.type='number';di.className='fld-def';di.placeholder='Default # (optional; blank = omit on save)';di.style.marginTop='6px';if(f?.def!==undefined&&f.def!==null&&String(f.def)!=='')di.value=f.def;row.appendChild(di);
+    const colon=f&&typeof DT!=='undefined'&&DT.isColonStepField&&DT.isColonStepField(f);
+    const di=document.createElement('input');di.type=colon?'text':'number';di.className='fld-def';di.placeholder=colon?'Default M:SS or H:MM':'Default # (optional; blank = omit on save)';di.style.marginTop='6px';
+    if(f?.def!==undefined&&f.def!==null&&String(f.def)!=='')di.value=f.def;
+    row.appendChild(di);
     appendEatNumberExtras(row,f);
   }else if(t==='opts'){
     row.appendChild(mkEatOptsWrap(f));appendEatOptsMultiCheckbox(row,f);
@@ -2042,7 +2264,10 @@ function cfEAT(){
         const defaults={};
         sub.querySelectorAll('.eat-opt-def').forEach(inp=>{
           const nm=inp.dataset.defNm;if(!nm||inp.value==='')return;
-          const dv=parseFloat(inp.value);if(Number.isFinite(dv))defaults[nm]=dv;
+          const raw=inp.value.trim();
+          const numRow=[...document.querySelectorAll('#eatFldList .fld-type-row')].find(r=>eatFldRowMeta(r)?.nm===nm);
+          if(numRow&&rowUsesColon(numRow))defaults[nm]=raw;
+          else{const dv=parseFloat(raw);if(Number.isFinite(dv))defaults[nm]=dv;}
         });
         const opt={v,d};if(Object.keys(defaults).length)opt.defaults=defaults;
         opts.push(opt);
@@ -2068,7 +2293,11 @@ function cfEAT(){
     const u=t==='number'?(uIn?.value||''):'';
     let def=undefined;
     if(t==='number'){
-      if(dIn&&dIn.value!==''){const dv=parseFloat(dIn.value);if(Number.isFinite(dv))def=dv;}
+      if(dIn&&dIn.value!==''){
+        const dv=dIn.value.trim();
+        if(rowUsesColon(row))def=dv;
+        else{const n=parseFloat(dv);if(Number.isFinite(n))def=n;}
+      }
       else def=null;
     }
     const o={nm:n,t,u};
@@ -2076,7 +2305,11 @@ function cfEAT(){
     if(t==='number'){
       if(minIn&&minIn.value!==''){const v=parseFloat(minIn.value);if(Number.isFinite(v))o.min=v;}
       if(maxIn&&maxIn.value!==''){const v=parseFloat(maxIn.value);if(Number.isFinite(v))o.max=v;}
-      if(stepIn&&stepIn.value!==''){const v=parseFloat(stepIn.value);if(Number.isFinite(v))o.step=v;}
+      if(stepIn&&stepIn.value!==''){
+        const sv=stepIn.value.trim();
+        if(sv.startsWith(':'))o.step=sv;
+        else{const v=parseFloat(sv);if(Number.isFinite(v))o.step=v;}
+      }
     }
     flds.push(o);
   }
@@ -2920,6 +3153,7 @@ async function svAll(){
     markMod(batchDay);
   }
   const oaids=Object.keys(_otherSt);
+  const otherNote=(document.getElementById('otherNoteQuick')?.value||'').trim();
   if(oaids.length){
     oaids.forEach(aid=>{
       const st=_otherSt[aid];
@@ -2929,7 +3163,9 @@ async function svAll(){
       if(profile&&typeof DT!=='undefined'&&DT.buildCardActivityFlds)flds=DT.buildCardActivityFlds(profile,st);
       else if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;
       else flds[st.fieldNm]=st.val;
-      const id2=uid();S.al.push({id:id2,aid,dt:batchDt,la:now(),flds,nt:''});addedAL.push(id2);
+      const row={id:uid(),aid,dt:batchDt,la:now(),flds};
+      if(otherNote)row.nt=otherNote;
+      S.al.push(row);addedAL.push(row.id);
     });
     markMod(batchDay);
   }
