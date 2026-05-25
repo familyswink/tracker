@@ -73,6 +73,22 @@ export function buildCardActivityFlds(profile, pending) {
   return flds;
 }
 
+export function formatOptDefaultsLines(listField, valueFields) {
+  if (!listField?.opts?.length || !valueFields?.length) return [];
+  return listField.opts
+    .map((o) => {
+      const parts = valueFields
+        .map((f) => {
+          const v = o.defaults?.[f.nm];
+          if (v === undefined || v === null || v === '') return '';
+          return `${f.nm}: ${v}${f.u ? ' ' + f.u : ''}`;
+        })
+        .filter(Boolean);
+      return { label: o.v, text: parts.join(' · ') };
+    })
+    .filter((x) => x.text);
+}
+
 export function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);

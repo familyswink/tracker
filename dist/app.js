@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.6';
+const APP_VERSION='2026.05.20.7';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -484,6 +484,22 @@ function buildCardActivityFlds(profile, pending) {
   return flds;
 }
 
+function formatOptDefaultsLines(listField, valueFields) {
+  if (!listField?.opts?.length || !valueFields?.length) return [];
+  return listField.opts
+    .map((o) => {
+      const parts = valueFields
+        .map((f) => {
+          const v = o.defaults?.[f.nm];
+          if (v === undefined || v === null || v === '') return '';
+          return `${f.nm}: ${v}${f.u ? ' ' + f.u : ''}`;
+        })
+        .filter(Boolean);
+      return { label: o.v, text: parts.join(' · ') };
+    })
+    .filter((x) => x.text);
+}
+
 function formatCardDefaultSummary(profile, selectedVals) {
   if (!profile?.valueFields?.length || !selectedVals?.length) return '';
   const defs = defaultsFromFirstOpt(profile.listField, selectedVals);
@@ -658,6 +674,7 @@ global.DT = {
   defaultsFromFirstOpt,
   buildCardActivityFlds,
   formatCardDefaultSummary,
+  formatOptDefaultsLines,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,
@@ -1684,40 +1701,20 @@ function pendOtherAct(aid,fieldNm,val,isMulti,optsOrder){
   rA();
 }
 function actListCardProfile(a){return typeof DT!=='undefined'&&DT.actListCardProfile?DT.actListCardProfile(a):null;}
-function cfOtherCardSave(aid){
-  const a=S.acts.find(x=>x.id===aid);if(!a)return;
-  const pend=_otherSt[aid];if(!pend)return;
-  const profile=actListCardProfile(a);
-  let flds={};
-  if(profile){
-    flds=typeof DT!=='undefined'&&DT.buildCardActivityFlds?DT.buildCardActivityFlds(profile,pend):{};
-    const vals=pend.multi&&Array.isArray(pend.vals)?pend.vals.filter(Boolean):(pend.val!==undefined&&pend.val!==null&&String(pend.val)!==''?[String(pend.val)]:[]);
-    if(!vals.length){shT('Select at least one');return;}
-  }else{
-    if(pend.multi){
-      const vals=Array.isArray(pend.vals)?pend.vals.map(String).filter(Boolean):[];
-      if(!vals.length){shT('Select at least one');return;}
-      flds[pend.fieldNm]=vals;
-    }else{
-      if(pend.val===undefined||pend.val===null||String(pend.val)===''){shT('Select a value');return;}
-      flds[pend.fieldNm]=pend.val;
-    }
+function otherCardDefaultsHtml(profile,selArr){
+  if(!profile||!profile.valueFields?.length)return'';
+  const lines=typeof DT!=='undefined'&&DT.formatOptDefaultsLines?DT.formatOptDefaultsLines(profile.listField,profile.valueFields):[];
+  if(!lines.length)return'';
+  let h='<div class="a-defs">';
+  lines.forEach(line=>{
+    const hot=selArr.length&&String(selArr[0])===String(line.label);
+    h+='<div class="ach ach-ro'+(hot?' ach-ro-sel':'')+'"><span class="ach-l">'+escHTML(line.label)+'</span> '+escHTML(line.text)+'</div>';
+  });
+  if(selArr.length){
+    const defSum=typeof DT!=='undefined'&&DT.formatCardDefaultSummary?DT.formatCardDefaultSummary(profile,selArr):'';
+    if(defSum)h+='<div class="ach ach-ro ach-ro-pend">Will log: '+escHTML(defSum)+'</div>';
   }
-  const dt=gEDt();
-  S.al.push({id:uid(),aid,dt,la:now(),flds,nt:''});
-  delete _otherSt[aid];
-  commitLogChange(dt);
-  rA();shT('Saved');
-}
-function appendOtherCardSaveBtn(card,aid,enabled){
-  const b=document.createElement('div');
-  b.className='aqb aqbs'+(enabled?'':'');
-  b.textContent='Save';
-  b.style.opacity=enabled?'1':'0.45';
-  b.style.pointerEvents=enabled?'auto':'none';
-  b.addEventListener('click',ev=>{ev.stopPropagation();if(enabled)cfOtherCardSave(aid);});
-  const row=document.createElement('div');row.className='aq';row.style.marginTop='8px';row.appendChild(b);
-  card.appendChild(row);
+  return h+'</div>';
 }
 function rA(){
   const c=document.getElementById('aList');c.innerHTML='';
@@ -1738,9 +1735,8 @@ function rA(){
           : []
       );
       const selArr=[...pendVals];
-      const defSum=typeof DT!=='undefined'&&DT.formatCardDefaultSummary?DT.formatCardDefaultSummary(profile,selArr):'';
       const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for custom entry'+(selArr.length?' · pending: '+selArr.join(', '):'')):(selArr.length?'Pending: '+selArr.join(', ')+(defSum?' · '+defSum:' '):'Tap list, then Save · tap name for overlay');
+      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for custom entry'+(selArr.length?' · pending: '+selArr.join(', '):'')):(selArr.length?'Pending: '+selArr.join(', '):'Tap name for custom entry');
       left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(selArr.length?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       (listField.opts||[]).forEach(o=>{
@@ -1753,7 +1749,8 @@ function rA(){
         btnsDiv.appendChild(b);
       });
       card.appendChild(left);card.appendChild(btnsDiv);
-      appendOtherCardSaveBtn(card,a.id,selArr.length>0);
+      const defHtml=otherCardDefaultsHtml(profile,selArr);
+      if(defHtml){const wrap=document.createElement('div');wrap.innerHTML=defHtml;card.appendChild(wrap.firstChild);}
     }else if(qf){
       const stacked=qf.type==='opts'&&qf.field.opts.length>=3;
       card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
@@ -1769,7 +1766,7 @@ function rA(){
         else if(!pend.multi&&pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')pendDisp=String(pend.val);
       }
       const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for new entry'+(pendDisp?' · pending: '+pendDisp:'')):(pendDisp?'Pending: '+pendDisp:'Tap for new entry · name for notes');
+      const sub=todayAL.length?(todayAL.length+' logged \u2014 tap for new entry'+(pendDisp?' · pending: '+pendDisp:'')):(pendDisp?'Pending: '+pendDisp:'Tap to select');
       left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div><div class="as2" style="color:'+(pendDisp?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>';
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       const opts=qf.type==='yesno'?['Yes','No']:qf.field.opts.map(o=>o.v);
@@ -1782,8 +1779,6 @@ function rA(){
         btnsDiv.appendChild(b);
       });
       card.appendChild(left);card.appendChild(btnsDiv);
-      const hasPend=pendVals.size>0;
-      appendOtherCardSaveBtn(card,a.id,hasPend);
     }else{
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
@@ -2909,7 +2904,16 @@ async function svAll(){
   }
   const oaids=Object.keys(_otherSt);
   if(oaids.length){
-    oaids.forEach(aid=>{const st=_otherSt[aid];const flds={};if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;else flds[st.fieldNm]=st.val;const id2=uid();S.al.push({id:id2,aid,dt:batchDt,la:now(),flds,nt:''});addedAL.push(id2);});
+    oaids.forEach(aid=>{
+      const st=_otherSt[aid];
+      const act=S.acts.find(x=>x.id===aid);
+      const profile=actListCardProfile(act);
+      let flds={};
+      if(profile&&typeof DT!=='undefined'&&DT.buildCardActivityFlds)flds=DT.buildCardActivityFlds(profile,st);
+      else if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;
+      else flds[st.fieldNm]=st.val;
+      const id2=uid();S.al.push({id:id2,aid,dt:batchDt,la:now(),flds,nt:''});addedAL.push(id2);
+    });
     markMod(batchDay);
   }
   const prevFl=S.flSave,prevG=S.gdt;
