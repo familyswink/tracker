@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.9';
+const APP_VERSION='2026.05.20.10';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -1895,11 +1895,8 @@ function pendOtherAct(aid,fieldNm,val,isMulti,optsOrder){
   rA();
 }
 function actListCardProfile(a){return typeof DT!=='undefined'&&DT.actListCardProfile?DT.actListCardProfile(a):null;}
-function otherCardSub(todayCount,pendingText){
-  const parts=[];
-  if(todayCount)parts.push(todayCount+' logged today');
-  if(pendingText)parts.push('pending: '+pendingText);
-  return parts.join(' \u00b7 ');
+function otherCardSub(todayCount){
+  return todayCount?todayCount+' logged today':'';
 }
 function otherCardDefaultsHtml(profile,selArr){
   if(!profile)return'';
@@ -1908,14 +1905,9 @@ function otherCardDefaultsHtml(profile,selArr){
   if(!optLines.length&&!fieldLines.length)return'';
   let h='<div class="a-defs">';
   optLines.forEach(line=>{
-    const hot=selArr.length&&String(selArr[0])===String(line.label);
-    h+='<div class="ach ach-ro'+(hot?' ach-ro-sel':'')+'"><span class="ach-l">'+escHTML(line.label)+'</span> '+escHTML(line.text)+'</div>';
+    h+='<div class="ach ach-ro"><span class="ach-l">'+escHTML(line.label)+'</span> '+escHTML(line.text)+'</div>';
   });
   fieldLines.forEach(line=>{h+='<div class="ach ach-ro">'+escHTML(line.text)+'</div>';});
-  if(selArr.length&&optLines.length){
-    const defSum=typeof DT!=='undefined'&&DT.formatCardDefaultSummary?DT.formatCardDefaultSummary(profile,selArr):'';
-    if(defSum)h+='<div class="ach ach-ro ach-ro-pend">Will log: '+escHTML(defSum)+'</div>';
-  }
   return h+'</div>';
 }
 function rA(){
@@ -1928,8 +1920,7 @@ function rA(){
     const profile=actListCardProfile(a);
     if(profile){
       const listField=profile.listField;
-      const stacked=(listField.opts||[]).length>=3;
-      card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
+      card.className='ac ac-ql';
       const pend=_otherSt[a.id];
       const pendVals=new Set(
         pend&&pend.fieldNm===listField.nm
@@ -1937,9 +1928,9 @@ function rA(){
           : []
       );
       const selArr=[...pendVals];
-      const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=otherCardSub(todayAL.length,selArr.length?selArr.join(', '):'');
-      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2" style="color:'+(selArr.length?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>':'');
+      const head=document.createElement('div');head.className='acl';head.onclick=()=>oAE(a.id,null);
+      const sub=otherCardSub(todayAL.length);
+      head.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2">'+escHTML(sub)+'</div>':'');
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       (listField.opts||[]).forEach(o=>{
         const v=o.v;
@@ -1950,26 +1941,20 @@ function rA(){
         b.addEventListener('click',ev=>{ev.stopPropagation();pendOtherAct(a.id,listField.nm,v,!!listField.multi,(listField.opts||[]).map(x=>x.v));});
         btnsDiv.appendChild(b);
       });
-      card.appendChild(left);card.appendChild(btnsDiv);
+      card.appendChild(head);card.appendChild(btnsDiv);
       const defHtml=otherCardDefaultsHtml(profile,selArr);
       if(defHtml){const wrap=document.createElement('div');wrap.innerHTML=defHtml;card.appendChild(wrap.firstChild);}
     }else if(qf){
-      const stacked=qf.type==='opts'&&qf.field.opts.length>=3;
-      card.className='ac ac-ql'+(stacked?' ac-ql-st':'');
+      card.className='ac ac-ql';
       const pend=_otherSt[a.id];
       const pendVals=new Set(
         pend&&pend.fieldNm===qf.field.nm
           ? (pend.multi&&Array.isArray(pend.vals)?pend.vals:(pend.val!==undefined&&pend.val!==null&&String(pend.val)!==''?[String(pend.val)]:[]))
           : []
       );
-      let pendDisp='';
-      if(pend&&pend.fieldNm===qf.field.nm){
-        if(pend.multi&&Array.isArray(pend.vals)&&pend.vals.length)pendDisp=pend.vals.join(', ');
-        else if(!pend.multi&&pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')pendDisp=String(pend.val);
-      }
-      const left=document.createElement('div');left.className='acl';left.onclick=()=>oAE(a.id,null);
-      const sub=otherCardSub(todayAL.length,pendDisp);
-      left.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2" style="color:'+(pendDisp?'var(--or)':'var(--mt)')+'">'+escHTML(sub)+'</div>':'');
+      const head=document.createElement('div');head.className='acl';head.onclick=()=>oAE(a.id,null);
+      const sub=otherCardSub(todayAL.length);
+      head.innerHTML='<div class="an">'+escHTML(a.nm)+'</div>'+(sub?'<div class="as2">'+escHTML(sub)+'</div>':'');
       const btnsDiv=document.createElement('div');btnsDiv.className='aq';
       const opts=qf.type==='yesno'?['Yes','No']:qf.field.opts.map(o=>o.v);
       opts.forEach(v=>{
@@ -1980,7 +1965,7 @@ function rA(){
         b.addEventListener('click',ev=>{ev.stopPropagation();pendOtherAct(a.id,qf.field.nm,v,qf.field.multi,qf.field.opts.map(o=>o.v));});
         btnsDiv.appendChild(b);
       });
-      card.appendChild(left);card.appendChild(btnsDiv);
+      card.appendChild(head);card.appendChild(btnsDiv);
     }else{
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
