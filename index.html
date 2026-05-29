@@ -48,7 +48,7 @@
   <div class="fld" style="margin-top:9px"><textarea id="otherNoteQuick" placeholder="Other note for this save..." style="height:75px;font-size:14px"></textarea></div>
 </div></div>
 <div id="pg-notes" class="pg"><div class="con">
-  <div class="ta"><div class="bs" onclick="oH('notes')">History</div></div>
+  <div class="ta"><div class="bs g" onclick="oNoteWikiManage()">Manage [[ names</div><div class="bs" onclick="oH('notes')">History</div></div>
   <div class="fld"><textarea id="noteQuick" placeholder="Write a note..." style="height:130px;font-size:14px"></textarea></div>
   <div class="sh"><div class="sl">Today</div></div>
   <div id="nList"></div>
@@ -166,6 +166,12 @@
 </div></div><div class="sa"><button class="bcn" onclick="closeAllOv()">Cancel</button><button class="blg" onclick="cfExport()">Export</button></div></div></div>
 
 <div class="ov" id="ovListPick"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl" id="lpT">Choose</div><input type="text" class="srch-inp" id="lpSrch" placeholder="Search..." autocomplete="off"><div id="lpL"></div><div style="height:8px"></div></div><div class="sa"><button class="bcn" style="width:100%;flex:1" onclick="popOv()">Cancel</button></div></div></div>
+
+<div class="ov" id="ovNoteWiki"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Insert [[ name</div><div class="ssb">Matches supplements and custom names · tap to insert</div><input type="text" class="srch-inp" id="nwSrch" placeholder="Search..." autocomplete="off"><div id="nwL"></div><div class="fld" style="margin-top:10px"><div class="fl">New name</div><div class="fr2" style="align-items:flex-end"><input type="text" id="nwNew" placeholder="Brand Product" style="margin-top:0"><button type="button" class="bcn" style="width:auto;flex-shrink:0;padding:12px 14px" onclick="cfNoteWikiNew()">Add</button></div></div><div style="height:8px"></div></div><div class="sa"><button class="bcn" style="width:100%;flex:1" onclick="closeNoteWikiPick()">Cancel</button></div></div></div>
+
+<div class="ov" id="ovNoteWikiMgr"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Manage [[ names</div><div class="ssb">Hide removes from picker only · catalog items return when you add supplements</div><div class="adr" onclick="addNoteWikiCustomPrompt()">+ Add custom name</div><div id="nwmL"></div><div style="height:8px"></div></div><div class="sa"><button class="bcn" style="width:100%;flex:1" onclick="closeAllOv()">Done</button></div></div></div>
+
+<div class="ov" id="ovAlert"><div class="sht" style="max-height:70dvh"><div class="sht-body"><div class="hdl"></div><div class="stl" id="alertT">Notice</div><div class="srt" id="alertM" style="margin-bottom:0"></div></div><div class="sa"><button class="blg" style="width:100%;flex:1" onclick="closeAlert()">OK</button></div></div></div>
 
 <div class="ov" id="ovSetDrive"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Drive Settings</div><div class="ssb">Paste only the ID from the folder URL — the part after /folders/ and before any ? character</div><div class="fld"><div class="fl">Daily Logs Folder ID</div><input type="text" id="driveDailyLogsId"></div><div class="fld"><div class="fl">Backups Folder ID</div><input type="text" id="driveBackupId"></div></div><div class="sa"><button class="bcn" onclick="closeAllOv()">Cancel</button><button class="blg" onclick="svDriveSet()">Save</button></div></div></div>
 <script src="dist/app.js"></script>

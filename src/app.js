@@ -114,6 +114,9 @@ function normalizeS(){
   _modDates=new Set(S.exportModDates);
   if(!Array.isArray(S.foodGroups)||!S.foodGroups.length){S.foodGroups=[...new Set((S.fd||[]).map(f=>f.sec).filter(Boolean))];}
   if(!Array.isArray(S.suppGroups)||!S.suppGroups.length){S.suppGroups=JSON.parse(JSON.stringify(SGP));}
+  if(!Array.isArray(S.noteWikiHidden))S.noteWikiHidden=[];
+  if(!Array.isArray(S.noteWikiCustom))S.noteWikiCustom=[];
+  if(S.cfg.backupSavedYmd!=null&&typeof S.cfg.backupSavedYmd!=='string')delete S.cfg.backupSavedYmd;
   normalizeSuppUnitsInState();
 }
 function syncExportModDatesIntoS(){
@@ -148,7 +151,7 @@ function ld(){
   if(_migratedDriveOff){_migratedDriveOff=false;flushLocalQuiet();}
   if(_bwlMigrated){_bwlMigrated=false;flushLocalQuiet();}
 }
-function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:true,shareOnSave:true,tabs:{water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true},driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
+function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:true,shareOnSave:true,tabs:{water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true},driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.noteWikiHidden=[];S.noteWikiCustom=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
 
 function gFoodGroups(){return(S.foodGroups&&S.foodGroups.length)?S.foodGroups:[...new Set(S.fd.filter(f=>f.on).map(f=>f.sec).filter(Boolean))];}
 function gSuppGroups(){return(S.suppGroups&&S.suppGroups.length)?S.suppGroups:SGP;}
@@ -361,30 +364,30 @@ function appendNumberFieldDom(div,fd,f,val){
   const idN='num-'+f.nm.replace(/\s/g,'_');
   const ttl='<div class="fl">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>';
   if(fieldUsesColon(f)){
-    const opts=typeof DT!=='undefined'&&DT.colonSelectOptions?DT.colonSelectOptions(f):[];
-    let sel=typeof DT!=='undefined'&&DT.coalesceColonValue?DT.coalesceColonValue(val,f):undefined;
-    if(sel===undefined&&val!==undefined&&val!==null&&String(val)!=='')sel=String(val);
+    let opts=typeof DT!=='undefined'&&DT.colonSelectOptions?DT.colonSelectOptions(f):[];
+    if(typeof DT!=='undefined'&&DT.withEmptyNumberOption)opts=DT.withEmptyNumberOption(opts);
+    let sel='';
+    if(val!==undefined&&val!==null&&String(val)!=='')sel=String(val);
     if(opts.length){
-      div.innerHTML=ttl+'<select id="'+idN+'">'+opts.map(o=>'<option value="'+escHTML(o.value)+'"'+(String(o.value)===String(sel||'')?' selected':'')+'>'+escHTML(o.label)+'</option>').join('')+'</select>';
+      div.innerHTML=ttl+'<select id="'+idN+'">'+opts.map(o=>'<option value="'+escHTML(o.value)+'"'+(String(o.value)===String(sel)?' selected':'')+'>'+escHTML(o.label)+'</option>').join('')+'</select>';
     }else{
       div.innerHTML=ttl+'<input type="text" id="'+idN+'" inputmode="numeric" placeholder="M:SS or H:MM" value="'+escHTML(sel!==undefined&&sel!==null?String(sel):'')+'">';
     }
     fd.appendChild(div);
     return;
   }
-  const coerced=typeof DT!=='undefined'&&DT.coalesceNumberValue?DT.coalesceNumberValue(val,spec):(val!==''&&val!==undefined&&val!==null?Number(val):spec.def);
-  let numVal='';
-  if(coerced!==undefined&&coerced!==null&&Number.isFinite(Number(coerced)))numVal=String(coerced);
   const useSel=typeof DT!=='undefined'&&DT.shouldUseNumberSelect&&DT.shouldUseNumberSelect(spec,f);
   if(useSel){
     const min=spec.min,max=spec.max,step=spec.step||1;
-    let selVal=parseFloat(numVal);
-    if(!Number.isFinite(selVal))selVal=min;
-    selVal=Math.min(max,Math.max(min,selVal));
-    const optHtml=[];
+    let selVal=null;
+    if(val!==undefined&&val!==null&&val!==''){
+      const n=Number(val);
+      if(Number.isFinite(n))selVal=Math.min(max,Math.max(min,n));
+    }
+    const optHtml=['<option value=""'+(selVal===null?' selected':'')+'>\u2014</option>'];
     for(let v=min;v<=max+1e-9;v+=step){
       const t=Math.round(v*1000)/1000;
-      optHtml.push('<option value="'+t+'"'+(Math.abs(t-selVal)<1e-6?' selected':'')+'>'+t+(f.u?' '+escHTML(f.u):'')+'</option>');
+      optHtml.push('<option value="'+t+'"'+(selVal!==null&&Math.abs(t-selVal)<1e-6?' selected':'')+'>'+t+(f.u?' '+escHTML(f.u):'')+'</option>');
     }
     div.innerHTML=ttl+'<select id="'+idN+'">'+optHtml.join('')+'</select>';
   }else{
@@ -392,7 +395,7 @@ function appendNumberFieldDom(div,fd,f,val){
     if(spec.step!=null&&typeof spec.step==='number')attrs+=' step="'+spec.step+'"';
     if(spec.min!=null)attrs+=' min="'+spec.min+'"';
     if(spec.max!=null)attrs+=' max="'+spec.max+'"';
-    if(numVal!=='')attrs+=' value="'+escHTML(numVal)+'"';
+    if(val!==undefined&&val!==null&&val!==''&&Number.isFinite(Number(val)))attrs+=' value="'+escHTML(String(val))+'"';
     div.innerHTML=ttl+'<input '+attrs+'>';
   }
   fd.appendChild(div);
@@ -430,7 +433,7 @@ function init(){
   rAppVersion();
   ld();migrateStoredLogsOnce();touchAppOpenDay();rH();rW();rS();rF();rA();rN();document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);rTabVisibility();rTabToggles();setInterval(rH,60000);initSwipe();gDriveCheckHash();
   const en=document.getElementById('eatNm');if(en)en.addEventListener('input',function(){this.classList.remove('eat-miss-err');});
-  ['noteQuick','foodNoteQuick','suppNoteQuick','otherNoteQuick'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>el.classList.add('note-dirty'));});
+  initNoteWikiListeners();
   window.addEventListener('pagehide',flushLocalQuiet);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushLocalQuiet();});
   rLocalExportLbl();
@@ -1429,7 +1432,90 @@ function cfEAT(){
 }
 function dAT(){S.acts=S.acts.filter(x=>x.id!==_eatId);sv();popOv();rMAL();rA();}
 
-// NOTES
+// NOTES + [[ name picker
+const NOTE_WIKI_IDS=['noteQuick','foodNoteQuick','suppNoteQuick','otherNoteQuick','aeNt','neBd'];
+let _noteWikiTarget=null;
+function wikiTokenFromInput(raw){
+  let s=String(raw||'').trim();
+  if(s.startsWith('[[')&&s.endsWith(']]'))s=s.slice(2,-2).trim();
+  return typeof DT!=='undefined'&&DT.suppWikiToken?DT.suppWikiToken('',s):'[['+s+']]';
+}
+function noteWikiOnInput(el){
+  if(!el)return;
+  el.classList.add('note-dirty');
+  const pos=el.selectionStart!=null?el.selectionStart:el.value.length;
+  const trig=typeof DT!=='undefined'&&DT.noteWikiTriggerAt?DT.noteWikiTriggerAt(el.value,pos):null;
+  if(!trig){if(_noteWikiTarget&&_noteWikiTarget.el===el)closeNoteWikiPick();return;}
+  _noteWikiTarget={el,start:trig.start,end:pos};
+  const si=document.getElementById('nwSrch');
+  if(si){si.value=trig.query;si.oninput=()=>rNoteWikiPick();}
+  rNoteWikiPick();
+  if(!document.getElementById('ovNoteWiki')?.classList.contains('open'))openOvPush('ovNoteWiki');
+}
+function rNoteWikiPick(){
+  const q=(document.getElementById('nwSrch')?.value||'').trim();
+  const items=typeof DT!=='undefined'&&DT.listWikiTokens?DT.listWikiTokens(S,q):[];
+  const c=document.getElementById('nwL');
+  if(!c)return;
+  const disp=t=>String(t).replace(/^\[\[|\]\]$/g,'');
+  c.innerHTML=items.length?items.map(t=>'<div class="pick-li" data-v="'+escHTML(t)+'"><div class="pl-nm">'+escHTML(disp(t))+'</div><div class="pl-mm">'+escHTML(t)+'</div></div>').join(''):'<div style="padding:12px;font-family:Courier New,monospace;font-size:10px;color:var(--mt)">No matches</div>';
+  c.onclick=e=>{const li=e.target.closest('.pick-li');if(!li||!c.contains(li))return;insertNoteWikiToken(li.getAttribute('data-v')||'');};
+}
+function insertNoteWikiToken(token){
+  const ctx=_noteWikiTarget;if(!ctx||!ctx.el||!token)return;
+  const el=ctx.el;
+  const before=el.value.slice(0,ctx.start);
+  const after=el.value.slice(ctx.end);
+  el.value=before+token+after;
+  const pos=before.length+token.length;
+  el.setSelectionRange(pos,pos);
+  el.focus();
+  closeNoteWikiPick();
+}
+function closeNoteWikiPick(){_noteWikiTarget=null;const ov=document.getElementById('ovNoteWiki');if(ov&&ov.classList.contains('open'))popOv();}
+function cfNoteWikiNew(){
+  const inp=document.getElementById('nwNew');const raw=inp?.value.trim();if(!raw){shT('Enter a name');return;}
+  const token=wikiTokenFromInput(raw);
+  if(!S.noteWikiCustom.includes(token))S.noteWikiCustom.push(token);
+  sv();
+  if(inp)inp.value='';
+  if(_noteWikiTarget)insertNoteWikiToken(token);
+  else{rNoteWikiPick();shT('Added');}
+}
+let _noteWikiManageRows=[];
+function oNoteWikiManage(){rNoteWikiManage();openOvRoot('ovNoteWikiMgr');}
+function rNoteWikiManage(){
+  const c=document.getElementById('nwmL');if(!c)return;
+  _noteWikiManageRows=typeof DT!=='undefined'&&DT.listWikiTokensForManage?DT.listWikiTokensForManage(S):[];
+  c.innerHTML=_noteWikiManageRows.map((row,i)=>{
+    const disp=String(row.token).replace(/^\[\[|\]\]$/g,'');
+    return '<div class="mi"><div class="mii" style="cursor:default"><div class="mn">'+escHTML(disp)+'</div><div class="mm">'+escHTML(row.token)+(row.fromCatalog?' \u00b7 catalog':' \u00b7 custom')+'</div></div><div class="mia"><div class="tg'+(row.hidden?' on':'')+'" onclick="togNoteWikiHideI('+i+')"></div></div></div>';
+  }).join('')||'<div style="color:var(--mt);font-size:10px;padding:12px">No names yet</div>';
+}
+function togNoteWikiHideI(i){
+  const row=_noteWikiManageRows[i];if(!row)return;togNoteWikiHide(row.token);
+}
+function togNoteWikiHide(token){
+  const i=S.noteWikiHidden.indexOf(token);
+  if(i>=0)S.noteWikiHidden.splice(i,1);
+  else S.noteWikiHidden.push(token);
+  sv();rNoteWikiManage();
+}
+function addNoteWikiCustomPrompt(){
+  const raw=prompt('Name (e.g. Thorne Magnesium):');if(!raw||!raw.trim())return;
+  const token=wikiTokenFromInput(raw);
+  if(!S.noteWikiCustom.includes(token))S.noteWikiCustom.push(token);
+  sv();rNoteWikiManage();shT('Added');
+}
+function initNoteWikiListeners(){
+  NOTE_WIKI_IDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    el.addEventListener('input',()=>noteWikiOnInput(el));
+    el.addEventListener('click',()=>noteWikiOnInput(el));
+  });
+}
+
 function svQuickNote(){const el=document.getElementById('noteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.notes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rN();shT('Note saved');}
 function svFoodNote(){const el=document.getElementById('foodNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.fnotes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rF();}
 function svSuppNote(){const el=document.getElementById('suppNoteQuick');const bd=el?el.value.trim():'';if(!bd)return;const dt=gEDt();S.snotes.push({id:uid(),dt,la:now(),bd});commitLogChange(dt);el.value='';el.classList.remove('note-dirty');rS();}
@@ -1438,7 +1524,7 @@ function rN(){
   const tn=S.notes.filter(n=>isoToLocalYMD(n.dt)===day).sort((a,b)=>b.dt.localeCompare(a.dt));
   const c=document.getElementById('nList');
   if(!tn.length){c.innerHTML='<div style="color:var(--mt);font-family:Courier New,monospace;font-size:10px;padding:10px 0;text-align:center">No notes today</div>';return;}
-  c.innerHTML=tn.map(n=>'<div class="nc" onclick="oNoteEdit(\''+n.id+'\')"><div class="nh"><div class="nti">'+f12(n.dt)+'</div></div><div class="nb">'+n.bd+'</div></div>').join('');
+  c.innerHTML=tn.map(n=>'<div class="nc" onclick="oNoteEdit(\''+n.id+'\')"><div class="nh"><div class="nti">'+f12(n.dt)+'</div></div><div class="nb">'+escHTML(n.bd)+'</div></div>').join('');
 }
 function oNoteEdit(id){_cNId=id;_cFNId=null;_cSNId=null;const n=id?S.notes.find(x=>x.id===id):null;document.getElementById('neBd').value=n?.bd||'';document.getElementById('neDl').style.display=id?'block':'none';openOvRoot('ovNoteEdit');}
 function oFNEdit(id){_cFNId=id;_cNId=null;_cSNId=null;const n=id?S.fnotes.find(x=>x.id===id):null;document.getElementById('neBd').value=n?.bd||'';document.getElementById('neDl').style.display=id?'block':'none';openOvRoot('ovNoteEdit');}
@@ -1904,10 +1990,32 @@ async function doBackup(){
   if(!gDriveTokenValid()){gDriveAuth('backup');return;}
   if(!S.cfg.driveIds.backups){setDS('No backup folder ID — check Settings → Drive Folder IDs','err');return;}
   setDS('Backing up...','syn');
-  const ok=await driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups);
-  if(ok){setDS('Backup saved '+td(),'ok');shT('Backup saved');}else setDS('Backup failed','err');
+  const day=td();
+  const ok=await driveWrite('DT_Backup_'+day+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups);
+  if(ok){S.cfg.backupSavedYmd=day;sv();setDS('Backup saved '+day,'ok');shT('Backup saved');}else setDS('Backup failed','err');
 }
 async function doRestore(){if(!confirm('Restore from latest Drive backup? This overwrites current data.'))return;shT('Open Claude and ask it to read your latest backup file from Drive and paste the JSON');}
+
+function openAlert(title,msg){
+  const t=document.getElementById('alertT');const m=document.getElementById('alertM');
+  if(t)t.textContent=title||'Notice';
+  if(m)m.textContent=msg||'';
+  openOvRoot('ovAlert');
+}
+function closeAlert(){closeAllOv();}
+
+async function ensureDailyBackupAfterSave(){
+  const day=td();
+  if(!S.cfg.driveIds?.backups)return;
+  if(S.cfg.backupSavedYmd===day)return;
+  if(!gDriveTokenValid()){
+    openAlert('Daily backup not saved','Connect Google Drive (Log \u2192 Sync Drive), then press Save again to retry today\'s backup.');
+    return;
+  }
+  const ok=await driveWrite('DT_Backup_'+day+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups);
+  if(ok){S.cfg.backupSavedYmd=day;sv();}
+  else openAlert('Daily backup failed','Could not save DT_Backup_'+day+'.json to your Drive backups folder. Check Settings \u2192 Drive Folder IDs, then Save again.');
+}
 
 // LOG — hybrid Daily Log (markdown summary + embedded JSON)
 function gDailyLogJSON(dt){
@@ -2174,24 +2282,39 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
     if(wantDailyLog){
       if(mode==='single'){
         const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
-        files.push(new File([gCombinedTrackerLogRange(dates)],fn,{type:'text/plain'}));
+        files.push(new File([gCombinedTrackerLogRange(dates)],fn,{type:'text/markdown'}));
       }else{
         for(const d of dates){
           const text=await dailyLogContentForSave(d);
           if(text===null)return null;
-          files.push(new File([text],d+'.md',{type:'text/plain'}));
+          files.push(new File([text],d+'.md',{type:'text/markdown'}));
         }
       }
     }
     if(wantCfg)files.push(new File([gConfigSnapshotJSON()],'config-'+cfgDay+'.json',{type:'text/plain'}));
     return files;
   }
+  const singleMdOnly=mode==='single'&&wantDailyLog&&!wantCfg;
+  if(singleMdOnly&&wantDailyLog){
+    const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
+    const body=gCombinedTrackerLogRange(dates);
+    if(typeof window.showSaveFilePicker==='function'){
+      try{
+        const fh=await window.showSaveFilePicker({suggestedName:fn,types:[{description:'Markdown',accept:{'text/markdown':['.md'],'text/plain':['.md']}}]});
+        const w=await fh.createWritable();await w.write(body);await w.close();
+        clearExportDirty();shT('Exported');return;
+      }catch(e){if(e&&e.name==='AbortError')return;console.warn('showSaveFilePicker single',e);}
+    }
+    if(await tryLocalDiskExport(dates,true,false,mode)){clearExportDirty();shT('Exported');return;}
+    downloadBlob(fn,body);
+    clearExportDirty();shT('Downloaded to Downloads folder');return;
+  }
   const shareOk=S.cfg.shareOnSave!==false&&typeof navigator.share==='function';
   if(shareOk){
     const files=await buildFiles();
     if(files===null)return;
     try{
-      await navigator.share({files,title:'DailyTracker '+dates[dates.length-1]});
+      await navigator.share({files});
       clearExportDirty();shT('Exported');return;
     }catch(e){
       if(e&&e.name==='AbortError')return;
@@ -2207,7 +2330,7 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
       if(wantDailyLog){
         if(mode==='single'){
           const fn=dates[0]+'_'+dates[dates.length-1]+'.md';
-          const fh=await window.showSaveFilePicker({suggestedName:fn,types:[{description:'Markdown',accept:{'text/plain':['.md']}}]});
+          const fh=await window.showSaveFilePicker({suggestedName:fn,types:[{description:'Markdown',accept:{'text/markdown':['.md'],'text/plain':['.md']}}]});
           const w=await fh.createWritable();await w.write(gCombinedTrackerLogRange(dates));await w.close();
         }else{
           for(const d of dates){
@@ -2298,12 +2421,7 @@ async function svAll(){
   const hadCommits=sids.length||adhocMids.length||oaids.length;
   if(hadCommits)queueAutoSync([batchDay]);
   if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
-  const isFirstSaveToday=!prevFl||isoToLocalYMD(prevFl)!==td();
-  if(isFirstSaveToday&&S.cfg.driveIds.backups&&gDriveTokenValid()){
-    driveWrite('DT_Backup_'+td()+'.json',JSON.stringify(S,null,2),S.cfg.driveIds.backups)
-      .then(ok=>{if(ok)shT('Daily backup saved');})
-      .catch(e=>console.warn('Daily backup',e));
-  }
+  await ensureDailyBackupAfterSave();
 }
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});
 function shT(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),2500);}

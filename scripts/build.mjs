@@ -18,6 +18,7 @@ const journalSrc = stripExports(readFileSync('src/domain/journal-file.js', 'utf8
 const activityFieldSrc = stripExports(readFileSync('src/domain/activity-field.js', 'utf8'));
 const tabsSrc = stripExports(readFileSync('src/domain/tabs.js', 'utf8'));
 const logStoreSrc = stripExports(readFileSync('src/domain/log-store.js', 'utf8'));
+const noteWikiSrc = stripExports(readFileSync('src/domain/note-wiki.js', 'utf8'));
 
 const journalPart = `/* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
@@ -27,6 +28,7 @@ ${journalSrc}
 ${activityFieldSrc}
 ${tabsSrc}
 ${logStoreSrc}
+${noteWikiSrc}
 global.DT = {
   composeJournalFile,
   splitJournalFile,
@@ -52,6 +54,12 @@ global.DT = {
   formatFieldDefaultValue,
   stepFieldHelpText,
   parseStepSpec,
+  withEmptyNumberOption,
+  NUMBER_SELECT_EMPTY,
+  suppWikiToken,
+  listWikiTokens,
+  listWikiTokensForManage,
+  noteWikiTriggerAt,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,

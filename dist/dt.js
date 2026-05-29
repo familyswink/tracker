@@ -542,6 +542,13 @@ function colonSelectOptions(f) {
   return opts;
 }
 
+/** First option for logging UI: omit field on save when selected. */
+const NUMBER_SELECT_EMPTY = { value: '', label: '\u2014' };
+
+function withEmptyNumberOption(opts) {
+  return [NUMBER_SELECT_EMPTY, ...(opts || [])];
+}
+
 function shouldUseNumberSelect(spec, f) {
   if (spec.colon || (f && isColonStepField(f))) {
     return colonSelectOptions(f).length >= 1 && colonSelectOptions(f).length <= 300;
@@ -828,6 +835,71 @@ function combinedTrackerLogText(dates, renderDay) {
   return dates.map((d) => renderDay(d)).join('\n\n');
 }
 
+/** [[token]] picker: supplement names + custom entries (Notes and all note textareas). */
+
+function suppWikiToken(mfr, name) {
+  const p = String(name || '').trim();
+  const m =
+    mfr && mfr !== '--' && String(mfr).trim() ? String(mfr).trim() : null;
+  if (m && p) return '[[' + m + ' ' + p + ']]';
+  if (p) return '[[' + p + ']]';
+  return '[[Unknown]]';
+}
+
+function wikiTokenSortKey(token) {
+  return String(token || '')
+    .replace(/^\[\[|\]\]$/g, '')
+    .toLowerCase();
+}
+
+/** All tokens for picker: catalog + custom, minus hidden, A–Z. */
+function listWikiTokens(state, query) {
+  const hidden = new Set(state.noteWikiHidden || []);
+  const custom = state.noteWikiCustom || [];
+  const fromSm = (state.sm || []).map((m) => suppWikiToken(m.mfr, m.name));
+  const all = [...new Set([...fromSm, ...custom])].filter((t) => t && !hidden.has(t));
+  all.sort((a, b) => wikiTokenSortKey(a).localeCompare(wikiTokenSortKey(b)));
+  const q = String(query || '')
+    .trim()
+    .toLowerCase();
+  if (!q) return all;
+  return all.filter((t) => wikiTokenSortKey(t).includes(q));
+}
+
+/** All tokens for manage screen (includes hidden), A–Z. */
+function listWikiTokensForManage(state) {
+  const hidden = new Set(state.noteWikiHidden || []);
+  const custom = new Set(state.noteWikiCustom || []);
+  const fromSm = (state.sm || []).map((m) => ({
+    token: suppWikiToken(m.mfr, m.name),
+    fromCatalog: true,
+  }));
+  const seen = new Set();
+  const rows = [];
+  for (const row of fromSm) {
+    if (seen.has(row.token)) continue;
+    seen.add(row.token);
+    rows.push({ ...row, hidden: hidden.has(row.token) });
+  }
+  for (const t of custom) {
+    if (!t || seen.has(t)) continue;
+    seen.add(t);
+    rows.push({ token: t, fromCatalog: false, hidden: hidden.has(t) });
+  }
+  rows.sort((a, b) =>
+    wikiTokenSortKey(a.token).localeCompare(wikiTokenSortKey(b.token))
+  );
+  return rows;
+}
+
+/** If cursor is after [[ or [[]], return { start, query } for replacement. */
+function noteWikiTriggerAt(text, cursor) {
+  const before = String(text || '').slice(0, cursor);
+  const m = before.match(/\[\[([^\]]*)$/);
+  if (!m) return null;
+  return { start: cursor - m[0].length, query: m[1] };
+}
+
 global.DT = {
   composeJournalFile,
   splitJournalFile,
@@ -853,6 +925,12 @@ global.DT = {
   formatFieldDefaultValue,
   stepFieldHelpText,
   parseStepSpec,
+  withEmptyNumberOption,
+  NUMBER_SELECT_EMPTY,
+  suppWikiToken,
+  listWikiTokens,
+  listWikiTokensForManage,
+  noteWikiTriggerAt,
   TAB_IDS,
   DEFAULT_TAB_VISIBILITY,
   normalizeTabVisibility,

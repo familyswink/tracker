@@ -133,6 +133,13 @@ export function colonSelectOptions(f) {
   return opts;
 }
 
+/** First option for logging UI: omit field on save when selected. */
+export const NUMBER_SELECT_EMPTY = { value: '', label: '\u2014' };
+
+export function withEmptyNumberOption(opts) {
+  return [NUMBER_SELECT_EMPTY, ...(opts || [])];
+}
+
 export function shouldUseNumberSelect(spec, f) {
   if (spec.colon || (f && isColonStepField(f))) {
     return colonSelectOptions(f).length >= 1 && colonSelectOptions(f).length <= 300;

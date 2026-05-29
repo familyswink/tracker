@@ -13,6 +13,8 @@ import {
   secondsToMmSs,
   minutesToHourMin,
   stepFieldHelpText,
+  withEmptyNumberOption,
+  NUMBER_SELECT_EMPTY,
 } from '../src/domain/activity-field.js';
 
 describe('numberFieldSpec', () => {
@@ -50,6 +52,12 @@ describe('colon step fields', () => {
     assert.equal(s.mode, 'colon');
     assert.equal(s.colonKind, 'hour_minutes');
     assert.equal(s.step, 15);
+  });
+
+  it('withEmptyNumberOption prepends blank choice', () => {
+    const opts = withEmptyNumberOption([{ value: '1:00', label: '1:00' }]);
+    assert.equal(opts[0].value, NUMBER_SELECT_EMPTY.value);
+    assert.equal(opts.length, 2);
   });
 
   it('colonSelectOptions for minutes uses M:SS labels', () => {
