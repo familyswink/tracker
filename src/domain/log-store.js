@@ -3,6 +3,8 @@
  * Display labels remain in app UI; this module owns array access + day filter.
  */
 
+import { logEntryDay } from '../core/date.js';
+
 export const LOG_TYPES = ['water', 'supps', 'food', 'other', 'notes'];
 
 /** @returns {{ key: string, arr: unknown[] }[]} */
@@ -25,14 +27,9 @@ export function arraysForType(state, type) {
   return [];
 }
 
-export function logEntryDay(entry, isoToLocalYMD) {
-  if (!entry?.dt) return '';
-  return isoToLocalYMD(entry.dt);
-}
-
-export function filterByDay(entries, day, isoToLocalYMD) {
+export function filterByDay(entries, day) {
   if (!day) return entries.slice();
-  return entries.filter((e) => logEntryDay(e, isoToLocalYMD) === day);
+  return entries.filter((e) => logEntryDay(e) === day);
 }
 
 function sortEntries(entries, sort) {
@@ -42,7 +39,7 @@ function sortEntries(entries, sort) {
   return rows;
 }
 
-export function listLogs(state, type, { day, sort = 'newest' } = {}, isoToLocalYMD) {
+export function listLogs(state, type, { day, sort = 'newest' } = {}) {
   let rows = [];
   if (type === 'water') rows = state.wl || [];
   else if (type === 'supps') rows = [...(state.sl || []), ...(state.snotes || [])];
@@ -53,7 +50,7 @@ export function listLogs(state, type, { day, sort = 'newest' } = {}, isoToLocalY
     ];
   } else if (type === 'other') rows = state.al || [];
   else if (type === 'notes') rows = state.notes || [];
-  rows = filterByDay(rows, day, isoToLocalYMD);
+  rows = filterByDay(rows, day);
   return sortEntries(rows, sort);
 }
 

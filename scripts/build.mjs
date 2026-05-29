@@ -15,6 +15,9 @@ function stripExports(src) {
     .replace(/^export \{[^}]+\};?\s*$/gm, '');
 }
 
+const dateSrc = stripExports(readFileSync('src/core/date.js', 'utf8'));
+const foodSrc = stripExports(readFileSync('src/domain/food.js', 'utf8'));
+const saveSrc = stripExports(readFileSync('src/session/save.js', 'utf8'));
 const journalYamlFmt = stripExports(readFileSync('src/domain/journal-yaml-format.js', 'utf8'));
 const journalSrc = stripExports(readFileSync('src/domain/journal-file.js', 'utf8'));
 const activityFieldSrc = stripExports(readFileSync('src/domain/activity-field.js', 'utf8'));
@@ -26,6 +29,9 @@ const exportSchemaSrc = stripExports(readFileSync('src/domain/export-schema.js',
 const journalPart = `/* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
+${dateSrc}
+${foodSrc}
+${saveSrc}
 ${journalYamlFmt}
 ${journalSrc}
 ${activityFieldSrc}
@@ -34,6 +40,27 @@ ${logStoreSrc}
 ${noteWikiSrc}
 ${exportSchemaSrc}
 global.DT = {
+  now,
+  td,
+  wks,
+  localDateYMD,
+  isoToLocalYMD,
+  isoToTimeLocal,
+  dateAndTimeToISO,
+  logEntryDay,
+  matchesLogDay,
+  onLogDay,
+  getEffectiveLogDt,
+  logDateKey,
+  gDFQ,
+  gTFQ,
+  gWFQ,
+  bumpFlSave,
+  prepareGlobalSave,
+  rollbackGlobalSave,
+  clearStagingAfterSave,
+  resetAfterSave,
+  emptyStaging,
   composeJournalFile,
   splitJournalFile,
   parseWearableBiometricsReadOnly,
@@ -74,7 +101,6 @@ global.DT = {
   normalizeTabVisibility,
   isTabVisible,
   visibleTabIds,
-  logEntryDay,
   filterByDay,
   listLogs,
   removeLogIds,
@@ -93,6 +119,14 @@ const verSrc = readFileSync('src/version.js', 'utf8');
 const verMatch = verSrc.match(/export const APP_VERSION = '([^']+)'/);
 if (!verMatch) throw new Error('src/version.js must export APP_VERSION');
 const versionBanner = `const APP_VERSION='${verMatch[1]}';\n`;
+const appVer = verMatch[1];
+
+const indexPath = 'index.html';
+let indexHtml = readFileSync(indexPath, 'utf8');
+const scriptRe = /src="dist\/app\.js[^"]*"/;
+if (!scriptRe.test(indexHtml)) throw new Error('index.html must include dist/app.js script');
+indexHtml = indexHtml.replace(scriptRe, `src="dist/app.js?v=${appVer}"`);
+writeFileSync(indexPath, indexHtml);
 
 const outPath = 'dist/app.js';
 const outBody = `/* Daily Tracker — dist/app.js (generated; npm run build) */\n${versionBanner}${journalPart}\n${appJs}`;

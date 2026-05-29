@@ -22,11 +22,12 @@ Read **§4** in `REFACTOR_SPEC.md` before changing dates, food counts, or Save b
 
 | Path | Role |
 |------|------|
-| `src/core/date.js` | Calendar / ISO helpers |
-| `src/domain/food.js` | `gTFQ`, `gDFQ`, `bumpFlSave` |
-| `src/session/save.js` | Save prepare / rollback / reset |
+| `src/core/date.js` | Calendar / ISO helpers (on `DT` in bundle) |
+| `src/domain/food.js` | `gTFQ`, `gDFQ`, `gWFQ`, `bumpFlSave` |
+| `src/domain/log-store.js` | History list / update / delete by type |
+| `src/session/save.js` | Save prepare / rollback / staging / reset |
 | `test/*.test.js` | Node test runner — run `npm test` |
-| `index.html` | Production UI (wired to `src/` in Phase 1) |
+| `index.html` | Shell markup; loads `dist/app.js` |
 
 ## Tests
 

@@ -223,7 +223,7 @@ tracker/
 - [x] `test/journal-file.test.js` + `docs/DAILY_LOG_DUAL_WRITER.md`
 - [x] Archive `scripts/apply_*.py`, `scripts/_patch_ui.py` → `scripts/archive/` (keep `generate_daily_log.py`)
 - [x] App logic in `src/app.js`; CSS in `styles.css`; `index.html` is markup + overlays only
-- [ ] Wire `src/app.js` to import `date` / `food` / `save` (remove duplicate helpers in app — Phase 1.1 or Phase 2)
+- [x] Wire `src/app.js` to `DT` date / food / `save` modules (thin wrappers; bundled via `build.mjs`)
 
 **Acceptance criteria**
 
@@ -241,13 +241,13 @@ tracker/
 
 **Deliverables**
 
-- [ ] `src/domain/log-store.js`:
+- [x] `src/domain/log-store.js`:
   - `list(type, { day?, sort? })`
   - `get(id)`, `update(id, patch)`, `remove(ids)`
   - `types`: `water`, `supps`, `food`, `other`, `notes` (incl. fnotes/snotes as today)
-- [ ] History UI uses `LogStore` only (no direct `patch(S.sl)` loops)
-- [ ] `gDailyLogJSON` uses shared day filter helpers
-- [ ] `test/log-store.test.js`
+- [x] History UI uses `LogStore` for list / bulk delete / bulk date / get-by-id
+- [x] Day filter via `src/core/date.js` `logEntryDay` (shared with history)
+- [x] `test/log-store.test.js`
 
 **Acceptance criteria**
 
@@ -264,12 +264,10 @@ tracker/
 
 **Deliverables**
 
-- [ ] `src/session/commit.js`:
-  - `commitGlobalSave({ persistNotes: true })`
-  - Calls domain persist helpers, `bumpFlSave`, `resetAfterSave`, `sv()`, tab refresh
-- [ ] `svAll()` in app is a thin wrapper
+- [x] `src/session/save.js`: `prepareGlobalSave`, `rollbackGlobalSave`, `clearStagingAfterSave`, `resetAfterSave`
+- [x] `svAll()` uses save module for bump/rollback/staging/reset (persist commits remain in app)
 - [ ] Align README § Save Button with §4.3 (update README if needed)
-- [ ] Extend `test/save-reset.test.js` for full commit path
+- [x] `test/save-reset.test.js` for prepare / rollback / staging / reset
 
 **Acceptance criteria**
 
@@ -305,10 +303,10 @@ tracker/
 | Phase | Status | Completed | Notes |
 |-------|--------|-----------|-------|
 | 0 | Complete | 2026-05-19 | `src/` modules + `node --test` |
-| 1 | Complete | 2026-05-19 | `styles.css`, `src/app.js`, `dist/app.js`; dual-writer on Drive save |
-| 2 | Not started | — | |
-| 3 | Not started | — | |
-| 4 | Not started | — | Optional |
+| 1 | Complete | 2026-05-20 | `styles.css`, `src/app.js`, `dist/app.js`; dual-writer; date/food/save on `DT` |
+| 2 | Complete | 2026-05-20 | `log-store.js`; history via `listLogs` / `updateLogDt` / `removeLogIds` |
+| 3 | Mostly complete | 2026-05-20 | `save.js` wired in `svAll`; optional `commit.js` extract deferred |
+| 4 | Not started | — | Optional (history `eval` removal) |
 
 *Update this table as phases complete.*
 

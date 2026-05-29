@@ -10,14 +10,6 @@ import {
   arraysForType,
 } from '../src/domain/log-store.js';
 
-function isoToLocalYMD(iso) {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 describe('log-store', () => {
   const state = {
     wl: [{ id: 'w1', dt: '2026-05-18T12:00:00.000Z', qty: 8 }],
@@ -30,17 +22,16 @@ describe('log-store', () => {
   };
 
   it('lists water entries', () => {
-    assert.equal(listLogs(state, 'water', {}, isoToLocalYMD).length, 1);
+    assert.equal(listLogs(state, 'water', {}).length, 1);
   });
 
   it('filters by day', () => {
-    const day = isoToLocalYMD('2026-05-18T12:00:00.000Z');
-    assert.equal(listLogs(state, 'water', { day }, isoToLocalYMD).length, 1);
-    assert.equal(listLogs(state, 'water', { day: '2026-05-19' }, isoToLocalYMD).length, 0);
+    assert.equal(listLogs(state, 'water', { day: '2026-05-18' }).length, 1);
+    assert.equal(listLogs(state, 'water', { day: '2026-05-19' }).length, 0);
   });
 
   it('sorts newest first by default', () => {
-    const rows = listLogs(state, 'supps', {}, isoToLocalYMD);
+    const rows = listLogs(state, 'supps', {});
     assert.equal(rows[0].id, 'sn1');
     assert.equal(rows[1].id, 's1');
   });

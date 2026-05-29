@@ -1,6 +1,170 @@
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
+/** @module core/date — local calendar and ISO helpers (source of truth for Phase 1+) */
+
+function now() {
+  return new Date().toISOString();
+}
+
+function localDateYMD(d) {
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+function td() {
+  return localDateYMD(new Date());
+}
+
+function wks() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return localDateYMD(d);
+}
+
+function isoToLocalYMD(iso) {
+  if (!iso) return localDateYMD(new Date());
+  const s = String(iso).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return td();
+  return localDateYMD(d);
+}
+
+function isoToTimeLocal(iso) {
+  if (!iso) return '12:00';
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+/** Build ISO from local date + time (never rely on UTC slice of ISO strings). */
+function dateAndTimeToISO(dateStr, timeStr) {
+  if (!dateStr) return new Date().toISOString();
+  const p = String(dateStr).split('-').map((x) => parseInt(x, 10));
+  const tm = (timeStr || '12:00').split(':');
+  const hh = parseInt(tm[0], 10) || 0;
+  const mm = parseInt(tm[1], 10) || 0;
+  const d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1, hh, mm, 0, 0);
+  if (isNaN(d.getTime())) return new Date().toISOString();
+  return d.toISOString();
+}
+
+function logEntryDay(e) {
+  return isoToLocalYMD(e && (e.dt || e.la || ''));
+}
+
+function matchesLogDay(eDt, logIso) {
+  return !!(eDt && logIso) && isoToLocalYMD(eDt) === isoToLocalYMD(logIso);
+}
+
+function onLogDay(iso, dt) {
+  return iso && isoToLocalYMD(iso) === dt;
+}
+
+function getEffectiveLogDt(state) {
+  return state.gdt || now();
+}
+
+function logDateKey(state) {
+  return isoToLocalYMD(getEffectiveLogDt(state));
+}
+
+/** @module domain/food — session vs daily food quantities */
+
+
+
+/**
+ * @param {{ fl?: Array<{fid:string,dt:string,la?:string,qty:number}>, flSave?: string|null, gdt?: string|null }} state
+ */
+function gDFQ(state, fid) {
+  const logDay = isoToLocalYMD(getEffectiveLogDt(state));
+  return (state.fl || [])
+    .filter((e) => String(e.fid) === String(fid) && isoToLocalYMD(e.dt) === logDay)
+    .reduce((s, e) => s + e.qty, 0);
+}
+
+/**
+ * Session quantity since flSave (resets after global Save / Load Meal).
+ */
+function gTFQ(state, fid) {
+  const logDay = isoToLocalYMD(getEffectiveLogDt(state));
+  const fs = state.flSave;
+  return (state.fl || [])
+    .filter(
+      (e) =>
+        String(e.fid) === String(fid) &&
+        isoToLocalYMD(e.dt) === logDay &&
+        (!fs || new Date(e.la) >= new Date(fs))
+    )
+    .reduce((s, e) => s + e.qty, 0);
+}
+
+function gWFQ(state, fid) {
+  const ws = wks();
+  return (state.fl || [])
+    .filter((e) => e.fid === fid && isoToLocalYMD(e.dt) >= ws)
+    .reduce((s, e) => s + e.qty, 0);
+}
+
+function bumpFlSave(state, ts) {
+  const t = ts || now();
+  state.flSave = new Date(new Date(t).getTime() + 1).toISOString();
+}
+
+/** @module session/save — global Save lifecycle (pure; DOM in resetAfterSave) */
+
+
+
+
+function emptyStaging() {
+  return {
+    supSt: {},
+    supAdhoc: {},
+    otherSt: {},
+    pendingWater: null,
+  };
+}
+
+/** Apply pre-persist Save side effects (flSave bump, clear gdt). Returns snapshot for rollback. */
+function prepareGlobalSave(state, saveTs = now()) {
+  const snapshot = { prevFlSave: state.flSave ?? null, prevGdt: state.gdt ?? null };
+  bumpFlSave(state, saveTs);
+  state.gdt = null;
+  return snapshot;
+}
+
+function rollbackGlobalSave(state, snapshot) {
+  state.flSave = snapshot.prevFlSave;
+  state.gdt = snapshot.prevGdt;
+}
+
+function clearStagingAfterSave(staging) {
+  staging.supSt = {};
+  staging.supAdhoc = {};
+  staging.otherSt = {};
+  staging.pendingWater = null;
+}
+
+const NOTE_IDS = ['noteQuick', 'foodNoteQuick', 'suppNoteQuick', 'otherNoteQuick'];
+
+/**
+ * @param {(id: string) => { value: string, classList: { remove: (c: string) => void } } | null} getEl
+ */
+function resetAfterSave(getEl) {
+  NOTE_IDS.forEach((id) => {
+    const el = getEl(id);
+    if (el) {
+      el.value = '';
+      el.classList.remove('note-dirty');
+    }
+  });
+}
+
 /**
  * Tracker-head fenced `yaml journal` (`daily-log-requirements-v2` §3).
  * Deterministic YAML blocks — browser-safe, zero npm deps.
@@ -732,6 +896,8 @@ function visibleTabIds(tabs) {
  * Display labels remain in app UI; this module owns array access + day filter.
  */
 
+
+
 const LOG_TYPES = ['water', 'supps', 'food', 'other', 'notes'];
 
 /** @returns {{ key: string, arr: unknown[] }[]} */
@@ -754,14 +920,9 @@ function arraysForType(state, type) {
   return [];
 }
 
-function logEntryDay(entry, isoToLocalYMD) {
-  if (!entry?.dt) return '';
-  return isoToLocalYMD(entry.dt);
-}
-
-function filterByDay(entries, day, isoToLocalYMD) {
+function filterByDay(entries, day) {
   if (!day) return entries.slice();
-  return entries.filter((e) => logEntryDay(e, isoToLocalYMD) === day);
+  return entries.filter((e) => logEntryDay(e) === day);
 }
 
 function sortEntries(entries, sort) {
@@ -771,7 +932,7 @@ function sortEntries(entries, sort) {
   return rows;
 }
 
-function listLogs(state, type, { day, sort = 'newest' } = {}, isoToLocalYMD) {
+function listLogs(state, type, { day, sort = 'newest' } = {}) {
   let rows = [];
   if (type === 'water') rows = state.wl || [];
   else if (type === 'supps') rows = [...(state.sl || []), ...(state.snotes || [])];
@@ -782,7 +943,7 @@ function listLogs(state, type, { day, sort = 'newest' } = {}, isoToLocalYMD) {
     ];
   } else if (type === 'other') rows = state.al || [];
   else if (type === 'notes') rows = state.notes || [];
-  rows = filterByDay(rows, day, isoToLocalYMD);
+  rows = filterByDay(rows, day);
   return sortEntries(rows, sort);
 }
 
@@ -1035,6 +1196,27 @@ function pruneExportPayload(payload) {
 }
 
 global.DT = {
+  now,
+  td,
+  wks,
+  localDateYMD,
+  isoToLocalYMD,
+  isoToTimeLocal,
+  dateAndTimeToISO,
+  logEntryDay,
+  matchesLogDay,
+  onLogDay,
+  getEffectiveLogDt,
+  logDateKey,
+  gDFQ,
+  gTFQ,
+  gWFQ,
+  bumpFlSave,
+  prepareGlobalSave,
+  rollbackGlobalSave,
+  clearStagingAfterSave,
+  resetAfterSave,
+  emptyStaging,
   composeJournalFile,
   splitJournalFile,
   parseWearableBiometricsReadOnly,
@@ -1075,7 +1257,6 @@ global.DT = {
   normalizeTabVisibility,
   isTabVisible,
   visibleTabIds,
-  logEntryDay,
   filterByDay,
   listLogs,
   removeLogIds,

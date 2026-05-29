@@ -32,7 +32,7 @@ export function clearStagingAfterSave(staging) {
   staging.pendingWater = null;
 }
 
-const NOTE_IDS = ['noteQuick', 'foodNoteQuick', 'suppNoteQuick'];
+const NOTE_IDS = ['noteQuick', 'foodNoteQuick', 'suppNoteQuick', 'otherNoteQuick'];
 
 /**
  * @param {(id: string) => { value: string, classList: { remove: (c: string) => void } } | null} getEl

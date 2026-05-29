@@ -1,5 +1,5 @@
-const CACHE='dt6-sw-v20';
-const SHELL=['/tracker/','/tracker/index.html','/tracker/styles.css','/tracker/dist/app.js'];
+const CACHE='dt6-sw-v22';
+const SHELL=['/tracker/','/tracker/index.html','/tracker/styles.css'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)));
@@ -11,9 +11,18 @@ self.addEventListener('activate',e=>{
   self.clients.claim();
 });
 
-// Network-first: always try to get fresh code, fall back to cache if offline
+function isAppBundle(url){
+  return url.includes('/dist/app.js');
+}
+
+// Network-first shell; app bundle never served from stale precache
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
+  const url=e.request.url;
+  if(isAppBundle(url)){
+    e.respondWith(fetch(e.request,{cache:'no-store'}).catch(()=>caches.match(e.request)));
+    return;
+  }
   e.respondWith(
     fetch(e.request).then(r=>{
       const clone=r.clone();
