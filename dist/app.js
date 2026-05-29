@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.12';
+const APP_VERSION='2026.05.20.13';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -911,8 +911,8 @@ function noteWikiTriggerAt(text, cursor) {
  * Daily log export: normalized field keys (field_unit), tab-aware sections.
  */
 
-import { formatFieldDefaultValue, isColonStepField } from './activity-field.js';
-import { isTabVisible } from './tabs.js';
+
+
 
 const UNIT_SUFFIX = {
   minutes: 'min',

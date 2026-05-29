@@ -909,8 +909,8 @@ function noteWikiTriggerAt(text, cursor) {
  * Daily log export: normalized field keys (field_unit), tab-aware sections.
  */
 
-import { formatFieldDefaultValue, isColonStepField } from './activity-field.js';
-import { isTabVisible } from './tabs.js';
+
+
 
 const UNIT_SUFFIX = {
   minutes: 'min',
