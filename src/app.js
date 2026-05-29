@@ -2396,11 +2396,12 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
   if(wantCfg)downloadBlob('config-'+cfgDay+'.json',gConfigSnapshotJSON());
   clearExportDirty();shT('Downloaded to Downloads folder');
 }
-async function svAll(){
+function flushQuickNotesOnSave(){
   const nq=document.getElementById('noteQuick');if(nq&&nq.value.trim())svQuickNote();
   const fnq=document.getElementById('foodNoteQuick');if(fnq&&fnq.value.trim())svFoodNote();
   const snq=document.getElementById('suppNoteQuick');if(snq&&snq.value.trim())svSuppNote();
-  const batchDt=gEDt();
+}
+function commitStagedForSave(batchDt){
   const sids=Object.keys(_supSt);
   const adhocMids=Object.keys(_supAdhoc);
   const addedWl=[],addedSl=[],addedAL=[];
@@ -2439,24 +2440,37 @@ async function svAll(){
     });
     markMod(batchDay);
   }
-  const saveTs=now();
-  const saveSnap=DT.prepareGlobalSave(S,saveTs);
-  if(!sv()){
-    DT.rollbackGlobalSave(S,saveSnap);
-    if(addedWl.length)S.wl=S.wl.filter(e=>!addedWl.includes(e.id));
-    if(addedSl.length)S.sl=S.sl.filter(e=>!addedSl.includes(e.id));
-    if(addedAL.length)S.al=S.al.filter(e=>!addedAL.includes(e.id));
+  return{
+    addedWl,addedSl,addedAL,batchDay,
+    hadCommits:!!(sids.length||adhocMids.length||oaids.length)
+  };
+}
+function rollbackStagedCommits(staged){
+  if(staged.addedWl?.length)S.wl=S.wl.filter(e=>!staged.addedWl.includes(e.id));
+  if(staged.addedSl?.length)S.sl=S.sl.filter(e=>!staged.addedSl.includes(e.id));
+  if(staged.addedAL?.length)S.al=S.al.filter(e=>!staged.addedAL.includes(e.id));
+}
+async function svAll(){
+  const batchDt=gEDt();
+  const result=await DT.commitGlobalSave({
+    state:S,
+    staging:{supSt:_supSt,supAdhoc:_supAdhoc,otherSt:_otherSt,pendingWater:_pendingWater},
+    flushQuickNotes:flushQuickNotesOnSave,
+    commitStaged:()=>commitStagedForSave(batchDt),
+    persist:()=>sv(),
+    rollbackStaged:rollbackStagedCommits,
+    resetUi:()=>{resetAfterSave();rH();rW();rS();rF();rA();rN();},
+    afterSuccess:async staged=>{
+      shT('Saved');
+      if(staged.hadCommits)queueAutoSync([staged.batchDay]);
+      if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
+      await ensureDailyBackupAfterSave();
+    }
+  });
+  if(!result.ok){
     shT('Save failed — nothing was committed');
     rS();rW();
-    return;
   }
-  DT.clearStagingAfterSave({supSt:_supSt,supAdhoc:_supAdhoc,otherSt:_otherSt,pendingWater:_pendingWater});
-  resetAfterSave();
-  rH();rW();rS();rF();rA();rN();shT('Saved');
-  const hadCommits=sids.length||adhocMids.length||oaids.length;
-  if(hadCommits)queueAutoSync([batchDay]);
-  if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
-  await ensureDailyBackupAfterSave();
 }
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});
 function shT(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),2500);}

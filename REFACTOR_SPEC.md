@@ -157,7 +157,8 @@ tracker/
       log-store.js          # phase 2: unified list/update/delete by type
       export.js             # gDailyLogJSON, daily log markdown
     session/
-      commit.js             # phase 3: commitGlobalSave / resetAfterSave
+      save.js               # prepareGlobalSave, rollback, staging, resetAfterSave
+      commit.js             # commitGlobalSave orchestration
     ui/
       overlays.js
       history.js
@@ -265,9 +266,10 @@ tracker/
 **Deliverables**
 
 - [x] `src/session/save.js`: `prepareGlobalSave`, `rollbackGlobalSave`, `clearStagingAfterSave`, `resetAfterSave`
-- [x] `svAll()` uses save module for bump/rollback/staging/reset (persist commits remain in app)
-- [ ] Align README § Save Button with §4.3 (update README if needed)
-- [x] `test/save-reset.test.js` for prepare / rollback / staging / reset
+- [x] `src/session/commit.js`: `commitGlobalSave` orchestrates flush → staged persist → bump → `sv()` → staging/UI reset
+- [x] `svAll()` thin wrapper around `commitGlobalSave` (staged persist via `commitStagedForSave` in app)
+- [x] README § Save Button aligned with §4.3
+- [x] `test/save-reset.test.js` + `test/commit.test.js`
 
 **Acceptance criteria**
 
@@ -305,7 +307,7 @@ tracker/
 | 0 | Complete | 2026-05-19 | `src/` modules + `node --test` |
 | 1 | Complete | 2026-05-20 | `styles.css`, `src/app.js`, `dist/app.js`; dual-writer; date/food/save on `DT` |
 | 2 | Complete | 2026-05-20 | `log-store.js`; history via `listLogs` / `updateLogDt` / `removeLogIds` |
-| 3 | Mostly complete | 2026-05-20 | `save.js` wired in `svAll`; optional `commit.js` extract deferred |
+| 3 | Complete | 2026-05-20 | `commit.js` + `commitGlobalSave`; README §4.3 |
 | 4 | Not started | — | Optional (history `eval` removal) |
 
 *Update this table as phases complete.*

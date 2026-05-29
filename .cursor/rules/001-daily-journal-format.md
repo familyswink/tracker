@@ -41,7 +41,15 @@ You are an expert health data architect. Your job is to take raw markdown health
     "urgent_or_watery_present": false,
     "events": []
   },
-  "lifestyle_protocols": [],
+  "lifestyle_protocols": [
+    {
+      "type": "Cold Plunge",
+      "time": "1:10 PM",
+      "logged_at": "2026-05-18T18:10:00Z",
+      "duration_min": 1,
+      "temperature_f": 53
+    }
+  ],
   "supplement_notes": [],
   "meals_executed": [],
   "supplements_logged": [

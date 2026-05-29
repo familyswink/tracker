@@ -25,7 +25,10 @@ Read **§4** in `REFACTOR_SPEC.md` before changing dates, food counts, or Save b
 | `src/core/date.js` | Calendar / ISO helpers (on `DT` in bundle) |
 | `src/domain/food.js` | `gTFQ`, `gDFQ`, `gWFQ`, `bumpFlSave` |
 | `src/domain/log-store.js` | History list / update / delete by type |
-| `src/session/save.js` | Save prepare / rollback / staging / reset |
+| `src/session/save.js` | `prepareGlobalSave`, rollback, staging clear, `resetAfterSave` |
+| `src/session/commit.js` | `commitGlobalSave` — full bottom Save orchestration |
+| `src/domain/export-schema.js` | Flat daily-log field keys, tab-gated export prune |
+| `src/domain/note-wiki.js` | `[[` autocomplete tokens |
 | `test/*.test.js` | Node test runner — run `npm test` |
 | `index.html` | Shell markup; loads `dist/app.js` |
 

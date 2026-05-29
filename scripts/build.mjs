@@ -9,8 +9,9 @@ mkdirSync('dist', { recursive: true });
 
 function stripExports(src) {
   return src
-    .replace(/^import\s.+$/gm, '')
+    .replace(/^import\s[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
     .replace(/^export const /gm, 'const ')
+    .replace(/^export async function /gm, 'async function ')
     .replace(/^export function /gm, 'function ')
     .replace(/^export \{[^}]+\};?\s*$/gm, '');
 }
@@ -18,6 +19,7 @@ function stripExports(src) {
 const dateSrc = stripExports(readFileSync('src/core/date.js', 'utf8'));
 const foodSrc = stripExports(readFileSync('src/domain/food.js', 'utf8'));
 const saveSrc = stripExports(readFileSync('src/session/save.js', 'utf8'));
+const commitSrc = stripExports(readFileSync('src/session/commit.js', 'utf8'));
 const journalYamlFmt = stripExports(readFileSync('src/domain/journal-yaml-format.js', 'utf8'));
 const journalSrc = stripExports(readFileSync('src/domain/journal-file.js', 'utf8'));
 const activityFieldSrc = stripExports(readFileSync('src/domain/activity-field.js', 'utf8'));
@@ -32,6 +34,7 @@ const journalPart = `/* Daily Tracker — journal + domain (dual-writer, Phase 2
 ${dateSrc}
 ${foodSrc}
 ${saveSrc}
+${commitSrc}
 ${journalYamlFmt}
 ${journalSrc}
 ${activityFieldSrc}
@@ -61,6 +64,7 @@ global.DT = {
   clearStagingAfterSave,
   resetAfterSave,
   emptyStaging,
+  commitGlobalSave,
   composeJournalFile,
   splitJournalFile,
   parseWearableBiometricsReadOnly,

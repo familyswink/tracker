@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.15';
+const APP_VERSION='2026.05.20.16';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -79,7 +79,6 @@ function logDateKey(state) {
 /** @module domain/food — session vs daily food quantities */
 
 
-
 /**
  * @param {{ fl?: Array<{fid:string,dt:string,la?:string,qty:number}>, flSave?: string|null, gdt?: string|null }} state
  */
@@ -119,7 +118,6 @@ function bumpFlSave(state, ts) {
 }
 
 /** @module session/save — global Save lifecycle (pure; DOM in resetAfterSave) */
-
 
 
 
@@ -165,6 +163,55 @@ function resetAfterSave(getEl) {
       el.classList.remove('note-dirty');
     }
   });
+}
+
+/**
+ * Phase 3 — unified global Save orchestration.
+ * Persist commits are injected from app.js (domain-specific).
+ */
+
+
+
+/**
+ * @typedef {Object} StagedRollback
+ * @property {string[]} [addedWl]
+ * @property {string[]} [addedSl]
+ * @property {string[]} [addedAL]
+ * @property {string} [batchDay]
+ * @property {boolean} [hadCommits]
+ */
+
+/**
+ * @typedef {Object} CommitGlobalSaveOptions
+ * @property {Record<string, unknown>} state
+ * @property {{ supSt: object, supAdhoc: object, otherSt: object, pendingWater: unknown }} staging
+ * @property {() => void} [flushQuickNotes]
+ * @property {() => StagedRollback} commitStaged
+ * @property {() => boolean} persist
+ * @property {(staged: StagedRollback) => void} [rollbackStaged]
+ * @property {() => void} [resetUi]
+ * @property {(staged: StagedRollback) => void | Promise<void>} [afterSuccess]
+ */
+
+/**
+ * Single Save path: staged commits → bump flSave / clear gdt → persist → clear staging → UI reset.
+ * @param {CommitGlobalSaveOptions} opts
+ * @returns {Promise<{ ok: boolean, staged?: StagedRollback }>}
+ */
+async function commitGlobalSave(opts) {
+  opts.flushQuickNotes?.();
+  const staged = opts.commitStaged();
+  const saveTs = now();
+  const snap = prepareGlobalSave(/** @type {any} */ (opts.state), saveTs);
+  if (!opts.persist()) {
+    rollbackGlobalSave(/** @type {any} */ (opts.state), snap);
+    opts.rollbackStaged?.(staged);
+    return { ok: false, staged };
+  }
+  clearStagingAfterSave(opts.staging);
+  opts.resetUi?.();
+  if (opts.afterSuccess) await opts.afterSuccess(staged);
+  return { ok: true, staged };
 }
 
 /**
@@ -899,7 +946,6 @@ function visibleTabIds(tabs) {
  */
 
 
-
 const LOG_TYPES = ['water', 'supps', 'food', 'other', 'notes'];
 
 /** @returns {{ key: string, arr: unknown[] }[]} */
@@ -1074,7 +1120,6 @@ function noteWikiTriggerAt(text, cursor) {
 
 
 
-
 const UNIT_SUFFIX = {
   minutes: 'min',
   minute: 'min',
@@ -1219,6 +1264,7 @@ global.DT = {
   clearStagingAfterSave,
   resetAfterSave,
   emptyStaging,
+  commitGlobalSave,
   composeJournalFile,
   splitJournalFile,
   parseWearableBiometricsReadOnly,
@@ -3669,11 +3715,12 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
   if(wantCfg)downloadBlob('config-'+cfgDay+'.json',gConfigSnapshotJSON());
   clearExportDirty();shT('Downloaded to Downloads folder');
 }
-async function svAll(){
+function flushQuickNotesOnSave(){
   const nq=document.getElementById('noteQuick');if(nq&&nq.value.trim())svQuickNote();
   const fnq=document.getElementById('foodNoteQuick');if(fnq&&fnq.value.trim())svFoodNote();
   const snq=document.getElementById('suppNoteQuick');if(snq&&snq.value.trim())svSuppNote();
-  const batchDt=gEDt();
+}
+function commitStagedForSave(batchDt){
   const sids=Object.keys(_supSt);
   const adhocMids=Object.keys(_supAdhoc);
   const addedWl=[],addedSl=[],addedAL=[];
@@ -3712,24 +3759,37 @@ async function svAll(){
     });
     markMod(batchDay);
   }
-  const saveTs=now();
-  const saveSnap=DT.prepareGlobalSave(S,saveTs);
-  if(!sv()){
-    DT.rollbackGlobalSave(S,saveSnap);
-    if(addedWl.length)S.wl=S.wl.filter(e=>!addedWl.includes(e.id));
-    if(addedSl.length)S.sl=S.sl.filter(e=>!addedSl.includes(e.id));
-    if(addedAL.length)S.al=S.al.filter(e=>!addedAL.includes(e.id));
+  return{
+    addedWl,addedSl,addedAL,batchDay,
+    hadCommits:!!(sids.length||adhocMids.length||oaids.length)
+  };
+}
+function rollbackStagedCommits(staged){
+  if(staged.addedWl?.length)S.wl=S.wl.filter(e=>!staged.addedWl.includes(e.id));
+  if(staged.addedSl?.length)S.sl=S.sl.filter(e=>!staged.addedSl.includes(e.id));
+  if(staged.addedAL?.length)S.al=S.al.filter(e=>!staged.addedAL.includes(e.id));
+}
+async function svAll(){
+  const batchDt=gEDt();
+  const result=await DT.commitGlobalSave({
+    state:S,
+    staging:{supSt:_supSt,supAdhoc:_supAdhoc,otherSt:_otherSt,pendingWater:_pendingWater},
+    flushQuickNotes:flushQuickNotesOnSave,
+    commitStaged:()=>commitStagedForSave(batchDt),
+    persist:()=>sv(),
+    rollbackStaged:rollbackStagedCommits,
+    resetUi:()=>{resetAfterSave();rH();rW();rS();rF();rA();rN();},
+    afterSuccess:async staged=>{
+      shT('Saved');
+      if(staged.hadCommits)queueAutoSync([staged.batchDay]);
+      if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
+      await ensureDailyBackupAfterSave();
+    }
+  });
+  if(!result.ok){
     shT('Save failed — nothing was committed');
     rS();rW();
-    return;
   }
-  DT.clearStagingAfterSave({supSt:_supSt,supAdhoc:_supAdhoc,otherSt:_otherSt,pendingWater:_pendingWater});
-  resetAfterSave();
-  rH();rW();rS();rF();rA();rN();shT('Saved');
-  const hadCommits=sids.length||adhocMids.length||oaids.length;
-  if(hadCommits)queueAutoSync([batchDay]);
-  if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
-  await ensureDailyBackupAfterSave();
 }
 document.addEventListener('click',e=>{if(_ovStack.length&&e.target.classList.contains('ov'))popOv();});
 function shT(msg){const t=document.getElementById('tst');t.textContent=msg;t.classList.add('sh');setTimeout(()=>t.classList.remove('sh'),2500);}

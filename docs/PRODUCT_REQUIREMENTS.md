@@ -1,7 +1,7 @@
 # Daily Tracker — Product Requirements
 
-**Status:** Implemented (2026.05.20.5)  
-**Last updated:** 2026-05-20 (round 4 — Export/Sync/auto-sync)  
+**Status:** Implemented (2026.05.20.15+)  
+**Last updated:** 2026-05-20 (round 5 — export schema, backup-on-save, note wiki, Phase 3 commit)  
 
 Related: [REFACTOR_SPEC.md](../REFACTOR_SPEC.md), [DAILY_LOG_DUAL_WRITER.md](DAILY_LOG_DUAL_WRITER.md)
 
@@ -104,6 +104,31 @@ Each `t: "number"` field in Manage → Entry type:
 
 ---
 
+## REQ-7: Note wiki `[[` picker
+
+- All note textareas (Notes, Food, Supps, Other quick notes, relevant overlays) support `[[` autocomplete for supplements + custom names.
+- **Manage [[ names** — hide from picker only; hidden catalog supplements reappear when added via Manage Supps.
+- Stored/exported form: `[[Manufacturer Product]]` (Obsidian-style); `[[]]` is UI trigger only.
+
+---
+
+## REQ-8: Daily log JSON export shape
+
+- Lifestyle activities: **flat** keys from field name + unit (`duration_min`, `temperature_f`, etc.) — no nested `fields`, no Sauna/Cold-only special cases.
+- Omit `subjective_scores`, `cns_fatigue_present`, `racing_mind_present`, and other UI-less placeholders.
+- Omit `highest_bristol_type` when never set; keep `urgent_or_watery_present` when derived from bowel events.
+- Hidden tabs (REQ-1): omit that tab’s sections from `.md` JSON and markdown summary.
+
+---
+
+## REQ-9: Backup on Save
+
+- **Backup Now** writes `DT_Backup_YYYY-MM-DD.json` to Drive backups folder.
+- After successful bottom **Save**, attempt the same once per calendar day if backups folder ID is set and Drive token valid; modal if backup fails or Drive not connected.
+- `S.cfg.backupSavedYmd` records successful daily backup date.
+
+---
+
 ## Implementation notes
 
 1. **Export single file:** build Tracker-only concatenation for range; never call Oura compose.
@@ -117,3 +142,4 @@ Each `t: "number"` field in Manage → Entry type:
 | Date | Change |
 |------|--------|
 | 2026-05-20 | Round 4: Log has Sync (unchanged) + Export (enhanced); multi export = Oura; single = fresh no Oura; auto-sync all saves; multi-select first-default rule |
+| 2026-05-20 | Round 5: flat export keys; note wiki; backup-on-save; Phase 3 `commitGlobalSave`; SW fresh bundle fetch |
