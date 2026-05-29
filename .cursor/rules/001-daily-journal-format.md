@@ -36,14 +36,8 @@ You are an expert health data architect. Your job is to take raw markdown health
   "date": "YYYY-MM-DD",
   "day_of_week": "DayName",
   "total_water_intake_oz": 0,
-  "subjective_scores": {
-    "cns_fatigue_present": false,
-    "racing_mind_present": false,
-    "cognitive_clarity_score_1_to_5": null
-  },
   "gastrointestinal_tracking": {
     "total_movements": 0,
-    "highest_bristol_type": null,
     "urgent_or_watery_present": false,
     "events": []
   },

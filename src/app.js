@@ -2018,126 +2018,153 @@ async function ensureDailyBackupAfterSave(){
 }
 
 // LOG — hybrid Daily Log (markdown summary + embedded JSON)
+function exportTabOn(id){
+  return typeof DT!=='undefined'&&DT.tabVisibleForExport?DT.tabVisibleForExport(S.cfg.tabs,id):tabVisible(id);
+}
 function gDailyLogJSON(dt){
-  const sle=S.sl.filter(e=>onLogDay(e.dt,dt)&&!isWaterSuppLog(e)).sort((a,b)=>a.dt.localeCompare(b.dt));
-  const supplements_logged=sle.map(e=>{
-    const sc=S.sch.find(x=>x.id===e.sid);
-    const m=S.sm.find(x=>x.id===sc?.mid);
-    return{time:f12(e.dt),manufacturer:cleanMfr(m?.mfr),name:suppWikiLink(m?.mfr,m?.name),qty:e.qty,units:m?.units||null};
-  });
-  const waterEntries=S.wl.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt));
-  const water_logged=waterEntries.map(e=>({logged_at:laStamp(e.la||e.dt),time:f12(e.dt),qty_oz:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null}));
-  const total_water_intake_oz=Math.round(waterEntries.reduce((s,e)=>s+(parseFloat(e.qty)||0),0));
-  const foodEntries=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid!=='__meal__').sort((a,b)=>a.dt.localeCompare(b.dt));
-  const food_logged=foodEntries.map(e=>{
-    const f=S.fd.find(x=>x.id===e.fid);
-    return{logged_at:laStamp(e.la||e.dt),time:f12(e.dt),item:f?.nm||'Unknown',servings:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null};
-  });
-  const food_categories_served=emptyFoodCategories();
-  foodEntries.forEach(e=>{
-    const f=S.fd.find(x=>x.id===e.fid);
-    const k=foodCategoryKey(f?.nm||'');
-    if(!food_categories_served[k])food_categories_served[k]=0;
-    food_categories_served[k]+=parseFloat(e.qty)||0;
-  });
-  Object.keys(food_categories_served).forEach(k=>{food_categories_served[k]=Math.round(food_categories_served[k]*1000)/1000;});
-  const giEvents=[];
-  const lifestyle_protocols=[];
-  S.al.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt)).forEach(e=>{
-    const a=S.acts.find(x=>x.id===e.aid);
-    const type=a?.nm||'Other';
-    const ls=laStamp(e.la||e.dt);
-    const tm=f12(e.dt);
-    if(type==='Bowel Health'){
-      const status=Object.values(e.flds||{}).find(v=>v!==undefined&&v!==''&&!(Array.isArray(v)&&v.length===0));
-      if(status!==undefined)giEvents.push({time:tm,logged_at:ls,status:Array.isArray(status)?status.join(', '):String(status)});
-      return;
+  const tabs=S.cfg.tabs;
+  const payload={date:dt,day_of_week:dayOfWeekName(dt)};
+  if(exportTabOn('supps')){
+    const sle=S.sl.filter(e=>onLogDay(e.dt,dt)&&!isWaterSuppLog(e)).sort((a,b)=>a.dt.localeCompare(b.dt));
+    payload.supplements_logged=sle.map(e=>{
+      const sc=S.sch.find(x=>x.id===e.sid);
+      const m=S.sm.find(x=>x.id===sc?.mid);
+      return{time:f12(e.dt),manufacturer:cleanMfr(m?.mfr),name:suppWikiLink(m?.mfr,m?.name),qty:e.qty,units:m?.units||null};
+    });
+    payload.supplement_notes=(S.snotes||[]).filter(e=>onLogDay(e.dt,dt)).map(n=>({time:f12(n.dt),logged_at:laStamp(n.la||n.dt),note:n.bd}));
+  }
+  if(exportTabOn('water')){
+    const waterEntries=S.wl.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt));
+    payload.water_logged=waterEntries.map(e=>({logged_at:laStamp(e.la||e.dt),time:f12(e.dt),qty_oz:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null}));
+    const total=Math.round(waterEntries.reduce((s,e)=>s+(parseFloat(e.qty)||0),0));
+    if(total)payload.total_water_intake_oz=total;
+  }
+  if(exportTabOn('food')){
+    const foodEntries=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid!=='__meal__').sort((a,b)=>a.dt.localeCompare(b.dt));
+    payload.food_logged=foodEntries.map(e=>{
+      const f=S.fd.find(x=>x.id===e.fid);
+      return{logged_at:laStamp(e.la||e.dt),time:f12(e.dt),item:f?.nm||'Unknown',servings:e.qty,notes:e.nt&&String(e.nt).trim()?e.nt:null};
+    });
+    const food_categories_served=emptyFoodCategories();
+    foodEntries.forEach(e=>{
+      const f=S.fd.find(x=>x.id===e.fid);
+      const k=foodCategoryKey(f?.nm||'');
+      if(!food_categories_served[k])food_categories_served[k]=0;
+      food_categories_served[k]+=parseFloat(e.qty)||0;
+    });
+    Object.keys(food_categories_served).forEach(k=>{food_categories_served[k]=Math.round(food_categories_served[k]*1000)/1000;});
+    payload.food_categories_served=food_categories_served;
+    payload.meals_executed=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid==='__meal__').map(e=>e.mnm+(e.nt&&String(e.nt).trim()?' -- '+e.nt:''));
+  }
+  if(exportTabOn('other')){
+    const giEvents=[];
+    const lifestyle_protocols=[];
+    S.al.filter(e=>onLogDay(e.dt,dt)).sort((a,b)=>a.dt.localeCompare(b.dt)).forEach(e=>{
+      const act=S.acts.find(x=>x.id===e.aid);
+      const type=act?.nm||'Other';
+      const ls=laStamp(e.la||e.dt);
+      const tm=f12(e.dt);
+      if(type==='Bowel Health'){
+        const status=Object.values(e.flds||{}).find(v=>v!==undefined&&v!==''&&!(Array.isArray(v)&&v.length===0));
+        if(status!==undefined)giEvents.push({time:tm,logged_at:ls,status:Array.isArray(status)?status.join(', '):String(status)});
+        return;
+      }
+      const norm=typeof DT!=='undefined'&&DT.normalizeActivityExport?DT.normalizeActivityExport(e.flds||{},act):{};
+      const row={type,time:tm,logged_at:ls,...norm};
+      const nt=e.nt&&String(e.nt).trim();
+      if(nt)row.notes=nt;
+      lifestyle_protocols.push(row);
+    });
+    if(giEvents.length){
+      payload.gastrointestinal_tracking={
+        total_movements:giEvents.length,
+        urgent_or_watery_present:giEvents.some(ev=>/watery|loose/i.test(ev.status)),
+        events:giEvents
+      };
     }
-    if(type==='Cold Plunge'){
-      const dur=e.flds?.Duration??e.flds?.duration;
-      const temp=e.flds?.Temperature??e.flds?.temperature;
-      lifestyle_protocols.push({type,time:tm,logged_at:ls,duration_minutes:parseFloat(dur)||null,temperature_f:parseFloat(temp)||null});
-      return;
-    }
-    if(type==='Sauna'){
-      const dur=e.flds?.Duration??e.flds?.duration;
-      const temp=e.flds?.Temperature??e.flds?.temperature;
-      lifestyle_protocols.push({type,time:tm,logged_at:ls,duration_minutes:parseFloat(dur)||null,temperature_f:parseFloat(temp)||null});
-      return;
-    }
-    lifestyle_protocols.push({type,time:tm,logged_at:ls,fields:e.flds||{},notes:e.nt&&String(e.nt).trim()?e.nt:null});
+    payload.lifestyle_protocols=lifestyle_protocols;
+  }
+  return typeof DT!=='undefined'&&DT.pruneExportPayload?DT.pruneExportPayload(payload):payload;
+}
+function lifestyleMarkdownLine(p){
+  const parts=[p.type,p.time];
+  const skip=new Set(['type','time','logged_at','notes']);
+  const extras=[];
+  Object.keys(p).sort().forEach(k=>{
+    if(skip.has(k))return;
+    const v=p[k];
+    if(v===undefined||v===null||v==='')return;
+    extras.push(k.replace(/_/g,' ')+': '+ (Array.isArray(v)?v.join(', '):String(v)));
   });
-  const supplement_notes=(S.snotes||[]).filter(e=>onLogDay(e.dt,dt)).map(n=>({time:f12(n.dt),logged_at:laStamp(n.la||n.dt),note:n.bd}));
-  const meals_executed=S.fl.filter(e=>onLogDay(e.dt,dt)&&e.fid==='__meal__').map(e=>e.mnm+(e.nt&&String(e.nt).trim()?' -- '+e.nt:''));
-  return{
-    date:dt,
-    day_of_week:dayOfWeekName(dt),
-    total_water_intake_oz,
-    subjective_scores:{cns_fatigue_present:false,racing_mind_present:false,cognitive_clarity_score_1_to_5:null},
-    gastrointestinal_tracking:{
-      total_movements:giEvents.length,
-      highest_bristol_type:null,
-      urgent_or_watery_present:giEvents.some(ev=>/watery|loose/i.test(ev.status)),
-      events:giEvents
-    },
-    lifestyle_protocols,
-    supplement_notes,
-    meals_executed,
-    supplements_logged,
-    water_logged,
-    food_logged,
-    food_categories_served
-  };
+  if(extras.length)parts.push('— '+extras.join(', '));
+  if(p.notes)parts.push('— '+p.notes);
+  return parts.join(' ');
 }
 function gDailyLogMarkdownTop(dt,payload){
   const lines=[];
   lines.push('# '+payload.day_of_week+' — '+dt);
   lines.push('');
-  lines.push('## 📝 Subjective Notes & Food Logs');
-  lines.push('* **Supplement & Food Notes:**');
   const chron=[];
-  const byTime={};
-  S.sl.filter(e=>onLogDay(e.dt,dt)&&!isWaterSuppLog(e)).sort((a,b)=>a.dt.localeCompare(b.dt)).forEach(e=>{
-    const sc=S.sch.find(x=>x.id===e.sid);
-    const m=S.sm.find(x=>x.id===sc?.mid);
-    const tm=f12(e.dt);
-    const part=suppWikiLink(m?.mfr,m?.name)+' '+e.qty+' '+(m?.units||'')+(e.sk?' (skipped)':'');
-    if(!byTime[tm])byTime[tm]=[];
-    byTime[tm].push(part);
-  });
-  Object.keys(byTime).sort((a,b)=>timeSortKey(a)-timeSortKey(b)).forEach(tm=>{
-    chron.push({sort:timeSortKey(tm),text:'**'+tm+':** '+byTime[tm].join('; ')+'.'});
-  });
-  payload.water_logged.forEach(w=>{
-    const isSuppWater=w.notes&&/supplement/i.test(w.notes);
-    if(!isSuppWater)chron.push({sort:timeSortKey(w.time),text:'**'+w.time+':** water '+w.qty_oz+' oz.'});
-  });
-  const foodByTime={};
-  payload.food_logged.forEach(f=>{
-    if(!foodByTime[f.time])foodByTime[f.time]=[];
-    foodByTime[f.time].push(f.item+' '+f.servings);
-  });
-  Object.keys(foodByTime).forEach(tm=>chron.push({sort:timeSortKey(tm),text:'**'+tm+':** '+foodByTime[tm].join(', ')+'.'}));
-  payload.supplement_notes.forEach(n=>{chron.push({sort:timeSortKey(n.time),text:'**'+n.time+':** '+n.note});});
-  (S.ind||[]).filter(e=>onLogDay(e.dt,dt)).forEach(e=>{chron.push({sort:timeSortKey(f12(e.dt)),text:'**'+f12(e.dt)+':** indulgence — '+e.txt+(e.nt?' ('+e.nt+')':'')});});
-  (S.fnotes||[]).filter(e=>onLogDay(e.dt,dt)).forEach(n=>{chron.push({sort:timeSortKey(f12(n.dt)),text:'**'+f12(n.dt)+':** food note — '+n.bd});});
-  (S.notes||[]).filter(n=>onLogDay(n.dt,dt)).forEach(n=>{chron.push({sort:timeSortKey(f12(n.dt)),text:'**'+f12(n.dt)+':** '+n.bd});});
-  chron.sort((a,b)=>a.sort-b.sort);
-  if(chron.length)chron.forEach(c=>lines.push('    * '+c.text));
-  else lines.push('    * (none)');
-  if(payload.total_water_intake_oz)lines.push('    * **Water today:** '+payload.total_water_intake_oz+' oz total.');
-  lines.push('* **Meals executed:**');
-  if(payload.meals_executed.length)payload.meals_executed.forEach(m=>lines.push('    * '+m));
-  else lines.push('    * (none)');
-  lines.push('');
-  lines.push('## ⚠️ Internal Triggers & Biometric Realities');
-  const bowel=payload.gastrointestinal_tracking.events.map(e=>e.time+' '+e.status).join('; ');
-  lines.push('* **Bowel Health:**'+(bowel?' '+bowel+'.':' (none)'));
-  const life=payload.lifestyle_protocols.map(p=>{
-    if(p.type==='Cold Plunge'||p.type==='Sauna')return p.type+' '+p.time+' — '+(p.duration_minutes!=null?p.duration_minutes+' min':'')+(p.temperature_f!=null?' @ '+p.temperature_f+'°F':'');
-    return p.type+' '+p.time+(p.notes?' — '+p.notes:'');
-  }).join('; ');
-  lines.push('* **Lifestyle Elements:**'+(life?' '+life+'.':' (none)'));
+  if(exportTabOn('supps')){
+    const byTime={};
+    S.sl.filter(e=>onLogDay(e.dt,dt)&&!isWaterSuppLog(e)).sort((a,b)=>a.dt.localeCompare(b.dt)).forEach(e=>{
+      const sc=S.sch.find(x=>x.id===e.sid);
+      const m=S.sm.find(x=>x.id===sc?.mid);
+      const tm=f12(e.dt);
+      const part=suppWikiLink(m?.mfr,m?.name)+' '+e.qty+' '+(m?.units||'')+(e.sk?' (skipped)':'');
+      if(!byTime[tm])byTime[tm]=[];
+      byTime[tm].push(part);
+    });
+    Object.keys(byTime).sort((a,b)=>timeSortKey(a)-timeSortKey(b)).forEach(tm=>{
+      chron.push({sort:timeSortKey(tm),text:'**'+tm+':** '+byTime[tm].join('; ')+'.'});
+    });
+    (payload.supplement_notes||[]).forEach(n=>{chron.push({sort:timeSortKey(n.time),text:'**'+n.time+':** '+n.note});});
+  }
+  if(exportTabOn('water')&&payload.water_logged){
+    payload.water_logged.forEach(w=>{
+      const isSuppWater=w.notes&&/supplement/i.test(w.notes);
+      if(!isSuppWater)chron.push({sort:timeSortKey(w.time),text:'**'+w.time+':** water '+w.qty_oz+' oz.'});
+    });
+  }
+  if(exportTabOn('food')){
+    const foodByTime={};
+    (payload.food_logged||[]).forEach(f=>{
+      if(!foodByTime[f.time])foodByTime[f.time]=[];
+      foodByTime[f.time].push(f.item+' '+f.servings);
+    });
+    Object.keys(foodByTime).forEach(tm=>chron.push({sort:timeSortKey(tm),text:'**'+tm+':** '+foodByTime[tm].join(', ')+'.'}));
+    (S.ind||[]).filter(e=>onLogDay(e.dt,dt)).forEach(e=>{chron.push({sort:timeSortKey(f12(e.dt)),text:'**'+f12(e.dt)+':** indulgence — '+e.txt+(e.nt?' ('+e.nt+')':'')});});
+    (S.fnotes||[]).filter(e=>onLogDay(e.dt,dt)).forEach(n=>{chron.push({sort:timeSortKey(f12(n.dt)),text:'**'+f12(n.dt)+':** food note — '+n.bd});});
+  }
+  if(exportTabOn('notes')){
+    (S.notes||[]).filter(n=>onLogDay(n.dt,dt)).forEach(n=>{chron.push({sort:timeSortKey(f12(n.dt)),text:'**'+f12(n.dt)+':** '+n.bd});});
+  }
+  const hasTop=exportTabOn('supps')||exportTabOn('food')||exportTabOn('notes')||exportTabOn('water');
+  if(hasTop){
+    lines.push('## 📝 Subjective Notes & Food Logs');
+    lines.push('* **Supplement & Food Notes:**');
+    chron.sort((a,b)=>a.sort-b.sort);
+    if(chron.length)chron.forEach(c=>lines.push('    * '+c.text));
+    else lines.push('    * (none)');
+    if(exportTabOn('water')&&payload.total_water_intake_oz)lines.push('    * **Water today:** '+payload.total_water_intake_oz+' oz total.');
+    if(exportTabOn('food')){
+      lines.push('* **Meals executed:**');
+      if(payload.meals_executed&&payload.meals_executed.length)payload.meals_executed.forEach(m=>lines.push('    * '+m));
+      else lines.push('    * (none)');
+    }
+    lines.push('');
+  }
+  if(exportTabOn('other')&&(payload.gastrointestinal_tracking||payload.lifestyle_protocols)){
+    lines.push('## ⚠️ Internal Triggers & Biometric Realities');
+    if(payload.gastrointestinal_tracking){
+      const bowel=(payload.gastrointestinal_tracking.events||[]).map(e=>e.time+' '+e.status).join('; ');
+      lines.push('* **Bowel Health:**'+(bowel?' '+bowel+'.':' (none)'));
+    }
+    if(payload.lifestyle_protocols){
+      const life=(payload.lifestyle_protocols||[]).map(lifestyleMarkdownLine).join('; ');
+      lines.push('* **Lifestyle Elements:**'+(life?' '+life+'.':' (none)'));
+    }
+  }
   return lines.join('\n');
 }
 function timeSortKey(t){

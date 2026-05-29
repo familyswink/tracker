@@ -221,7 +221,12 @@ export function buildCardActivityFlds(profile, pending) {
   flds[listField.nm] = listField.multi ? vals : vals[0];
   const defs = defaultsFromFirstOpt(listField, vals);
   for (const ff of valueFields) {
-    const raw = defs[ff.nm];
+    let raw = defs[ff.nm];
+    if (raw === undefined || raw === null || raw === '') {
+      if (ff.def !== undefined && ff.def !== null && ff.def !== '') {
+        raw = ff.def;
+      }
+    }
     if (raw === undefined || raw === null || raw === '') continue;
     const v = formatFieldDefaultValue(ff, raw);
     if (v !== undefined) flds[ff.nm] = v;

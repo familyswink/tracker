@@ -134,6 +134,18 @@ describe('card Save flds', () => {
     assert.equal(flds.Temperature, 45);
   });
 
+  it('uses field-level def when option defaults missing', () => {
+    const profile = actListCardProfile({
+      inline: true,
+      flds: [
+        { nm: 'Pick', t: 'opts', opts: [{ v: 'A' }] },
+        { nm: 'Duration', t: 'number', u: 'minutes', def: 10 },
+      ],
+    });
+    const flds = buildCardActivityFlds(profile, { fieldNm: 'Pick', val: 'A' });
+    assert.equal(flds.Duration, 10);
+  });
+
   it('omits null default fields', () => {
     const profile = actListCardProfile({
       inline: true,

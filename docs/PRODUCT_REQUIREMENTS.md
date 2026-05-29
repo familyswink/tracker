@@ -66,7 +66,7 @@ Single-file export is a **new combined artifact**; Oura is out of scope for that
 ## REQ-1: Tab visibility
 
 - Hidden tab → no new logging on that tab.
-- **Old data stays** on phone and **still included** in `.md` on Sync and Export.
+- **Old data stays** on phone and in History; **hidden tabs are omitted** from daily log `.md` on Sync and Export.
 
 ---
 
