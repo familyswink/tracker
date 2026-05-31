@@ -49,6 +49,17 @@ describe('clearStagingAfterSave', () => {
     clearStagingAfterSave(staging);
     assert.deepEqual(staging, emptyStaging());
   });
+
+  it('clears caller object references in place (app _supSt pattern)', () => {
+    const supSt = { sc1: { qty: 1 } };
+    const supAdhoc = { mid1: { qty: 2 } };
+    const staging = { supSt, supAdhoc, otherSt: {}, pendingWater: null };
+    clearStagingAfterSave(staging);
+    assert.strictEqual(staging.supSt, supSt);
+    assert.strictEqual(staging.supAdhoc, supAdhoc);
+    assert.deepEqual(supSt, {});
+    assert.deepEqual(supAdhoc, {});
+  });
 });
 
 describe('resetAfterSave', () => {

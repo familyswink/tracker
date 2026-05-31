@@ -141,14 +141,21 @@ function rollbackGlobalSave(state, snapshot) {
   state.gdt = snapshot.prevGdt;
 }
 
+/** Clear staging maps in place (keeps caller's object references, e.g. global _supSt). */
 function clearStagingAfterSave(staging) {
-  staging.supSt = {};
-  staging.supAdhoc = {};
-  staging.otherSt = {};
+  if (staging.supSt) {
+    for (const k of Object.keys(staging.supSt)) delete staging.supSt[k];
+  }
+  if (staging.supAdhoc) {
+    for (const k of Object.keys(staging.supAdhoc)) delete staging.supAdhoc[k];
+  }
+  if (staging.otherSt) {
+    for (const k of Object.keys(staging.otherSt)) delete staging.otherSt[k];
+  }
   staging.pendingWater = null;
 }
 
-const NOTE_IDS = ['noteQuick', 'foodNoteQuick', 'suppNoteQuick', 'otherNoteQuick'];
+const NOTE_IDS = ['noteQuick', 'foodNoteQuick', 'suppNoteQuick', 'otherNoteQuick', 'neBd', 'seNt'];
 
 /**
  * @param {(id: string) => { value: string, classList: { remove: (c: string) => void } } | null} getEl

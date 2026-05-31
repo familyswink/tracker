@@ -32,7 +32,8 @@
   <div class="card" id="wL"></div>
 </div></div>
 <div id="pg-supps" class="pg"><div class="con">
-  <div class="ta"><div class="bs g" onclick="oMS()">Manage Supps</div><div class="bs g" onclick="oMSC()">Manage Timing</div><div class="bs g" onclick="oMSGrp()">Manage Groups</div><div class="bs g" onclick="oMSUpTab()">Manage Units</div><div class="bs b" onclick="oSuppCatalog()">Search catalog</div><div class="bs" onclick="oH('supps')">History</div></div>
+  <div class="ta"><div class="bs g" onclick="oMS()">Manage Supps</div><div class="bs g" onclick="oMSC()">Manage Timing</div><div class="bs g" onclick="oMSGrp()">Manage Groups</div><div class="bs g" onclick="oMSUpTab()">Manage Units</div><div class="bs" onclick="oH('supps')">History</div></div>
+  <div class="fld" style="margin-top:4px;margin-bottom:4px"><input type="text" class="srch-inp" id="suppTabSearch" placeholder="Search catalog to log a supplement (not on main list)..." autocomplete="off" onclick="onSuppTabSearch()" readonly style="cursor:pointer"></div>
   <div id="sAdhoc"></div>
   <div id="sGrps"></div>
   <div class="fld" style="margin-top:9px"><textarea id="suppNoteQuick" placeholder="Supplement note for this day..." style="height:75px;font-size:14px"></textarea></div>
@@ -175,7 +176,7 @@
 
 <div class="ov" id="ovSetDrive"><div class="sht"><div class="sht-body"><div class="hdl"></div><div class="stl">Drive Settings</div><div class="ssb">Paste only the ID from the folder URL — the part after /folders/ and before any ? character</div><div class="fld"><div class="fl">Daily Logs Folder ID</div><input type="text" id="driveDailyLogsId"></div><div class="fld"><div class="fl">Backups Folder ID</div><input type="text" id="driveBackupId"></div></div><div class="sa"><button class="bcn" onclick="closeAllOv()">Cancel</button><button class="blg" onclick="svDriveSet()">Save</button></div></div></div>
 <div id="bootErr" hidden style="position:fixed;inset:0;z-index:9999;background:#1a0a0a;color:#ff6b6b;padding:max(env(safe-area-inset-top),20px) 16px 16px;font:13px/1.5 -apple-system,sans-serif;overflow:auto"></div>
-<script src="dist/app.js?v=2026.05.20.16"></script>
+<script src="dist/app.js?v=2026.05.20.17"></script>
 <script>
 (function(){
   function show(msg){var el=document.getElementById('bootErr');if(!el)return;el.hidden=false;el.textContent=msg;}
