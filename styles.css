@@ -9,6 +9,11 @@ html,body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMa
 .gdt.mod{border-color:var(--or)}
 .gdtt{font-family:Courier New,monospace;font-size:10px;color:var(--tx2);line-height:1.35;white-space:pre}
 .gdt.mod .gdtt{color:var(--or)}
+.ov-gdt{display:flex;align-items:center;gap:6px;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:7px 11px;margin:0 0 12px;cursor:pointer;width:100%;box-sizing:border-box}
+.ov-gdt.mod{border-color:var(--or)}
+.ov-gdt-ic{font-size:13px;line-height:1;flex-shrink:0}
+.ov-gdt-t{font-family:Courier New,monospace;font-size:10px;color:var(--tx2);line-height:1.35;white-space:pre;flex:1}
+.ov-gdt.mod .ov-gdt-t{color:var(--or)}
 .tabs{position:fixed;top:calc(max(env(safe-area-inset-top),44px) + var(--hh));left:0;right:0;z-index:49;height:var(--th);background:var(--sf);border-bottom:1px solid var(--bd);display:flex;overflow-x:auto;scrollbar-width:none;max-width:100%;box-sizing:border-box;touch-action:pan-x}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:1;min-width:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;font-weight:700;color:var(--mt);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;padding:0 2px}

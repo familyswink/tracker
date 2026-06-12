@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.18';
+const APP_VERSION='2026.05.20.19';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -1359,7 +1359,8 @@ const IDB_KEY_LOCAL_EXPORT_DIR='localExportDir';
 
 const STORAGE_KEY='dt6';
 let S={gdt:null,flSave:null,sm:[],sch:[],sl:[],wb:[...DWB],wl:[],fd:[],meals:[],fl:[],ind:[],acts:[],al:[],bwl:[],fnotes:[],snotes:[],notes:[],exportModDates:[],foodGroups:[],suppGroups:[],suppUnits:[],cfg:{autoSync:true,shareOnSave:true,tabs:null,driveIds:{...DRIVE_IDS}}};
-let _ovStack=[],_esmId=null,_escId=null,_efiId=null,_emId=null,_eatId=null;
+let _ovStack=[],_ovReturnTab=null,_gdtPushed=false;
+let _esmId=null,_escId=null,_efiId=null,_emId=null,_eatId=null;
 let _cSLId=null,_cSSId=null,_cWLId=null,_cFId=null,_cALId=null,_cATId=null,_cNId=null,_cFNId=null,_cSNId=null,_cIId=null,_cMId=null;
 let _hType=null,_hData=[],_hDataAll=[],_hFilterDay='',_hSel=new Set(),_hSelMode=true;
 let _modDates=new Set(),_pendingWater=null,_supSt={},_supAdhoc={},_otherSt={};
@@ -1509,7 +1510,16 @@ function setSeQtyInc(m,defaultQty){
   el.dataset.inc=inc;
   el.step=inc;
 }
-function sortedSch(){return [...S.sch].sort((a,b)=>{const ma=S.sm.find(x=>x.id===a.mid),mb=S.sm.find(x=>x.id===b.mid);return suppSortKey(ma||{}).localeCompare(suppSortKey(mb||{}));});}
+function sortedSch(){
+  const groups=gSuppGroups();
+  const grpIdx=g=>{const i=groups.findIndex(x=>x.id===g);return i<0?groups.length:i;};
+  return [...S.sch].sort((a,b)=>{
+    const ga=grpIdx(a.grp),gb=grpIdx(b.grp);
+    if(ga!==gb)return ga-gb;
+    const ma=S.sm.find(x=>x.id===a.mid),mb=S.sm.find(x=>x.id===b.mid);
+    return suppSortKey(ma||{}).localeCompare(suppSortKey(mb||{}));
+  });
+}
 function setHiddenPick(hid,lblId,val,items,emptyLbl){
   const el=document.getElementById(hid);if(el)el.value=val||'';
   const lb=document.getElementById(lblId);if(!lb)return;
@@ -1848,17 +1858,54 @@ function rMPList(){
   const act=S.meals.filter(m=>m.on!==false);
   document.getElementById('mpL').innerHTML=act.length?act.map(m=>'<div class="mi" onclick="ldM(\''+m.id+'\')"><div class="mii"><div class="mn">'+m.nm+'</div><div class="mm">'+(m.items||[]).filter(i=>i.qty>0).length+' items</div></div><div style="color:var(--mt);font-size:16px;flex-shrink:0">&#8250;</div></div>').join(''):'<div style="color:var(--mt);padding:12px;font-size:12px">No meals</div>';
 }
+function captureOvTab(){
+  const act=document.querySelector('.pg.act');
+  return act?act.id.replace('pg-',''):null;
+}
+function restoreOvTab(){
+  const tab=_ovReturnTab;
+  _ovReturnTab=null;
+  if(!tab||!tabVisible(tab))return;
+  const cur=document.querySelector('.pg.act');
+  if(cur&&cur.id.replace('pg-','')===tab)return;
+  const el=document.querySelector('.tab[data-tab="'+tab+'"]');
+  if(el)sw(tab,el);
+}
+const OV_NO_GDT=new Set(['ovGDT','ovListPick','ovNoteWiki','ovNoteWikiMgr','ovAlert']);
+function ensureOvGdtBar(ovId){
+  if(OV_NO_GDT.has(ovId))return;
+  const body=document.getElementById(ovId)?.querySelector('.sht-body');
+  if(!body||body.querySelector('.ov-gdt'))return;
+  const hdl=body.querySelector('.hdl');
+  if(!hdl)return;
+  const bar=document.createElement('div');
+  bar.className='ov-gdt';
+  bar.onclick=()=>oGDT();
+  bar.innerHTML='<span class="ov-gdt-ic">&#128336;</span><span class="ov-gdt-t"></span>';
+  hdl.insertAdjacentElement('afterend',bar);
+  rOvGdtBars();
+}
+function rOvGdtBars(){
+  const src=document.getElementById('gdtT');
+  document.querySelectorAll('.ov-gdt-t').forEach(el=>{if(src)el.textContent=src.textContent;});
+  const mod=!!document.getElementById('gdtB')?.classList.contains('mod');
+  document.querySelectorAll('.ov-gdt').forEach(bar=>bar.classList.toggle('mod',mod));
+}
 function openOvRoot(id){
+  _ovReturnTab=captureOvTab();
   _ovStack.forEach(oid=>{const e=document.getElementById(oid);if(e){e.classList.remove('open');const sh=e.querySelector('.sht');if(sh)sh.style.transform='';}});
   _ovStack=[id];
   const el=document.getElementById(id);if(el){el.classList.add('open');const body=el.querySelector('.sht-body');if(body)setTimeout(()=>body.scrollTop=0,0);}
+  ensureOvGdtBar(id);
   syncOvZ();
 }
 function openOvPush(id){
+  if(!_ovStack.length)_ovReturnTab=captureOvTab();
   const prev=_ovStack.length?_ovStack[_ovStack.length-1]:null;
   if(prev){const pe=document.getElementById(prev);if(pe)pe.classList.remove('open');}
   _ovStack.push(id);
   const el=document.getElementById(id);if(el){el.classList.add('open');const body=el.querySelector('.sht-body');if(body)setTimeout(()=>body.scrollTop=0,0);}
+  ensureOvGdtBar(id);
   syncOvZ();
 }
 function popOv(){
@@ -1871,6 +1918,8 @@ function popOv(){
 function closeAllOv(){
   _ovStack.forEach(oid=>{const e=document.getElementById(oid);if(e){e.classList.remove('open');const sh=e.querySelector('.sht');if(sh)sh.style.transform='';}});
   _ovStack=[];
+  _gdtPushed=false;
+  restoreOvTab();
 }
 function oOv(id){openOvRoot(id);}
 function cOv(id){if(_ovStack[_ovStack.length-1]===id)popOv();else closeAllOv();}
@@ -1879,10 +1928,21 @@ function rH(){
   const btn=document.getElementById('gdtB'),txt=document.getElementById('gdtT');
   if(S.gdt){btn.classList.add('mod');txt.textContent=fDT(S.gdt);}
   else{btn.classList.remove('mod');const d=new Date();const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];txt.textContent=days[d.getDay()]+' '+mo[d.getMonth()]+' '+d.getDate()+'\n'+f12(d.toISOString());}
+  rOvGdtBars();
 }
-function oGDT(){const b=S.gdt||now();document.getElementById('gdtDate').value=isoToLocalYMD(b);document.getElementById('gdtTime').value=isoToTimeLocal(b);openOvRoot('ovGDT');}
-function cfGDT(){S.gdt=dateAndTimeToISO(document.getElementById('gdtDate').value,document.getElementById('gdtTime').value);sv();rH();closeAllOv();}
-function rGDT(){S.gdt=null;sv();rH();closeAllOv();}
+function oGDT(){
+  const b=S.gdt||now();
+  document.getElementById('gdtDate').value=isoToLocalYMD(b);
+  document.getElementById('gdtTime').value=isoToTimeLocal(b);
+  if(_ovStack.length){openOvPush('ovGDT');_gdtPushed=true;}
+  else{openOvRoot('ovGDT');_gdtPushed=false;}
+}
+function closeGDT(){
+  if(_gdtPushed){_gdtPushed=false;popOv();}
+  else closeAllOv();
+}
+function cfGDT(){S.gdt=dateAndTimeToISO(document.getElementById('gdtDate').value,document.getElementById('gdtTime').value);sv();rH();closeGDT();}
+function rGDT(){S.gdt=null;sv();rH();closeGDT();}
 function sw(n,el){if(!tabVisible(n))return;document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));document.getElementById('pg-'+n).classList.add('act');el.classList.add('act');if(n==='log')rLog();if(n==='settings'){rLocalExportLbl();rTabToggles();document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);}}
 
 // WATER
@@ -2578,8 +2638,8 @@ a.flds.forEach(f=>{
     if(n!==undefined)flds[f.nm]=n;
   }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
 });
-if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}closeAllOv();S.gdt=null;rH();rA();document.getElementById('aeNt').value='';}
-function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();closeAllOv();S.gdt=null;rH();rA();}
+if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}closeAllOv();rH();rA();document.getElementById('aeNt').value='';}
+function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();closeAllOv();rH();rA();}
 function oMA(){rMAL();openOvRoot('ovMA');}
 function rMAL(){
   const c=document.getElementById('maL');c.innerHTML='';
