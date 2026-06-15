@@ -30,20 +30,21 @@ After app updates: close from app switcher and reopen. Check **Settings → Abou
 | **Food** | +/- or food overlay — immediate; **Load Meal** for templates |
 | **Other** | Inline buttons on simple cards; overlay for multi-field; immediate save |
 | **Notes** | Quick note; `[[` for supplement names |
-| **Log** | View today’s markdown; **Sync Drive** / **Export** |
+| **Log** | View today’s markdown or **Change report**; **Sync Drive** / **Export** |
 | **Settings** | Tabs, Drive, backup, help |
 
 ### Supplements (details)
 
-- **Manage Supps** — catalog; set **Qty step (+/−)** for large doses (e.g. 500 mg vitamin C).
-- **Manage Timing** — group, default qty, on/off for main list (sorted by group, then A–Z).
+- **Manage Supps** — catalog; set **Qty step (+/−)** for large doses (e.g. 500 mg vitamin C); **Track in change report** (on by default for new supplements).
+- **Manage Timing** — group, default qty, on/off for main list (sorted by group, then A–Z); **search** by supplement name or manufacturer.
 - **Manage Units** — drag to reorder unit labels.
 - **Search catalog** (top of tab) — log supplements not on the main list; off-schedule items save directly when you confirm qty.
 
 ### Other (details)
 
-- **Manage** — activity types and fields (numbers use min/max/step/def from Manage).
+- **Manage** — activity types and fields (numbers use min/max/step/def from Manage); **Track in change report** off by default.
 - Card **Save** on list+default cards commits one row immediately.
+- Tap a list option on the card (e.g. Cold Plunge), then open the overlay — **defaults from that option pre-fill** Duration, Temperature, etc.
 - After saving an overlay, you return to the **Other** tab (not another tab).
 
 ### Date/time everywhere
@@ -67,8 +68,39 @@ Commits: staged supplements, ad hoc catalog supps, staged Other card selections,
 | Purpose | Upload daily `.md` to Drive | Download/share files |
 | Oura tail (per-day files) | Preserved | Preserved on multi-file export |
 | Combined range file | — | Tracker-only; no Oura merge |
+| Change report | — | Optional CSV or Markdown (`changes_*.csv` / `.md`) |
 
 Export uses ` ```yaml journal ` for structured data (not legacy bare JSON fence).
+
+---
+
+## Change report (Log tab)
+
+Toggle **Change report** on the Log tab (next to **Daily log**).
+
+- Set **From / To** dates (same idea as Export).
+- Each row is one calendar day compared to the **prior day** (data on your phone only).
+- Columns: **Added** and **Removed** — supplements show timing group + name + qty; skipped doses appear as **not taken**.
+- **Search** filters rows by text in Added/Removed.
+- Days with no detected changes still show the date with blank Added/Removed.
+
+**What counts as “no change” for supplements:** same tracked supplement, same total qty that day, and log time within **Change report window** hours of yesterday (Settings → default **4**). Example: Breakfast 2 @ 10:00 one day and Other 2 @ 11:00 the next → no entry; qty or group shift → Removed line (e.g. `went from 2 Other to 1 at Breakfast — …`).
+
+**Track change toggles:** Manage Supplements (default **on**), Manage Food / Manage Other type (default **off**), Settings → Track water (default **off**).
+
+---
+
+## History search
+
+Every tab’s **History** overlay has a **Search all history** box. It finds matching entries across all days. **Filter by day** still works — use both together to search within one day.
+
+| Tab | Matches |
+|-----|---------|
+| Supps | Name, manufacturer, qty, notes |
+| Food | Food name |
+| Other | Activity name, list values (e.g. `bowel`, `Loose`), field text |
+| Water | Amount, notes |
+| Notes | Note body |
 
 ---
 
@@ -79,6 +111,8 @@ Export uses ` ```yaml journal ` for structured data (not legacy bare JSON fence)
 | **Tab visibility** | Hide tabs from bar; past data kept; hidden sections omitted from `.md` |
 | **Auto-sync on Save** | Upload affected days after log commits (default on) |
 | **Share on Export** | iOS Share sheet for exports |
+| **Change report window (hours)** | Same supp + same qty within N hours of yesterday ⇒ no change (default **4**) |
+| **Track water in change report** | Compare total oz day-over-day (default off) |
 | **Drive Daily Logs ID** | Folder for `YYYY-MM-DD.md` |
 | **Drive Backups ID** | Folder for `DT_Backup_*.json` |
 | **Backup Now** | Full snapshot (logs + config) to Drive |

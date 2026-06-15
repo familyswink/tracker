@@ -109,6 +109,10 @@ Offline-first PWA: log supplements (batch Save), food, water, Other activities, 
 | **Food session marker** | `S.flSave` | null | After Save, food tab shows only entries logged since last Save (daily totals unchanged) |
 | **Note wiki hidden/custom** | Settings → Manage [[ names | — | Picker filters only |
 | **Supplement qty step** | Manage Supplements → Edit → Qty step | blank → 0.5 | +/- increment in supplement overlay |
+| **Supplement track change** | Manage Supplements → Edit → Track in change report | On | Include in day-over-day change report |
+| **Food / Other track change** | Manage Food / Manage Other → Edit | Off | Opt-in per item |
+| **Change window (hours)** | Settings → Change report window | 4 | Same qty within N hours of yesterday ⇒ no supp change |
+| **Track water in change report** | Settings toggle | Off | Compare total oz day-over-day |
 | **Water quick buttons** | Water → Edit Buttons | 8,16,20,24,32 oz | Quick-add amounts |
 | **Service worker cache** | `sw.js` `CACHE` name | bumped each release | Shell cache; `dist/app.js` fetched fresh when online |
 

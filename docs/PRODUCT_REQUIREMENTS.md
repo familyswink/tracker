@@ -1,7 +1,7 @@
 # Daily Tracker — Product Requirements
 
-**Status:** Implemented (2026.05.20.19+)  
-**Last updated:** 2026-06-12 (Manage Timing sort, overlay date/time, tab restore, catalog search, qty step, staging fix)  
+**Status:** Implemented (2026.05.20.20+)  
+**Last updated:** 2026-06-15 (REQ-14 change report, search, Other overlay defaults)  
 
 Related: [USER_GUIDE.md](USER_GUIDE.md), [ECOSYSTEM.md](ECOSYSTEM.md), [PRODUCT_SPEC_STANDARD.md](PRODUCT_SPEC_STANDARD.md), [REFACTOR_SPEC.md](../REFACTOR_SPEC.md), [DAILY_LOG_DUAL_WRITER.md](DAILY_LOG_DUAL_WRITER.md)
 
@@ -156,6 +156,52 @@ Each `t: "number"` field in Manage → Entry type:
 
 ---
 
+## REQ-14: Change report, search, Other overlay defaults
+
+### Change tracking flags
+
+| Item | Default | Where |
+|------|---------|--------|
+| Supplements (`S.sm`) | **On** | Manage Supplements → Edit |
+| Food (`S.fd`) | Off | Manage Food → Edit |
+| Other activity (`S.acts`) | Off | Manage Other → Edit type |
+| Water | Off | Settings → Track water in change report |
+
+New catalog items inherit the default for their type.
+
+### Comparison rules (supplements)
+
+- Compare each **tracked catalog item** day **D** vs prior calendar day **D−1** (local TZ, `localStorage`).
+- **Per timing group per day:** sum qty for multiple logs in the same group.
+- **4-hour window** (`S.cfg.changeWindowHours`, default **4**): same total qty and anchor log times within window ⇒ **no change**, even if group moves (e.g. Breakfast 2 @ 10a → Other 2 @ 11a).
+- Qty or group/qty change outside equivalence ⇒ **Removed** narrative (e.g. `went from 2 Other to 1 at Breakfast — …`).
+- **Skipped** logs ⇒ **not taken** in report.
+- Empty day after prior logs ⇒ prior items **removed**.
+
+### Change report UI
+
+- **Log tab:** toggle **Daily log** ↔ **Change report**; **From/To** date range; search filters report text.
+- Always show a row per day in range (blank Added/Removed when no changes).
+
+### Export
+
+- Optional **Change report** file (CSV or Markdown), same From/To as Export.
+
+### Manage Timing search
+
+- Filter by supplement **name** and **manufacturer**.
+
+### History search
+
+- Search box filters entries (works **with** day filter — AND).
+- Food: name; Supps: name/mfg; Other: activity name and list field values; Water/Notes: relevant text.
+
+### Other overlay defaults
+
+- Opening overlay from card with list selection pre-fills **option defaults** (all quick-log Other cards).
+
+---
+
 ## Runtime configuration (summary)
 
 See [ECOSYSTEM.md § Tool 1](ECOSYSTEM.md#tool-1--daily-tracker) for the full settings table (`localStorage` `dt6`, `S.cfg`, Drive IDs, tab visibility, `S.gdt`, `S.flSave`).
@@ -177,3 +223,4 @@ See [ECOSYSTEM.md § Tool 1](ECOSYSTEM.md#tool-1--daily-tracker) for the full se
 | 2026-05-20 | Round 4: Log has Sync (unchanged) + Export (enhanced); multi export = Oura; single = fresh no Oura; auto-sync all saves; multi-select first-default rule |
 | 2026-05-20 | Round 5: flat export keys; note wiki; backup-on-save; Phase 3 `commitGlobalSave`; SW fresh bundle fetch |
 | 2026-06-12 | REQ-10–13: catalog search, qty step, overlay date/time, tab restore, Manage Timing sort, staging clear fix |
+| 2026-06-15 | REQ-14: change report, track-change flags, History/Manage Timing search, Other overlay defaults |

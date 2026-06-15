@@ -27,11 +27,11 @@ Track your supplement schedule. Each group (Wake-up, Breakfast, Lunch, Bed, etc.
 - Tap **Skip** to mark as skipped instead of taken
 - Press **Save** at the bottom to commit all pending supplement entries to history
 - **Manage Supps** — add, edit, or reorder supplements
-- **Manage Timing** — define which supplement appears in which group and at what default quantity
+- **Manage Timing** — define which supplement appears in which group and at what default quantity; **search** by supplement or manufacturer
 - **Manage Groups** — add, rename, reorder, or delete supplement groups
 - **Manage Units** — add, delete, or drag-reorder unit labels (e.g. mg, capsule)
 - **Search catalog** — log a supplement not shown on the main list (top search field on Supps tab)
-- **History** — view and edit all past supplement log entries
+- **History** — view and edit all past supplement log entries; **search** across all days (combines with day filter)
 
 ### Food
 Track daily food servings against your protocol goals. Each food shows today's count and colors green when the daily goal is met.
@@ -55,7 +55,7 @@ Track water intake in ounces. Quick-add buttons let you log common amounts insta
 Log activities, symptoms, and observations. Cards with a single Yes/No or list field show inline buttons so you can log with a single tap — no overlay required.
 
 - **Single-field items (Yes/No or short list):** tap the button directly on the card to log instantly. The button highlights to show your selection. Tap the item name to open the full overlay to edit or delete.
-- **Multi-field items (e.g. Cold Plunge with Duration + Temperature):** tap the card to open the log overlay
+- Multi-field cards: tap a list option on the card, then open the overlay — **option defaults pre-fill** (e.g. Cold Plunge duration/temperature)
 - Each activity saves immediately when logged — no global Save needed on this tab
 - **Manage** — add, edit, enable/disable, or reorder activity types; configure bowel health status options
 - **History** — view all past Other and Bowel Health entries
@@ -71,10 +71,12 @@ Log activities, symptoms, and observations. Cards with a single Yes/No or list f
 Write a quick note for the day. Type `[[` in any note field (Notes, Food, Supps, Other, overlays) to insert supplement or custom wiki names. **Manage [[ names** hides entries from the picker only (catalog supplements still appear when you add them). Tap **History** to browse and edit past notes.
 
 ### Log
-View today's full log as a formatted Markdown document.
+View today's daily log as formatted Markdown, or switch to **Change report** (day-over-day Added/Removed for tracked supplements, food, other, and optional water).
 
-- **Sync Drive** — push today's Daily Log (.md with embedded JSON) to Google Drive (signs in with Google on first use). If the file already has Oura `wearable_biometrics` data at the bottom (from oura_loader), Tracker updates only its own sections and leaves that block unchanged.
-- **Export** — export files for a selected date range
+- **Daily log** — today's hybrid `.md` preview
+- **Change report** — From/To range, search, compares each day to the prior day (see [USER_GUIDE § Change report](docs/USER_GUIDE.md))
+- **Sync Drive** — push Daily Log (`.md` with embedded JSON) to Google Drive (signs in with Google on first use). If the file already has Oura `wearable_biometrics` data at the bottom (from oura_loader), Tracker updates only its own sections and leaves that block unchanged.
+- **Export** — daily logs, config snapshot, and optional **change report** (CSV or Markdown) for a date range
 
 ### Settings
 Configure the app behavior and integrations.
@@ -82,6 +84,8 @@ Configure the app behavior and integrations.
 - **Tab visibility** — hide Water, Supps, Food, Other, Notes, or Log from the tab bar. Hidden tabs keep all past data on the phone and in History; they are **omitted** from daily log `.md` on Sync and Export (Settings tab always stays visible).
 - **Auto-sync:** after **every log commit** (bottom Save, Other card Save, water/food immediate saves) → Drive sync for affected day(s), same Oura-per-day rules as Sync. Log → **Sync Drive** button unchanged. See [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md).
 - **Share on Export** — on iPhone/iPad, Export uses the Share sheet (single `.md` export avoids bogus extra files from the share title).
+- **Change report window (hours)** — supplements with same qty logged within this many hours of yesterday count as unchanged (default 4)
+- **Track water in change report** — include total water oz in day-over-day report (default off)
 - **Drive Folder IDs** — set the Google Drive folder IDs for Daily Logs and backups. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **About** — shows deployed build version (bump `src/version.js` each release).
 - **Help** — links to [USER_GUIDE](docs/USER_GUIDE.md) on GitHub
@@ -114,7 +118,7 @@ Load Meal also bumps `flSave` so food wheels reset the same way as bottom Save.
 
 Log tab → **Export** opens a dialog where you can:
 - Set a **date range** (From / To) — defaults to your modified dates but can be any range
-- Choose file types: Daily Log (.md, hybrid markdown + embedded JSON), Config snapshot (.json)
+- Choose file types: Daily Log (.md), Config snapshot (.json), **Change report** (CSV or Markdown)
 - **Single combined `.md`** for the range, or **one file per day** (per-day export preserves Oura tail when the file already exists on Drive — see [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md))
 
 Embedded JSON uses flat lifestyle field keys (e.g. `duration_min`, `temperature_f`) and omits empty or hidden-tab sections. Legacy fields such as `subjective_scores` are no longer written.

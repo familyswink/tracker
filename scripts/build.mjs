@@ -27,6 +27,7 @@ const tabsSrc = stripExports(readFileSync('src/domain/tabs.js', 'utf8'));
 const logStoreSrc = stripExports(readFileSync('src/domain/log-store.js', 'utf8'));
 const noteWikiSrc = stripExports(readFileSync('src/domain/note-wiki.js', 'utf8'));
 const exportSchemaSrc = stripExports(readFileSync('src/domain/export-schema.js', 'utf8'));
+const changeReportSrc = stripExports(readFileSync('src/domain/change-report.js', 'utf8'));
 
 const journalPart = `/* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
@@ -42,6 +43,7 @@ ${tabsSrc}
 ${logStoreSrc}
 ${noteWikiSrc}
 ${exportSchemaSrc}
+${changeReportSrc}
 global.DT = {
   now,
   td,
@@ -114,6 +116,18 @@ global.DT = {
   getLog,
   updateLogDt,
   updateLogs,
+  prevCalendarDay,
+  datesInRangeInclusive,
+  buildChangeReport,
+  filterChangeReportRows,
+  formatChangeReportMarkdown,
+  formatChangeReportCsv,
+  diffSupplementMid,
+  supplementDaysEquivalent,
+  isTrackChangeSupp,
+  isTrackChangeFood,
+  isTrackChangeAct,
+  isTrackChangeWater,
 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);
 `;

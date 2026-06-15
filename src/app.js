@@ -44,7 +44,8 @@ let _localExportDirPromise=null,_migratedDriveOff=false;
 let _gToken=null,_gTokenExpiry=0;
 let _autoSyncTimer=null;
 const _autoSyncPendingDays=new Set();
-let _expMode='multi',_expDest='drive';
+let _expMode='multi',_expDest='drive',_expChangeFmt='csv';
+let _logView='log',_hSearch='';
 
 function canonSuppUnitLabel(u){
   const t=String(u||'').trim();
@@ -119,6 +120,11 @@ function normalizeS(){
   if(!Array.isArray(S.noteWikiCustom))S.noteWikiCustom=[];
   if(S.cfg.backupSavedYmd!=null&&typeof S.cfg.backupSavedYmd!=='string')delete S.cfg.backupSavedYmd;
   normalizeSuppUnitsInState();
+  if(typeof S.cfg.changeWindowHours!=='number'||S.cfg.changeWindowHours<=0)S.cfg.changeWindowHours=4;
+  if(S.cfg.trackWaterChange===undefined)S.cfg.trackWaterChange=false;
+  (S.sm||[]).forEach(m=>{if(m.trackChange===undefined)m.trackChange=true;});
+  (S.fd||[]).forEach(f=>{if(f.trackChange===undefined)f.trackChange=false;});
+  (S.acts||[]).forEach(a=>{if(a.trackChange===undefined)a.trackChange=false;});
 }
 function syncExportModDatesIntoS(){
   S.exportModDates=[..._modDates].filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
@@ -161,7 +167,7 @@ function ld(){
   if(_migratedDriveOff){_migratedDriveOff=false;flushLocalQuiet();}
   if(_bwlMigrated){_bwlMigrated=false;flushLocalQuiet();}
 }
-function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:true,shareOnSave:true,tabs:{water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true},driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.noteWikiHidden=[];S.noteWikiCustom=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];_modDates=new Set();}
+function dfs(){S.sm=JSON.parse(JSON.stringify(DSM));S.sch=JSON.parse(JSON.stringify(DSCH));S.fd=JSON.parse(JSON.stringify(DFD));S.acts=[JSON.parse(JSON.stringify(DAT_BH)),...JSON.parse(JSON.stringify(DAT))];S.wb=[...DWB];S.meals=[];S.cfg={autoSync:true,shareOnSave:true,changeWindowHours:4,trackWaterChange:false,tabs:{water:true,supps:true,food:true,other:true,notes:true,log:true,settings:true},driveIds:{...DRIVE_IDS}};S.gdt=null;S.flSave=null;S.sl=[];S.wl=[];S.fl=[];S.ind=[];S.al=[];S.bwl=[];S.fnotes=[];S.snotes=[];S.notes=[];S.noteWikiHidden=[];S.noteWikiCustom=[];S.exportModDates=[];S.foodGroups=[...new Set(DFD.map(f=>f.sec).filter(Boolean))];S.suppGroups=JSON.parse(JSON.stringify(SGP));S.suppUnits=[...DEFAULT_SUPP_UNITS];S.sm.forEach(m=>{m.trackChange=true;});S.fd.forEach(f=>{f.trackChange=false;});S.acts.forEach(a=>{a.trackChange=false;});_modDates=new Set();}
 
 function gFoodGroups(){return(S.foodGroups&&S.foodGroups.length)?S.foodGroups:[...new Set(S.fd.filter(f=>f.on).map(f=>f.sec).filter(Boolean))];}
 function gSuppGroups(){return(S.suppGroups&&S.suppGroups.length)?S.suppGroups:SGP;}
@@ -617,7 +623,7 @@ function closeGDT(){
 }
 function cfGDT(){S.gdt=dateAndTimeToISO(document.getElementById('gdtDate').value,document.getElementById('gdtTime').value);sv();rH();closeGDT();}
 function rGDT(){S.gdt=null;sv();rH();closeGDT();}
-function sw(n,el){if(!tabVisible(n))return;document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));document.getElementById('pg-'+n).classList.add('act');el.classList.add('act');if(n==='log')rLog();if(n==='settings'){rLocalExportLbl();rTabToggles();document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);}}
+function sw(n,el){if(!tabVisible(n))return;document.querySelectorAll('.pg').forEach(p=>p.classList.remove('act'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));document.getElementById('pg-'+n).classList.add('act');el.classList.add('act');if(n==='log')initLogPanel();if(n==='settings'){rLocalExportLbl();rTabToggles();document.getElementById('tgShareOnSave').classList.toggle('on',S.cfg.shareOnSave!==false);document.getElementById('tgAutoSync').classList.toggle('on',S.cfg.autoSync!==false);const chEl=document.getElementById('setChangeHours');if(chEl)chEl.value=S.cfg.changeWindowHours||4;document.getElementById('tgTrackWater')?.classList.toggle('on',!!S.cfg.trackWaterChange);}}
 
 // WATER
 function rW(){
@@ -814,10 +820,11 @@ function rMSL(){
     c.appendChild(div);
   });
 }
-function oESM(id){_esmId=id;const m=id?S.sm.find(x=>x.id===id):null;document.getElementById('esmT').textContent=id?'Edit Supplement':'Add Supplement';document.getElementById('esmMfr').value=m?.mfr||'';document.getElementById('esmNm').value=m?.name||'';fillSuppUnitsSelect(document.getElementById('esmU'),m?.units||'');const stEl=document.getElementById('esmSt');if(stEl)stEl.value=m?.qtyStep>0?m.qtyStep:'';document.getElementById('esmRt').value=m?.rat||'';document.getElementById('esmDl').style.display=id?'block':'none';openOvPush('ovESM');}
+function oESM(id){_esmId=id;const m=id?S.sm.find(x=>x.id===id):null;document.getElementById('esmT').textContent=id?'Edit Supplement':'Add Supplement';document.getElementById('esmMfr').value=m?.mfr||'';document.getElementById('esmNm').value=m?.name||'';fillSuppUnitsSelect(document.getElementById('esmU'),m?.units||'');const stEl=document.getElementById('esmSt');if(stEl)stEl.value=m?.qtyStep>0?m.qtyStep:'';document.getElementById('esmRt').value=m?.rat||'';document.getElementById('esmDl').style.display=id?'block':'none';const tr=document.getElementById('esmTrack');if(tr)tr.classList.toggle('on',m?m.trackChange!==false:true);openOvPush('ovESM');}
 function cfESM(){
   const stepRaw=parseFloat(document.getElementById('esmSt')?.value);
-  const d={mfr:document.getElementById('esmMfr').value,name:document.getElementById('esmNm').value,units:document.getElementById('esmU').value,rat:document.getElementById('esmRt').value};
+  const trOn=document.getElementById('esmTrack')?.classList.contains('on');
+  const d={mfr:document.getElementById('esmMfr').value,name:document.getElementById('esmNm').value,units:document.getElementById('esmU').value,rat:document.getElementById('esmRt').value,trackChange:!!trOn};
   if(Number.isFinite(stepRaw)&&stepRaw>0)d.qtyStep=stepRaw;
   else d.qtyStep=null;
   if(_esmId){const m=S.sm.find(x=>x.id===_esmId);if(m)Object.assign(m,d);}else S.sm.push({id:uid(),...d});
@@ -884,7 +891,13 @@ function delSuppUnit(i){
 function oMSC(){rMSCL();openOvRoot('ovMSC');}
 function rMSCL(){
   const c=document.getElementById('mscL');c.innerHTML='';
-  sortedSch().forEach(sc=>{const i=S.sch.indexOf(sc);
+  const q=(document.getElementById('mscSearch')?.value||'').trim().toLowerCase();
+  sortedSch().filter(sc=>{
+    if(!q)return true;
+    const m=S.sm.find(x=>x.id===sc.mid);
+    const s=((m?.name||'')+' '+(m?.mfr||'')).toLowerCase();
+    return s.includes(q);
+  }).forEach(sc=>{const i=S.sch.indexOf(sc);
     const m=S.sm.find(x=>x.id===sc.mid);
     const nm=(m?.mfr?escHTML(m.mfr)+' \u2014 ':'')+escHTML(m?.name||'?');
     const div=document.createElement('div');div.className='mi'+(sc.on?'':' di');div.draggable=true;div.dataset.i=i;
@@ -1107,8 +1120,8 @@ function rMFL(){
   });
 }
 function tgFI(id){const f=S.fd.find(x=>x.id===id);if(f)f.on=!f.on;sv();rMFL();rF();}
-function oEFI(id){_efiId=id;const f=id?S.fd.find(x=>x.id===id):null;document.getElementById('efiT').textContent=id?'Edit Food':'Add Food';document.getElementById('efiNm').value=f?.nm||'';const sec=f?.sec||'';const grps=gFoodGroups();const items=grps.map(g=>({v:g,label:g}));if(sec&&!grps.includes(sec))items.push({v:sec,label:sec});document.getElementById('efiSc').value=sec;setHiddenPick('efiSc','efiScLbl',sec,items,id&&sec?'':'— select group —');document.getElementById('efiDG').value=f?.dg||0;document.getElementById('efiWG').value=f?.wg||0;document.getElementById('efiSv').value=f?.srv||'';document.getElementById('efiCl').value=f?.ceil||'';document.getElementById('efiCo').value=f?.col||'auto';document.getElementById('efiWy').value=f?.why||'';document.getElementById('efiDl').style.display=id?'block':'none';openOvPush('ovEFI');}
-function cfEFI(){const d={nm:document.getElementById('efiNm').value,sec:document.getElementById('efiSc').value,dg:parseFloat(document.getElementById('efiDG').value)||0,wg:parseInt(document.getElementById('efiWG').value)||0,srv:document.getElementById('efiSv').value,ceil:document.getElementById('efiCl').value,col:document.getElementById('efiCo').value||'auto',why:document.getElementById('efiWy').value};if(_efiId){const f=S.fd.find(x=>x.id===_efiId);if(f)Object.assign(f,d);}else S.fd.push({id:uid(),on:true,...d});sv();popOv();rMFL();rF();}
+function oEFI(id){_efiId=id;const f=id?S.fd.find(x=>x.id===id):null;document.getElementById('efiT').textContent=id?'Edit Food':'Add Food';document.getElementById('efiNm').value=f?.nm||'';const sec=f?.sec||'';const grps=gFoodGroups();const items=grps.map(g=>({v:g,label:g}));if(sec&&!grps.includes(sec))items.push({v:sec,label:sec});document.getElementById('efiSc').value=sec;setHiddenPick('efiSc','efiScLbl',sec,items,id&&sec?'':'— select group —');document.getElementById('efiDG').value=f?.dg||0;document.getElementById('efiWG').value=f?.wg||0;document.getElementById('efiSv').value=f?.srv||'';document.getElementById('efiCl').value=f?.ceil||'';document.getElementById('efiCo').value=f?.col||'auto';document.getElementById('efiWy').value=f?.why||'';document.getElementById('efiDl').style.display=id?'block':'none';document.getElementById('efiTrack')?.classList.toggle('on',!!f?.trackChange);openOvPush('ovEFI');}
+function cfEFI(){const trOn=document.getElementById('efiTrack')?.classList.contains('on');const d={nm:document.getElementById('efiNm').value,sec:document.getElementById('efiSc').value,dg:parseFloat(document.getElementById('efiDG').value)||0,wg:parseInt(document.getElementById('efiWG').value)||0,srv:document.getElementById('efiSv').value,ceil:document.getElementById('efiCl').value,col:document.getElementById('efiCo').value||'auto',why:document.getElementById('efiWy').value,trackChange:!!trOn};if(_efiId){const f=S.fd.find(x=>x.id===_efiId);if(f)Object.assign(f,d);}else S.fd.push({id:uid(),on:true,trackChange:false,...d});sv();popOv();rMFL();rF();}
 function dFI(){S.fd=S.fd.filter(x=>x.id!==_efiId);sv();popOv();rMFL();rF();}
 
 /** Choices currently selected on a logged List field (`multi` ⇒ string[] stored in `S.al`, else string). */
@@ -1247,13 +1260,39 @@ function rA(){
     c.appendChild(card);
   });
 }
+function otherOverlayInitialVals(a,ex,aid){
+  if(ex&&ex.flds)return{...ex.flds};
+  const out={};
+  const profile=actListCardProfile(a);
+  const pend=_otherSt[aid];
+  let picked=[];
+  if(profile&&pend&&pend.fieldNm===profile.listField.nm){
+    if(pend.multi&&Array.isArray(pend.vals))picked=pend.vals.slice();
+    else if(pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')picked=[String(pend.val)];
+  }
+  if(profile&&picked.length){
+    out[profile.listField.nm]=profile.listField.multi?picked:picked[0];
+    const defs=typeof DT!=='undefined'&&DT.defaultsFromFirstOpt?DT.defaultsFromFirstOpt(profile.listField,picked):{};
+    (profile.valueFields||[]).forEach(vf=>{
+      if(defs[vf.nm]!==undefined&&defs[vf.nm]!==null)out[vf.nm]=defs[vf.nm];
+      else if(vf.def!=null&&vf.def!=='')out[vf.nm]=vf.def;
+    });
+  }
+  a.flds.forEach(f=>{
+    if(out[f.nm]!==undefined)return;
+    if(f.t==='opts')return;
+    if(f.def!=null&&f.def!=='')out[f.nm]=f.def;
+  });
+  return out;
+}
 function oAE(aid,logId){
   const a=S.acts.find(x=>x.id===aid);if(!a)return;_cATId=aid;_cALId=logId||null;
   const ex=_cALId?S.al.find(x=>x.id===_cALId):null;
+  const init=otherOverlayInitialVals(a,ex,aid);
   document.getElementById('aeN').textContent=a.nm;document.getElementById('aeNt').value=ex?(ex.nt||''):'';
   const fd=document.getElementById('aeFlds');fd.innerHTML='';
   a.flds.forEach(f=>{
-    const val=ex&&ex.flds?ex.flds[f.nm]:'';const div=document.createElement('div');div.className='fld';
+    const val=ex&&ex.flds?ex.flds[f.nm]:init[f.nm];const div=document.createElement('div');div.className='fld';
     if(f.t==='opts'){
       const slug=f.nm.replace(/\s/g,'_');const opts=f.opts||[];
       const ttl=document.createElement('div');ttl.className='fl';ttl.textContent=f.nm+(f.multi?' · tap all that apply':'');
@@ -1329,7 +1368,7 @@ function rMAL(){
   });
 }
 function tgA(id){const a=S.acts.find(x=>x.id===id);if(a)a.on=!a.on;sv();rMAL();rA();}
-function oEAT(id){_eatId=id;const a=id?S.acts.find(x=>x.id===id):null;document.getElementById('eatT').textContent=id?'Edit Type':'New Entry Type';document.getElementById('eatNm').value=a?.nm||'';clrEatFldErr();const list=document.getElementById('eatFldList');list.innerHTML='';(a?.flds||[]).forEach(f=>addFldRow(f));document.getElementById('eatDl').style.display=id?'block':'none';document.getElementById('eatAddFld').style.display=(a?.flds||[]).length>=5?'none':'block';document.getElementById('eatInline').classList.toggle('on',a?.inline!==false);openOvPush('ovEAT');}
+function oEAT(id){_eatId=id;const a=id?S.acts.find(x=>x.id===id):null;document.getElementById('eatT').textContent=id?'Edit Type':'New Entry Type';document.getElementById('eatNm').value=a?.nm||'';clrEatFldErr();const list=document.getElementById('eatFldList');list.innerHTML='';(a?.flds||[]).forEach(f=>addFldRow(f));document.getElementById('eatDl').style.display=id?'block':'none';document.getElementById('eatAddFld').style.display=(a?.flds||[]).length>=5?'none':'block';document.getElementById('eatInline').classList.toggle('on',a?.inline!==false);document.getElementById('eatTrack')?.classList.toggle('on',!!a?.trackChange);openOvPush('ovEAT');}
 function eatRowType(row){
   const tb=row.querySelector('.ftb.sel');
   if(!tb)return'number';
@@ -1571,8 +1610,9 @@ function cfEAT(){
     flds.push(o);
   }
   const inlineOn=document.getElementById('eatInline').classList.contains('on');
-  const d={nm,flds};if(!inlineOn)d.inline=false;
-  if(_eatId){const a=S.acts.find(x=>x.id===_eatId);if(a){a.nm=d.nm;a.flds=d.flds;if(!inlineOn)a.inline=false;else delete a.inline;}}else S.acts.push({id:uid(),on:true,...d});sv();popOv();rMAL();rA();
+  const trackOn=document.getElementById('eatTrack')?.classList.contains('on');
+  const d={nm,flds,trackChange:!!trackOn};if(!inlineOn)d.inline=false;
+  if(_eatId){const a=S.acts.find(x=>x.id===_eatId);if(a){a.nm=d.nm;a.flds=d.flds;a.trackChange=d.trackChange;if(!inlineOn)a.inline=false;else delete a.inline;}}else S.acts.push({id:uid(),on:true,trackChange:false,...d});sv();popOv();rMAL();rA();
 }
 function dAT(){S.acts=S.acts.filter(x=>x.id!==_eatId);sv();popOv();rMAL();rA();}
 
@@ -1751,9 +1791,42 @@ function buildHistoryData(type){
   const rows=api&&api.listLogs?api.listLogs(S,type,{}):[];
   return decorateHistoryRows(type,rows);
 }
+function historyRowSearchBlob(type,e){
+  if(type==='water')return ('+'+e.qty+' oz '+(e.nt||'')).toLowerCase();
+  if(type==='supps'){
+    if(e.sid!==undefined){
+      const sc=S.sch.find(x=>x.id===e.sid);const m=S.sm.find(x=>x.id===sc?.mid);
+      return ((m?.mfr||'')+' '+(m?.name||'')+' '+e.qty+' '+(m?.units||'')+(e.sk?' skipped':'')).toLowerCase();
+    }
+    return String(e.bd||'').toLowerCase();
+  }
+  if(type==='food'){
+    if(e.fid!==undefined){const f=S.fd.find(x=>x.id===e.fid);return ((f?.nm||'')+' '+e.qty).toLowerCase();}
+    return String(e.bd||'').toLowerCase();
+  }
+  if(type==='other'){
+    const a=S.acts.find(x=>x.id===e.aid);
+    let s=(a?.nm||'')+' ';
+    Object.entries(e.flds||{}).forEach(([k,v])=>{s+=k+' '+ (Array.isArray(v)?v.join(' '):String(v))+' ';});
+    s+=(e.nt||'');
+    return s.toLowerCase();
+  }
+  if(type==='notes')return String(e.bd||'').toLowerCase();
+  return String(e._lb||'').toLowerCase();
+}
 function applyHDataFilter(){
-  _hData=_hFilterDay?_hDataAll.filter(e=>logEntryDay(e)===_hFilterDay):_hDataAll.slice();
+  const q=(_hSearch||'').trim().toLowerCase();
+  _hData=_hDataAll.filter(e=>{
+    if(_hFilterDay&&logEntryDay(e)!==_hFilterDay)return false;
+    if(!q)return true;
+    return historyRowSearchBlob(_hType,e).includes(q);
+  });
   rHList();
+}
+function applyHSearch(){
+  const el=document.getElementById('hSearch');
+  _hSearch=(el&&el.value)||'';
+  applyHDataFilter();
 }
 function applyHDayFilter(){
   const el=document.getElementById('hDayFilter');
@@ -1771,7 +1844,8 @@ function oH(type){
   const titles={water:'Water History',supps:'Supplement History',food:'Food History',other:'Other History',notes:'Notes History'};
   document.getElementById('hT').textContent=titles[type]||'History';
   const hf=document.getElementById('hDayFilter');if(hf)hf.value='';
-  _hFilterDay='';
+  const hs=document.getElementById('hSearch');if(hs)hs.value='';
+  _hFilterDay='';_hSearch='';
   _hDataAll=buildHistoryData(type);
   applyHDataFilter();
   openOvRoot('ovH');
@@ -2356,12 +2430,89 @@ async function dailyLogContentForSave(dt){
   return composeDailyLogContent(existing,dt);
 }
 function rLog(){document.getElementById('mdO').textContent=gDailyLogForDate(td());}
+function changeWindowHours(){return S.cfg.changeWindowHours>0?S.cfg.changeWindowHours:4;}
+function buildChangeReportForUi(start,end,search){
+  if(typeof DT==='undefined'||!DT.buildChangeReport)return [];
+  let rows=DT.buildChangeReport(S,start,end,changeWindowHours());
+  if(search&&DT.filterChangeReportRows)rows=DT.filterChangeReportRows(rows,search);
+  return rows;
+}
+function formatChangeReportView(rows){
+  if(!rows.length)return 'No dates in range.';
+  return rows.map(r=>{
+    const a=r.added.length?r.added.join('\n  '):'';
+    const rm=r.removed.length?r.removed.join('\n  '):'';
+    return r.date+'\n  Added: '+(a||'—')+'\n  Removed: '+(rm||'—');
+  }).join('\n\n');
+}
+function setLogView(v){
+  _logView=v==='changes'?'changes':'log';
+  document.getElementById('logViewLogBtn')?.classList.toggle('b',_logView==='log');
+  document.getElementById('logViewLogBtn')?.classList.toggle('g',_logView!=='log');
+  document.getElementById('logViewChBtn')?.classList.toggle('b',_logView==='changes');
+  document.getElementById('logViewChBtn')?.classList.toggle('g',_logView!=='changes');
+  document.getElementById('logRangePanel').style.display=_logView==='changes'?'flex':'none';
+  document.getElementById('logSearchPanel').style.display=_logView==='changes'?'block':'none';
+  document.getElementById('logViewLog').style.display=_logView==='log'?'block':'none';
+  document.getElementById('logViewCh').style.display=_logView==='changes'?'block':'none';
+  document.getElementById('logPanelLbl').textContent=_logView==='changes'?'Change report':'Today';
+  rLogPanel();
+}
+function initLogPanel(){
+  const t=td();
+  const s=document.getElementById('logChStart');
+  const e=document.getElementById('logChEnd');
+  if(s&&!s.value)s.value=t;
+  if(e&&!e.value)e.value=t;
+  setLogView(_logView);
+}
+function rLogPanel(){
+  if(_logView==='changes'){
+    const start=document.getElementById('logChStart')?.value||td();
+    const end=document.getElementById('logChEnd')?.value||start;
+    const q=document.getElementById('logChSearch')?.value||'';
+    const rows=buildChangeReportForUi(start,end,q);
+    document.getElementById('chO').textContent=formatChangeReportView(rows);
+    return;
+  }
+  rLog();
+}
+function svChangeHours(){
+  const el=document.getElementById('setChangeHours');
+  const v=parseInt(el?.value,10);
+  S.cfg.changeWindowHours=Number.isFinite(v)&&v>0?v:4;
+  if(el)el.value=S.cfg.changeWindowHours;
+  sv();rLogPanel();
+}
+function togTrackWater(){
+  S.cfg.trackWaterChange=!S.cfg.trackWaterChange;
+  document.getElementById('tgTrackWater')?.classList.toggle('on',!!S.cfg.trackWaterChange);
+  sv();
+}
 const EXP_CK=()=>'<svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function expCbState(id){return document.getElementById(id).classList.contains('on');}
 function setExpCb(id,on){const el=document.getElementById(id);el.classList.toggle('on',on);el.style.background=on?'var(--gr)':'';el.style.borderColor=on?'var(--gr)':'var(--bd2)';el.innerHTML=on?EXP_CK():'';}
-function rExpAllCb(){const all=['expDailyLog','expCfg'].every(id=>expCbState(id));setExpCb('expAllCb',all);}
-function togExpCb(id){setExpCb(id,!expCbState(id));rExpAllCb();}
-function togExpAll(){const all=['expDailyLog','expCfg'].every(id=>expCbState(id));['expDailyLog','expCfg'].forEach(id=>setExpCb(id,!all));setExpCb('expAllCb',!all);}
+function rExpAllCb(){const all=['expDailyLog','expCfg','expChange'].every(id=>expCbState(id));setExpCb('expAllCb',all);}
+function togExpCb(id){setExpCb(id,!expCbState(id));if(id==='expChange')rExpChangeFmtUi();rExpAllCb();}
+function togExpAll(){const all=['expDailyLog','expCfg','expChange'].every(id=>expCbState(id));['expDailyLog','expCfg','expChange'].forEach(id=>setExpCb(id,!all));rExpChangeFmtUi();setExpCb('expAllCb',!all);}
+function setExpChangeFmt(fmt){_expChangeFmt=fmt==='md'?'md':'csv';setExpCb('expChFmtCsv',_expChangeFmt==='csv');setExpCb('expChFmtMd',_expChangeFmt==='md');}
+function rExpChangeFmtUi(){
+  const on=expCbState('expChange');
+  document.getElementById('expChangeFmtLbl').style.display=on?'block':'none';
+  document.getElementById('expChangeFmtCard').style.display=on?'block':'none';
+  if(on)setExpChangeFmt(_expChangeFmt);
+}
+function changeReportExportText(start,end,fmt){
+  const rows=buildChangeReportForUi(start,end,'');
+  if(fmt==='md'&&DT.formatChangeReportMarkdown)return DT.formatChangeReportMarkdown(rows);
+  if(DT.formatChangeReportCsv)return DT.formatChangeReportCsv(rows);
+  return formatChangeReportView(rows);
+}
+function changeReportExportName(start,end,fmt){
+  const ext=fmt==='md'?'md':'csv';
+  if(start===end)return 'changes_'+start+'.'+ext;
+  return 'changes_'+start+'_'+end+'.'+ext;
+}
 function datesInRange(start,end){
   const dates=[];let cur=new Date(start+'T00:00:00');const last=new Date(end+'T00:00:00');
   while(cur<=last&&dates.length<=366){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
@@ -2382,7 +2533,8 @@ function gCombinedTrackerLogRange(dates){
   if(typeof DT!=='undefined'&&DT.combinedTrackerLogText)return DT.combinedTrackerLogText(dates,gDailyLogForDate);
   return dates.map(d=>gDailyLogForDate(d)).join('\n\n');
 }
-async function exportToDrive(wantDailyLog,wantCfg,dates,mode){
+async function exportToDrive(wantDailyLog,wantCfg,dates,mode,extra){
+  extra=extra||{};
   if(!gDriveTokenValid()){gDriveAuth('sync');return false;}
   const ids=S.cfg.driveIds||{};
   if(wantDailyLog){
@@ -2406,14 +2558,25 @@ async function exportToDrive(wantDailyLog,wantCfg,dates,mode){
     if(ids.backups)await driveWrite('config-'+cfgDay+'.json',cfgJson,ids.backups);
     else if(ids.dailyLogs)await driveWrite('config-'+cfgDay+'.json',cfgJson,ids.dailyLogs);
   }
+  if(extra.wantChange&&ids.dailyLogs){
+    const fmt=extra.wantChangeFmt||'csv';
+    const start=dates[0],end=dates[dates.length-1];
+    const body=changeReportExportText(start,end,fmt);
+    const fn=changeReportExportName(start,end,fmt);
+    const ok=await driveWrite(fn,body,ids.dailyLogs);
+    if(!ok)return false;
+  }
   setDS('Exported to Drive '+new Date().toLocaleTimeString(),'ok');
   return true;
 }
 function oExport(){
   if(Object.keys(_supSt).length||Object.keys(_otherSt).length){shT('Save first — pending items not committed');return;}
   ['expDailyLog','expCfg','expAllCb'].forEach(id=>setExpCb(id,true));
+  setExpCb('expChange',false);
   setExpMode('multi');
   setExpDest('drive');
+  setExpChangeFmt('csv');
+  rExpChangeFmtUi();
   const modDates=_modDates.size?[..._modDates].sort():[td()];
   document.getElementById('expStart').value=modDates[0];
   document.getElementById('expEnd').value=modDates[modDates.length-1];
@@ -2423,13 +2586,14 @@ function oExport(){
 async function cfExport(){
   const wantDailyLog=expCbState('expDailyLog');
   const wantCfg=expCbState('expCfg');
-  if(!wantDailyLog&&!wantCfg){shT('Select at least one file type');return;}
+  const wantChange=expCbState('expChange');
+  if(!wantDailyLog&&!wantCfg&&!wantChange){shT('Select at least one file type');return;}
   const start=document.getElementById('expStart').value||td();
   const end=document.getElementById('expEnd').value||td();
   let dates=datesInRange(start,end);
   if(start>end)dates=datesInRange(end,start);
   closeAllOv();
-  await exportExternal(wantDailyLog,wantCfg,dates,{mode:_expMode,dest:_expDest});
+  await exportExternal(wantDailyLog,wantCfg,dates,{mode:_expMode,dest:_expDest,wantChange,wantChangeFmt:_expChangeFmt});
 }
 function downloadBlob(filename,text){
   const a=document.createElement('a');
@@ -2440,12 +2604,14 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
   opts=opts||{};
   const mode=opts.mode||_expMode||'multi';
   const dest=opts.dest||_expDest||'drive';
+  const wantChange=!!opts.wantChange;
+  const wantChangeFmt=opts.wantChangeFmt||'csv';
   if(!exportDates||!exportDates.length)exportDates=_modDates.size?[..._modDates]:[td()];
   const uniq=[...new Set(exportDates.map(d=>ymdFromLogKey(d)).filter(Boolean))].sort();
   const dates=uniq.length?uniq:[td()];
   const cfgDay=isoToLocalYMD(now());
   if(dest==='drive'){
-    const ok=await exportToDrive(wantDailyLog,wantCfg,dates,mode);
+    const ok=await exportToDrive(wantDailyLog,wantCfg,dates,mode,{wantChange,wantChangeFmt});
     if(ok)clearExportDirty();
     return;
   }
@@ -2464,6 +2630,11 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
       }
     }
     if(wantCfg)files.push(new File([gConfigSnapshotJSON()],'config-'+cfgDay+'.json',{type:'text/plain'}));
+    if(wantChange){
+      const body=changeReportExportText(dates[0],dates[dates.length-1],wantChangeFmt);
+      const fn=changeReportExportName(dates[0],dates[dates.length-1],wantChangeFmt);
+      files.push(new File([body],fn,{type:wantChangeFmt==='md'?'text/markdown':'text/csv'}));
+    }
     return files;
   }
   const singleMdOnly=mode==='single'&&wantDailyLog&&!wantCfg;
@@ -2529,6 +2700,10 @@ async function exportExternal(wantDailyLog=true,wantCfg=true,exportDates,opts){
     }
   }
   if(wantCfg)downloadBlob('config-'+cfgDay+'.json',gConfigSnapshotJSON());
+  if(wantChange){
+    const fmt=wantChangeFmt;
+    downloadBlob(changeReportExportName(dates[0],dates[dates.length-1],fmt),changeReportExportText(dates[0],dates[dates.length-1],fmt));
+  }
   clearExportDirty();shT('Downloaded to Downloads folder');
 }
 function flushQuickNotesOnSave(){
