@@ -196,7 +196,7 @@ Commit **`data/_drive_manifest.json`** to git so Drive uploads reuse file ids.
 
 # Tool 4 — myLabs
 
-**Repo:** [familyswink/myLabs](https://github.com/familyswink/myLabs) (local git; push to GitHub when remote exists)  
+**Repo:** [familyswink/myLabs](https://github.com/familyswink/myLabs) — **local git initialized**; create private GitHub repo and `git remote add origin … && git push -u origin main` when ready  
 **User guide:** [USER_GUIDE.md](../../myLabs/USER_GUIDE.md)  
 **Product spec:** [PRODUCT_SPEC.md](../../myLabs/PRODUCT_SPEC.md)
 
