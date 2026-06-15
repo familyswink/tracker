@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.21';
+const APP_VERSION='2026.05.20.23';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -1425,11 +1425,47 @@ function pairSupplementLogs(prevLogs, currLogs, windowHours) {
   return pairs;
 }
 
+function ymdToSortMs(ymd, iso) {
+  const p = String(ymd).split('-').map((x) => parseInt(x, 10));
+  const base = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+  if (iso) {
+    const d = new Date(iso);
+    if (!isNaN(d.getTime())) {
+      base.setHours(d.getHours(), d.getMinutes(), d.getSeconds(), 0);
+    }
+  } else {
+    base.setHours(12, 0, 0, 0);
+  }
+  return base.getTime();
+}
+
+/** Sort rows by comparison date, then clock time on that day. */
+function sortChangeReportRows(rows) {
+  return [...rows].sort((a, b) => {
+    const da = String(a.date);
+    const db = String(b.date);
+    if (da !== db) return da < db ? -1 : 1;
+    const ta = a.sortAt ?? ymdToSortMs(a.date);
+    const tb = b.sortAt ?? ymdToSortMs(b.date);
+    if (ta !== tb) return ta - tb;
+    return String(a.item).localeCompare(String(b.item));
+  });
+}
+
+function totalLogQty(logs) {
+  return logs.reduce((s, l) => s + l.qty, 0);
+}
+
 /** @returns {Array<{ date, item, was, now, time }>} */
 function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
   const prevLogs = collectSupplementLogs(state, prevYmd, mid);
   const currLogs = collectSupplementLogs(state, ymd, mid);
   if (!prevLogs.length && !currLogs.length) return [];
+
+  const totalPrev = totalLogQty(prevLogs);
+  const totalCurr = totalLogQty(currLogs);
+  // Same daily total: split/merge/time shifts are not dose changes (e.g. 1×2 yesterday → 2×1 today).
+  if (totalPrev === totalCurr && totalPrev > 0) return [];
 
   const item = suppDisplayName(state, mid);
   const units = suppUnits(state, mid);
@@ -1444,6 +1480,7 @@ function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
         was: formatQty(p.prev.qty, units),
         now: '—',
         time: formatChangeLogTime(p.prev.iso, prevYmd),
+        sortAt: ymdToSortMs(ymd, p.prev.iso),
       });
     } else if (p.kind === 'started') {
       rows.push({
@@ -1452,6 +1489,7 @@ function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
         was: '—',
         now: formatQty(p.curr.qty, units),
         time: formatChangeLogTime(p.curr.iso, ymd),
+        sortAt: ymdToSortMs(ymd, p.curr.iso),
       });
     } else if (p.kind === 'changed') {
       rows.push({
@@ -1460,6 +1498,7 @@ function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
         was: formatQty(p.prev.qty, units),
         now: formatQty(p.curr.qty, units),
         time: formatDaySpan(prevYmd, ymd, p.prev.iso, p.curr.iso),
+        sortAt: ymdToSortMs(ymd, p.curr.iso),
       });
     }
   }
@@ -1483,10 +1522,10 @@ function diffFoodItem(state, fid, prevYmd, ymd) {
   const f = (state.fd || []).find((x) => x.id === fid);
   const item = f?.nm || 'Unknown';
   if (prev === 0 && curr > 0) {
-    return [{ date: ymd, item, was: '—', now: curr + ' servings', time: ymd }];
+    return [{ date: ymd, item, was: '—', now: curr + ' servings', time: ymd, sortAt: ymdToSortMs(ymd) }];
   }
   if (prev > 0 && curr === 0) {
-    return [{ date: ymd, item, was: prev + ' servings', now: '—', time: prevYmd }];
+    return [{ date: ymd, item, was: prev + ' servings', now: '—', time: prevYmd, sortAt: ymdToSortMs(ymd) }];
   }
   return [
     {
@@ -1495,6 +1534,7 @@ function diffFoodItem(state, fid, prevYmd, ymd) {
       was: prev + ' servings',
       now: curr + ' servings',
       time: prevYmd + ' → ' + ymd,
+      sortAt: ymdToSortMs(ymd),
     },
   ];
 }
@@ -1513,12 +1553,12 @@ function diffWater(state, prevYmd, ymd) {
   if (prev === curr) return [];
   const item = 'Water';
   if (prev === 0 && curr > 0) {
-    return [{ date: ymd, item, was: '—', now: curr + ' oz', time: ymd }];
+    return [{ date: ymd, item, was: '—', now: curr + ' oz', time: ymd, sortAt: ymdToSortMs(ymd) }];
   }
   if (prev > 0 && curr === 0) {
-    return [{ date: ymd, item, was: prev + ' oz', now: '—', time: prevYmd }];
+    return [{ date: ymd, item, was: prev + ' oz', now: '—', time: prevYmd, sortAt: ymdToSortMs(ymd) }];
   }
-  return [{ date: ymd, item, was: prev + ' oz', now: curr + ' oz', time: prevYmd + ' → ' + ymd }];
+  return [{ date: ymd, item, was: prev + ' oz', now: curr + ' oz', time: prevYmd + ' → ' + ymd, sortAt: ymdToSortMs(ymd) }];
 }
 
 function otherEntryLabel(state, entry) {
@@ -1542,14 +1582,16 @@ function diffOtherActivity(state, aid, prevYmd, ymd) {
   const rows = [];
   const prevS = new Set(prevEntries.map((e) => otherEntryLabel(state, e)));
   const currS = new Set(currEntries.map((e) => otherEntryLabel(state, e)));
-  for (const label of prevS) {
+  for (const e of prevEntries) {
+    const label = otherEntryLabel(state, e);
     if (!currS.has(label)) {
-      rows.push({ date: ymd, item, was: label, now: '—', time: prevYmd });
+      rows.push({ date: ymd, item, was: label, now: '—', time: prevYmd, sortAt: ymdToSortMs(ymd, e.dt) });
     }
   }
-  for (const label of currS) {
+  for (const e of currEntries) {
+    const label = otherEntryLabel(state, e);
     if (!prevS.has(label)) {
-      rows.push({ date: ymd, item, was: '—', now: label, time: ymd });
+      rows.push({ date: ymd, item, was: '—', now: label, time: ymd, sortAt: ymdToSortMs(ymd, e.dt) });
     }
   }
   return rows;
@@ -1591,7 +1633,7 @@ function buildChangeReport(state, startYmd, endYmd, windowHours) {
     const prev = prevCalendarDay(date);
     rows.push(...diffDay(state, prev, date, wh));
   }
-  return rows;
+  return sortChangeReportRows(rows);
 }
 
 function filterChangeReportRows(rows, query) {
@@ -1706,6 +1748,7 @@ global.DT = {
   prevCalendarDay,
   datesInRangeInclusive,
   buildChangeReport,
+  sortChangeReportRows,
   filterChangeReportRows,
   formatChangeReportMarkdown,
   formatChangeReportCsv,

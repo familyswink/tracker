@@ -146,8 +146,65 @@ describe('change-report supplements (Model 1)', () => {
     assert.equal(logs[0].qty, 2);
   });
 
+  it('split dose same daily total produces no row (1x2 yesterday, 2x1 today)', () => {
+    const S = stateWithMagnesium();
+    S.sl = [
+      { id: '1', sid: 'sch-b', dt: isoLocal('2026-06-01', 9, 0), qty: 2, sk: false },
+      { id: '2', sid: 'sch-b', dt: isoLocal('2026-06-02', 7, 50), qty: 1, sk: false },
+      { id: '3', sid: 'sch-o', dt: isoLocal('2026-06-02', 8, 30), qty: 1, sk: false },
+    ];
+    const rows = diffSupplementMid(S, 'mag1', '2026-06-01', '2026-06-02', 4);
+    assert.equal(rows.length, 0);
+  });
+
+  it('two logs yesterday and two today same qty different times produces no row', () => {
+    const S = stateWithMagnesium();
+    S.sl = [
+      { id: '1', sid: 'sch-b', dt: isoLocal('2026-06-01', 9, 0), qty: 1, sk: false },
+      { id: '2', sid: 'sch-o', dt: isoLocal('2026-06-01', 9, 15), qty: 1, sk: false },
+      { id: '3', sid: 'sch-b', dt: isoLocal('2026-06-02', 7, 50), qty: 1, sk: false },
+      { id: '4', sid: 'sch-o', dt: isoLocal('2026-06-02', 8, 30), qty: 1, sk: false },
+    ];
+    const rows = diffSupplementMid(S, 'mag1', '2026-06-01', '2026-06-02', 4);
+    assert.equal(rows.length, 0);
+  });
+
+  it('dropped dose still reports when daily total decreases', () => {
+    const S = stateWithMagnesium();
+    S.sl = [
+      { id: '1', sid: 'sch-b', dt: isoLocal('2026-06-01', 9, 0), qty: 1, sk: false },
+      { id: '2', sid: 'sch-o', dt: isoLocal('2026-06-01', 9, 15), qty: 1, sk: false },
+      { id: '3', sid: 'sch-b', dt: isoLocal('2026-06-02', 8, 30), qty: 1, sk: false },
+    ];
+    const rows = diffSupplementMid(S, 'mag1', '2026-06-01', '2026-06-02', 4);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].was, '1 capsule');
+    assert.equal(rows[0].now, '—');
+  });
+
   it('formatChangeLogTime uses 12h clock', () => {
     const t = formatChangeLogTime(isoLocal('2026-06-01', 10, 4), '2026-06-01');
     assert.match(t, /Jun 1 10:04a/);
+  });
+
+  it('buildChangeReport sorts by date then time', () => {
+    const S = stateWithMagnesium();
+    S.sl = [
+      { id: '1', sid: 'sch-o', dt: isoLocal('2026-06-01', 20, 0), qty: 2, sk: false },
+      { id: '2', sid: 'sch-b', dt: isoLocal('2026-06-02', 8, 0), qty: 1, sk: false },
+      { id: '3', sid: 'sch-b', dt: isoLocal('2026-06-03', 10, 0), qty: 2, sk: false },
+      { id: '4', sid: 'sch-o', dt: isoLocal('2026-06-03', 7, 0), qty: 2, sk: false },
+    ];
+    const rows = buildChangeReport(S, '2026-06-02', '2026-06-03', 4);
+    assert.ok(rows.length >= 2);
+    for (let i = 1; i < rows.length; i++) {
+      const prev = rows[i - 1];
+      const cur = rows[i];
+      const dateCmp = prev.date.localeCompare(cur.date);
+      assert.ok(dateCmp <= 0, 'dates should be ascending');
+      if (prev.date === cur.date) {
+        assert.ok((prev.sortAt ?? 0) <= (cur.sortAt ?? 0), 'times should be ascending within a day');
+      }
+    }
   });
 });

@@ -119,6 +119,7 @@ global.DT = {
   prevCalendarDay,
   datesInRangeInclusive,
   buildChangeReport,
+  sortChangeReportRows,
   filterChangeReportRows,
   formatChangeReportMarkdown,
   formatChangeReportCsv,

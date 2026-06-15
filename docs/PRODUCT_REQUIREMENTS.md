@@ -173,7 +173,7 @@ New catalog items inherit the default for their type.
 
 - Compare each **tracked catalog item** day **D** vs prior calendar day **D−1** (local TZ, `localStorage`).
 - **Per log entry (Model 1):** each non-skipped dose is its own slot; AM and PM can produce separate rows when they change independently.
-- **Pairing:** match yesterday’s log to today’s by closest clock time within **4-hour window** (`S.cfg.changeWindowHours`, default **4**). Same paired qty ⇒ no row; different qty ⇒ Was/Now change; unmatched yesterday ⇒ stopped; unmatched today ⇒ started.
+- **Pairing:** match yesterday’s log to today’s by closest clock time within **4-hour window** (`S.cfg.changeWindowHours`, default **4**). Same paired qty ⇒ no row; different qty ⇒ Was/Now change; unmatched yesterday ⇒ stopped; unmatched today ⇒ started. **Same daily total** across split/merged log entries ⇒ no row.
 - Timing **group** is not shown in the report (only brand + product name).
 - **Skipped** logs are not taken — no dose that day; prior dose with none today ⇒ stopped row.
 - No log yesterday **and** no log today ⇒ no row.
