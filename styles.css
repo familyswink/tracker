@@ -174,6 +174,14 @@ textarea{resize:none;height:75px;line-height:1.5}
 .pick-btn:active{background:var(--sf3)}
 .pick-btn .pk-sub{display:block;font-family:Courier New,monospace;font-size:9px;color:var(--mt);margin-top:3px}
 .lc pre{word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;max-width:100%}
+.ch-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+.ch-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
+.ch-tbl th,.ch-tbl td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--bd);vertical-align:top;word-break:break-word}
+.ch-tbl th{font-family:Courier New,monospace;font-size:9px;font-weight:700;color:var(--mt);text-transform:uppercase;letter-spacing:.04em;background:var(--sf2);position:sticky;top:0}
+.ch-tbl td:nth-child(1){white-space:nowrap;font-family:Courier New,monospace;font-size:11px;color:var(--tx2)}
+.ch-tbl td:nth-child(3),.ch-tbl td:nth-child(4){font-family:Courier New,monospace;font-size:11px;white-space:nowrap}
+.ch-tbl td:nth-child(5){font-family:Courier New,monospace;font-size:10px;color:var(--tx2);min-width:100px}
+.ch-empty{padding:14px;font-family:Courier New,monospace;font-size:12px;color:var(--mt)}
 .srch-inp{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:9px;padding:10px 12px;color:var(--tx);font-family:Courier New,monospace;font-size:13px;margin-bottom:10px;box-sizing:border-box}
 .srch-inp:focus{border-color:var(--gr)}
 .pick-li{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:11px 13px;margin-bottom:6px;cursor:pointer;width:100%;box-sizing:border-box}

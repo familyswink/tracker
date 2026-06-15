@@ -79,12 +79,14 @@ Export uses ` ```yaml journal ` for structured data (not legacy bare JSON fence)
 Toggle **Change report** on the Log tab (next to **Daily log**).
 
 - Set **From / To** dates (same idea as Export).
-- Each row is one calendar day compared to the **prior day** (data on your phone only).
-- Columns: **Added** and **Removed** — supplements show timing group + name + qty; skipped doses appear as **not taken**.
-- **Search** filters rows by text in Added/Removed.
-- Days with no detected changes still show the date with blank Added/Removed.
+- Each row is one **change** on calendar day **D** compared to **D−1** (data on your phone only). Days with no changes are omitted.
+- Columns: **Date | Item | Was | Now | Time**
+  - **Item** — brand + product (e.g. `Pure — Magnesium glycinate`); timing group is not shown.
+  - **Was / Now** — previous and current qty (or `—` when started/stopped).
+  - **Time** — log time for started/stopped; `yesterday → today` for qty changes.
+- **Search** filters any column.
 
-**What counts as “no change” for supplements:** same tracked supplement, same total qty that day, and log time within **Change report window** hours of yesterday (Settings → default **4**). Example: Breakfast 2 @ 10:00 one day and Other 2 @ 11:00 the next → no entry; qty or group shift → Removed line (e.g. `went from 2 Other to 1 at Breakfast — …`).
+**Supplements (Model 1):** each dose is matched to yesterday’s closest log within **Change report window** hours (Settings → default **4**). Same brand at ~8a and ~8p can produce **two rows** when AM and PM change differently. Same qty at paired times ⇒ no row. Example: 2 caps @ 10a one day and 2 caps @ 11a the next (same slot) ⇒ no entry; qty change or missing today ⇒ row with Was/Now.
 
 **Track change toggles:** Manage Supplements (default **on**), Manage Food / Manage Other type (default **off**), Settings → Track water (default **off**).
 
@@ -111,7 +113,7 @@ Every tab’s **History** overlay has a **Search all history** box. It finds mat
 | **Tab visibility** | Hide tabs from bar; past data kept; hidden sections omitted from `.md` |
 | **Auto-sync on Save** | Upload affected days after log commits (default on) |
 | **Share on Export** | iOS Share sheet for exports |
-| **Change report window (hours)** | Same supp + same qty within N hours of yesterday ⇒ no change (default **4**) |
+| **Change report window (hours)** | Per-log pairing: same qty at matched times within N hours of yesterday ⇒ no change (default **4**) |
 | **Track water in change report** | Compare total oz day-over-day (default off) |
 | **Drive Daily Logs ID** | Folder for `YYYY-MM-DD.md` |
 | **Drive Backups ID** | Folder for `DT_Backup_*.json` |

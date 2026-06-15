@@ -172,20 +172,20 @@ New catalog items inherit the default for their type.
 ### Comparison rules (supplements)
 
 - Compare each **tracked catalog item** day **D** vs prior calendar day **D−1** (local TZ, `localStorage`).
-- **Per timing group per day:** sum qty for multiple logs in the same group.
-- **4-hour window** (`S.cfg.changeWindowHours`, default **4**): same total qty and anchor log times within window ⇒ **no change**, even if group moves (e.g. Breakfast 2 @ 10a → Other 2 @ 11a).
-- Qty or group/qty change outside equivalence ⇒ **Removed** narrative (e.g. `went from 2 Other to 1 at Breakfast — …`).
-- **Skipped** logs ⇒ **not taken** in report.
-- Empty day after prior logs ⇒ prior items **removed**.
+- **Per log entry (Model 1):** each non-skipped dose is its own slot; AM and PM can produce separate rows when they change independently.
+- **Pairing:** match yesterday’s log to today’s by closest clock time within **4-hour window** (`S.cfg.changeWindowHours`, default **4**). Same paired qty ⇒ no row; different qty ⇒ Was/Now change; unmatched yesterday ⇒ stopped; unmatched today ⇒ started.
+- Timing **group** is not shown in the report (only brand + product name).
+- **Skipped** logs are not taken — no dose that day; prior dose with none today ⇒ stopped row.
+- No log yesterday **and** no log today ⇒ no row.
 
 ### Change report UI
 
-- **Log tab:** toggle **Daily log** ↔ **Change report**; **From/To** date range; search filters report text.
-- Always show a row per day in range (blank Added/Removed when no changes).
+- **Log tab:** toggle **Daily log** ↔ **Change report**; **From/To** date range; search filters Item/Was/Now/Time.
+- **Only changed rows** — quiet days omitted. Columns: **Date | Item | Was | Now | Time**.
 
 ### Export
 
-- Optional **Change report** file (CSV or Markdown), same From/To as Export.
+- Optional **Change report** file (CSV or Markdown): `date,item,was,now,time`, same From/To as Export.
 
 ### Manage Timing search
 

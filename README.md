@@ -71,7 +71,7 @@ Log activities, symptoms, and observations. Cards with a single Yes/No or list f
 Write a quick note for the day. Type `[[` in any note field (Notes, Food, Supps, Other, overlays) to insert supplement or custom wiki names. **Manage [[ names** hides entries from the picker only (catalog supplements still appear when you add them). Tap **History** to browse and edit past notes.
 
 ### Log
-View today's daily log as formatted Markdown, or switch to **Change report** (day-over-day Added/Removed for tracked supplements, food, other, and optional water).
+View today's daily log as formatted Markdown, or switch to **Change report** (day-over-day Was/Now for tracked supplements, food, other, and optional water).
 
 - **Daily log** — today's hybrid `.md` preview
 - **Change report** — From/To range, search, compares each day to the prior day (see [USER_GUIDE § Change report](docs/USER_GUIDE.md))
@@ -84,7 +84,7 @@ Configure the app behavior and integrations.
 - **Tab visibility** — hide Water, Supps, Food, Other, Notes, or Log from the tab bar. Hidden tabs keep all past data on the phone and in History; they are **omitted** from daily log `.md` on Sync and Export (Settings tab always stays visible).
 - **Auto-sync:** after **every log commit** (bottom Save, Other card Save, water/food immediate saves) → Drive sync for affected day(s), same Oura-per-day rules as Sync. Log → **Sync Drive** button unchanged. See [docs/PRODUCT_REQUIREMENTS.md](docs/PRODUCT_REQUIREMENTS.md).
 - **Share on Export** — on iPhone/iPad, Export uses the Share sheet (single `.md` export avoids bogus extra files from the share title).
-- **Change report window (hours)** — supplements with same qty logged within this many hours of yesterday count as unchanged (default 4)
+- **Change report window (hours)** — per-log pairing: same qty at matched times within this many hours of yesterday counts as unchanged (default 4)
 - **Track water in change report** — include total water oz in day-over-day report (default off)
 - **Drive Folder IDs** — set the Google Drive folder IDs for Daily Logs and backups. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **About** — shows deployed build version (bump `src/version.js` each release).

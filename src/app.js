@@ -2437,13 +2437,14 @@ function buildChangeReportForUi(start,end,search){
   if(search&&DT.filterChangeReportRows)rows=DT.filterChangeReportRows(rows,search);
   return rows;
 }
+function escCh(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function formatChangeReportView(rows){
-  if(!rows.length)return 'No dates in range.';
-  return rows.map(r=>{
-    const a=r.added.length?r.added.join('\n  '):'';
-    const rm=r.removed.length?r.removed.join('\n  '):'';
-    return r.date+'\n  Added: '+(a||'—')+'\n  Removed: '+(rm||'—');
-  }).join('\n\n');
+  if(!rows.length)return '<div class="ch-empty">No changes in range.</div>';
+  let h='<div class="ch-wrap"><table class="ch-tbl"><thead><tr><th>Date</th><th>Item</th><th>Was</th><th>Now</th><th>Time</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    h+='<tr><td>'+escCh(r.date)+'</td><td>'+escCh(r.item)+'</td><td>'+escCh(r.was)+'</td><td>'+escCh(r.now)+'</td><td>'+escCh(r.time)+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
 }
 function setLogView(v){
   _logView=v==='changes'?'changes':'log';
@@ -2472,7 +2473,7 @@ function rLogPanel(){
     const end=document.getElementById('logChEnd')?.value||start;
     const q=document.getElementById('logChSearch')?.value||'';
     const rows=buildChangeReportForUi(start,end,q);
-    document.getElementById('chO').textContent=formatChangeReportView(rows);
+    document.getElementById('chO').innerHTML=formatChangeReportView(rows);
     return;
   }
   rLog();
