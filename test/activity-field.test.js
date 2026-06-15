@@ -5,6 +5,9 @@ import {
   shouldUseNumberSelect,
   buildCardActivityFlds,
   defaultsFromFirstOpt,
+  optsChosenValues,
+  formatOptsFieldDisplay,
+  normalizeOptsStored,
   actListCardProfile,
   parseStepSpec,
   isColonStepField,
@@ -26,6 +29,13 @@ describe('numberFieldSpec', () => {
   });
   it('def null stays null', () => {
     assert.equal(numberFieldSpec({ t: 'number', def: null }).def, null);
+  });
+  it('infers minute bounds when min/max omitted', () => {
+    const s = numberFieldSpec({ t: 'number', u: 'minutes' });
+    assert.equal(s.min, 0);
+    assert.equal(s.max, 180);
+    assert.equal(s.step, 1);
+    assert.equal(shouldUseNumberSelect(s, { t: 'number', u: 'minutes' }), true);
   });
 });
 
@@ -163,5 +173,24 @@ describe('card Save flds', () => {
   it('defaultsFromFirstOpt picks first selected', () => {
     const lf = a.flds[0];
     assert.deepEqual(defaultsFromFirstOpt(lf, ['Sauna', 'Cold Plunge']), { Duration: 15, Temperature: 170 });
+  });
+});
+
+describe('list field display + storage', () => {
+  const list = { nm: 'Bowel Health', t: 'opts', multi: false, opts: [{ v: 'Normal' }, { v: 'Loose' }] };
+
+  it('single-select display uses first value when stored as array', () => {
+    assert.equal(formatOptsFieldDisplay(list, ['Normal', 'Loose']), 'Normal');
+  });
+
+  it('normalizeOptsStored keeps scalar for single-select', () => {
+    assert.equal(normalizeOptsStored(list, ['Normal', 'Loose']), 'Normal');
+    assert.equal(normalizeOptsStored(list, 'Loose'), 'Loose');
+  });
+
+  it('multi-select keeps all chosen values', () => {
+    const multi = { ...list, multi: true };
+    assert.equal(formatOptsFieldDisplay(multi, ['Normal', 'Loose']), 'Normal, Loose');
+    assert.deepEqual(normalizeOptsStored(multi, ['Normal', 'Loose']), ['Normal', 'Loose']);
   });
 });

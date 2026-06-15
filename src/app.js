@@ -1126,23 +1126,28 @@ function dFI(){S.fd=S.fd.filter(x=>x.id!==_efiId);sv();popOv();rMFL();rF();}
 
 /** Choices currently selected on a logged List field (`multi` ⇒ string[] stored in `S.al`, else string). */
 function optsChosenArray(f,val){
+  if(typeof DT!=='undefined'&&DT.optsChosenValues)return DT.optsChosenValues(f,val);
   if(val===undefined||val===null||val==='')return[];
   if(f.multi){
     if(Array.isArray(val))return val.map(String).filter(Boolean);
-    if(typeof val==='string'){
-      try{const p=JSON.parse(val);if(Array.isArray(p))return p.map(String).filter(Boolean);}catch{}
-      return val.trim()?[val.trim()]:[];
-    }
-    return[];
+    return typeof val==='string'&&val.trim()?[val.trim()]:[];
   }
-  if(typeof val==='string')return val.trim()? [val.trim()]:[];
   if(Array.isArray(val)&&val.length)return[String(val[0])];
-  return[];
+  return typeof val==='string'&&val.trim()?[val.trim()]:[];
 }
 /** Human-readable for cards / history rows. */
 function formatOptsFldDisplay(f,v){
-  if(!f.multi)return(v!==undefined&&v!==null&&String(v)!=='')?String(v):'';
-  return optsChosenArray(f,v).join(', ');
+  if(typeof DT!=='undefined'&&DT.formatOptsFieldDisplay)return DT.formatOptsFieldDisplay(f,v);
+  const picked=optsChosenArray(f,v);
+  if(!picked.length)return'';
+  if(!f.multi)return picked[0];
+  return picked.join(', ');
+}
+function normalizeOptsFldStored(f,v){
+  if(typeof DT!=='undefined'&&DT.normalizeOptsStored)return DT.normalizeOptsStored(f,v);
+  const picked=optsChosenArray(f,v);
+  if(!picked.length)return undefined;
+  return f.multi?picked:picked[0];
 }
 
 // OTHER
@@ -1271,7 +1276,8 @@ function otherOverlayInitialVals(a,ex,aid){
     else if(pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')picked=[String(pend.val)];
   }
   if(profile&&picked.length){
-    out[profile.listField.nm]=profile.listField.multi?picked:picked[0];
+    const stored=typeof DT!=='undefined'&&DT.normalizeOptsStored?DT.normalizeOptsStored(profile.listField,profile.listField.multi?picked:picked[0]):(profile.listField.multi?picked:picked[0]);
+    if(stored!==undefined)out[profile.listField.nm]=stored;
     const defs=typeof DT!=='undefined'&&DT.defaultsFromFirstOpt?DT.defaultsFromFirstOpt(profile.listField,picked):{};
     (profile.valueFields||[]).forEach(vf=>{
       if(defs[vf.nm]!==undefined&&defs[vf.nm]!==null)out[vf.nm]=defs[vf.nm];
@@ -1349,7 +1355,7 @@ a.flds.forEach(f=>{
   if(f.t==='number'){
     const n=readNumberFieldValue(f);
     if(n!==undefined)flds[f.nm]=n;
-  }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
+  }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){let raw;if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} raw=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else raw=String(h.value||'');const n=normalizeOptsFldStored(f,raw);if(n!==undefined)flds[f.nm]=n;}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
 });
 if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}closeAllOv();rH();rA();document.getElementById('aeNt').value='';}
 function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();closeAllOv();rH();rA();}
@@ -1778,7 +1784,7 @@ function decorateHistoryRows(type,rows){
         .map(([k,v])=>{
           const fld=a?.flds?.find(x=>x.nm===k);
           const vs=fld?.t==='opts'?formatOptsFldDisplay(fld,v):null;
-          return k+':'+(vs||(Array.isArray(v)?v.join(', '):v));
+          return k+':'+(vs||(Array.isArray(v)?formatOptsFldDisplay({multi:true},v):String(v)));
         }).join(' ');
       return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};
     });
@@ -2743,8 +2749,16 @@ function commitStagedForSave(batchDt){
       const profile=actListCardProfile(act);
       let flds={};
       if(profile&&typeof DT!=='undefined'&&DT.buildCardActivityFlds)flds=DT.buildCardActivityFlds(profile,st);
-      else if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;
-      else flds[st.fieldNm]=st.val;
+      else{
+        const actFld=act?.flds?.find(x=>x.nm===st.fieldNm&&x.t==='opts');
+        if(st.multi&&Array.isArray(st.vals)){
+          const n=normalizeOptsFldStored(actFld||{multi:true},st.vals);
+          if(n!==undefined)flds[st.fieldNm]=n;
+        }else{
+          const n=normalizeOptsFldStored(actFld||{multi:false},st.val);
+          if(n!==undefined)flds[st.fieldNm]=n;
+        }
+      }
       const row={id:uid(),aid,dt:batchDt,la:now(),flds};
       if(otherNote)row.nt=otherNote;
       S.al.push(row);addedAL.push(row.id);

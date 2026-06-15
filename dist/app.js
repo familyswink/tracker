@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.23';
+const APP_VERSION='2026.05.20.24';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -691,6 +691,27 @@ function numberFieldSpec(f) {
   }
   spec.stepSpec = fieldStepSpec(f);
   spec.colon = spec.stepSpec.mode === 'colon';
+  if (!spec.colon) {
+    if (spec.min == null && spec.max == null) {
+      if (isMinuteUnit(f.u)) {
+        spec.min = 0;
+        spec.max = 180;
+      } else if (isHourUnit(f.u)) {
+        spec.min = 0;
+        spec.max = 24;
+      } else {
+        const u = String(f.u || '').toLowerCase();
+        if (u === 'f' || u === '°f' || u === 'fahrenheit') {
+          spec.min = 32;
+          spec.max = 220;
+        } else if (u === 'c' || u === '°c' || u === 'celsius') {
+          spec.min = 0;
+          spec.max = 100;
+        }
+      }
+    }
+    if (spec.step == null && spec.min != null && spec.max != null) spec.step = 1;
+  }
   return spec;
 }
 
@@ -827,6 +848,53 @@ function actListCardProfile(a) {
   return { listField, valueFields };
 }
 
+/** Choices currently selected on a List field (`multi` ⇒ string[], else string). */
+function optsChosenValues(f, val) {
+  if (val === undefined || val === null || val === '') return [];
+  if (f?.multi) {
+    if (Array.isArray(val)) return val.map(String).filter(Boolean);
+    if (typeof val === 'string') {
+      const s = val.trim();
+      if (!s) return [];
+      try {
+        const p = JSON.parse(s);
+        if (Array.isArray(p)) return p.map(String).filter(Boolean);
+      } catch {
+        /* plain string */
+      }
+      return [s];
+    }
+    return [];
+  }
+  if (Array.isArray(val)) return val.length ? [String(val[0])] : [];
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (!s) return [];
+    try {
+      const p = JSON.parse(s);
+      if (Array.isArray(p) && p.length) return [String(p[0])];
+    } catch {
+      /* plain string */
+    }
+    return [s];
+  }
+  return [String(val)];
+}
+
+function formatOptsFieldDisplay(f, v) {
+  const picked = optsChosenValues(f, v);
+  if (!picked.length) return '';
+  if (f?.multi) return picked.join(', ');
+  return picked[0];
+}
+
+/** Normalize list value for storage (scalar when single-select). */
+function normalizeOptsStored(f, v) {
+  const picked = optsChosenValues(f, v);
+  if (!picked.length) return undefined;
+  return f?.multi ? picked : picked[0];
+}
+
 function defaultsFromFirstOpt(listField, selectedVals) {
   if (!listField?.opts?.length || !selectedVals?.length) return {};
   const first = String(selectedVals[0]);
@@ -847,7 +915,9 @@ function buildCardActivityFlds(profile, pending) {
         ? [String(pending.val)]
         : [];
   if (!vals.length) return flds;
-  flds[listField.nm] = listField.multi ? vals : vals[0];
+  const stored = normalizeOptsStored(listField, listField.multi ? vals : vals[0]);
+  if (stored === undefined) return flds;
+  flds[listField.nm] = stored;
   const defs = defaultsFromFirstOpt(listField, vals);
   for (const ff of valueFields) {
     let raw = defs[ff.nm];
@@ -1206,7 +1276,9 @@ function normalizeActivityExport(flds, act) {
       const v = fieldValueFromFlds(flds, ff);
       if (v === undefined || v === null || v === '') continue;
       const key = slugKey(ff.nm) || 'activity';
-      out[key] = ff.multi && Array.isArray(v) ? v.map(String) : v;
+      if (ff.multi && Array.isArray(v)) out[key] = v.map(String).filter(Boolean);
+      else if (Array.isArray(v)) out[key] = v.length ? String(v[0]) : undefined;
+      else out[key] = v;
       continue;
     }
     if (ff.t === 'number') {
@@ -1708,6 +1780,9 @@ global.DT = {
   shouldUseNumberSelect,
   coalesceNumberValue,
   actListCardProfile,
+  optsChosenValues,
+  formatOptsFieldDisplay,
+  normalizeOptsStored,
   defaultsFromFirstOpt,
   buildCardActivityFlds,
   formatCardDefaultSummary,
@@ -2891,23 +2966,28 @@ function dFI(){S.fd=S.fd.filter(x=>x.id!==_efiId);sv();popOv();rMFL();rF();}
 
 /** Choices currently selected on a logged List field (`multi` ⇒ string[] stored in `S.al`, else string). */
 function optsChosenArray(f,val){
+  if(typeof DT!=='undefined'&&DT.optsChosenValues)return DT.optsChosenValues(f,val);
   if(val===undefined||val===null||val==='')return[];
   if(f.multi){
     if(Array.isArray(val))return val.map(String).filter(Boolean);
-    if(typeof val==='string'){
-      try{const p=JSON.parse(val);if(Array.isArray(p))return p.map(String).filter(Boolean);}catch{}
-      return val.trim()?[val.trim()]:[];
-    }
-    return[];
+    return typeof val==='string'&&val.trim()?[val.trim()]:[];
   }
-  if(typeof val==='string')return val.trim()? [val.trim()]:[];
   if(Array.isArray(val)&&val.length)return[String(val[0])];
-  return[];
+  return typeof val==='string'&&val.trim()?[val.trim()]:[];
 }
 /** Human-readable for cards / history rows. */
 function formatOptsFldDisplay(f,v){
-  if(!f.multi)return(v!==undefined&&v!==null&&String(v)!=='')?String(v):'';
-  return optsChosenArray(f,v).join(', ');
+  if(typeof DT!=='undefined'&&DT.formatOptsFieldDisplay)return DT.formatOptsFieldDisplay(f,v);
+  const picked=optsChosenArray(f,v);
+  if(!picked.length)return'';
+  if(!f.multi)return picked[0];
+  return picked.join(', ');
+}
+function normalizeOptsFldStored(f,v){
+  if(typeof DT!=='undefined'&&DT.normalizeOptsStored)return DT.normalizeOptsStored(f,v);
+  const picked=optsChosenArray(f,v);
+  if(!picked.length)return undefined;
+  return f.multi?picked:picked[0];
 }
 
 // OTHER
@@ -3036,7 +3116,8 @@ function otherOverlayInitialVals(a,ex,aid){
     else if(pend.val!==undefined&&pend.val!==null&&String(pend.val)!=='')picked=[String(pend.val)];
   }
   if(profile&&picked.length){
-    out[profile.listField.nm]=profile.listField.multi?picked:picked[0];
+    const stored=typeof DT!=='undefined'&&DT.normalizeOptsStored?DT.normalizeOptsStored(profile.listField,profile.listField.multi?picked:picked[0]):(profile.listField.multi?picked:picked[0]);
+    if(stored!==undefined)out[profile.listField.nm]=stored;
     const defs=typeof DT!=='undefined'&&DT.defaultsFromFirstOpt?DT.defaultsFromFirstOpt(profile.listField,picked):{};
     (profile.valueFields||[]).forEach(vf=>{
       if(defs[vf.nm]!==undefined&&defs[vf.nm]!==null)out[vf.nm]=defs[vf.nm];
@@ -3114,7 +3195,7 @@ a.flds.forEach(f=>{
   if(f.t==='number'){
     const n=readNumberFieldValue(f);
     if(n!==undefined)flds[f.nm]=n;
-  }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} flds[f.nm]=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else flds[f.nm]=String(h.value||'');}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
+  }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const h=document.getElementById('pickVal-'+slug);if(h){let raw;if(f.multi){let arr=[];try{arr=JSON.parse(String(h.value||'[]'));}catch{arr=[];} raw=Array.isArray(arr)?arr.map(String).filter(Boolean):[];}else raw=String(h.value||'');const n=normalizeOptsFldStored(f,raw);if(n!==undefined)flds[f.nm]=n;}}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
 });
 if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}closeAllOv();rH();rA();document.getElementById('aeNt').value='';}
 function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();closeAllOv();rH();rA();}
@@ -3543,7 +3624,7 @@ function decorateHistoryRows(type,rows){
         .map(([k,v])=>{
           const fld=a?.flds?.find(x=>x.nm===k);
           const vs=fld?.t==='opts'?formatOptsFldDisplay(fld,v):null;
-          return k+':'+(vs||(Array.isArray(v)?v.join(', '):v));
+          return k+':'+(vs||(Array.isArray(v)?formatOptsFldDisplay({multi:true},v):String(v)));
         }).join(' ');
       return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};
     });
@@ -4508,8 +4589,16 @@ function commitStagedForSave(batchDt){
       const profile=actListCardProfile(act);
       let flds={};
       if(profile&&typeof DT!=='undefined'&&DT.buildCardActivityFlds)flds=DT.buildCardActivityFlds(profile,st);
-      else if(st.multi&&Array.isArray(st.vals))flds[st.fieldNm]=st.vals;
-      else flds[st.fieldNm]=st.val;
+      else{
+        const actFld=act?.flds?.find(x=>x.nm===st.fieldNm&&x.t==='opts');
+        if(st.multi&&Array.isArray(st.vals)){
+          const n=normalizeOptsFldStored(actFld||{multi:true},st.vals);
+          if(n!==undefined)flds[st.fieldNm]=n;
+        }else{
+          const n=normalizeOptsFldStored(actFld||{multi:false},st.val);
+          if(n!==undefined)flds[st.fieldNm]=n;
+        }
+      }
       const row={id:uid(),aid,dt:batchDt,la:now(),flds};
       if(otherNote)row.nt=otherNote;
       S.al.push(row);addedAL.push(row.id);

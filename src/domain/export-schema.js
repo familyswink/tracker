@@ -84,7 +84,9 @@ export function normalizeActivityExport(flds, act) {
       const v = fieldValueFromFlds(flds, ff);
       if (v === undefined || v === null || v === '') continue;
       const key = slugKey(ff.nm) || 'activity';
-      out[key] = ff.multi && Array.isArray(v) ? v.map(String) : v;
+      if (ff.multi && Array.isArray(v)) out[key] = v.map(String).filter(Boolean);
+      else if (Array.isArray(v)) out[key] = v.length ? String(v[0]) : undefined;
+      else out[key] = v;
       continue;
     }
     if (ff.t === 'number') {

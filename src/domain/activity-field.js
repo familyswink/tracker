@@ -62,6 +62,27 @@ export function numberFieldSpec(f) {
   }
   spec.stepSpec = fieldStepSpec(f);
   spec.colon = spec.stepSpec.mode === 'colon';
+  if (!spec.colon) {
+    if (spec.min == null && spec.max == null) {
+      if (isMinuteUnit(f.u)) {
+        spec.min = 0;
+        spec.max = 180;
+      } else if (isHourUnit(f.u)) {
+        spec.min = 0;
+        spec.max = 24;
+      } else {
+        const u = String(f.u || '').toLowerCase();
+        if (u === 'f' || u === '°f' || u === 'fahrenheit') {
+          spec.min = 32;
+          spec.max = 220;
+        } else if (u === 'c' || u === '°c' || u === 'celsius') {
+          spec.min = 0;
+          spec.max = 100;
+        }
+      }
+    }
+    if (spec.step == null && spec.min != null && spec.max != null) spec.step = 1;
+  }
   return spec;
 }
 
@@ -198,6 +219,53 @@ export function actListCardProfile(a) {
   return { listField, valueFields };
 }
 
+/** Choices currently selected on a List field (`multi` ⇒ string[], else string). */
+export function optsChosenValues(f, val) {
+  if (val === undefined || val === null || val === '') return [];
+  if (f?.multi) {
+    if (Array.isArray(val)) return val.map(String).filter(Boolean);
+    if (typeof val === 'string') {
+      const s = val.trim();
+      if (!s) return [];
+      try {
+        const p = JSON.parse(s);
+        if (Array.isArray(p)) return p.map(String).filter(Boolean);
+      } catch {
+        /* plain string */
+      }
+      return [s];
+    }
+    return [];
+  }
+  if (Array.isArray(val)) return val.length ? [String(val[0])] : [];
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (!s) return [];
+    try {
+      const p = JSON.parse(s);
+      if (Array.isArray(p) && p.length) return [String(p[0])];
+    } catch {
+      /* plain string */
+    }
+    return [s];
+  }
+  return [String(val)];
+}
+
+export function formatOptsFieldDisplay(f, v) {
+  const picked = optsChosenValues(f, v);
+  if (!picked.length) return '';
+  if (f?.multi) return picked.join(', ');
+  return picked[0];
+}
+
+/** Normalize list value for storage (scalar when single-select). */
+export function normalizeOptsStored(f, v) {
+  const picked = optsChosenValues(f, v);
+  if (!picked.length) return undefined;
+  return f?.multi ? picked : picked[0];
+}
+
 export function defaultsFromFirstOpt(listField, selectedVals) {
   if (!listField?.opts?.length || !selectedVals?.length) return {};
   const first = String(selectedVals[0]);
@@ -218,7 +286,9 @@ export function buildCardActivityFlds(profile, pending) {
         ? [String(pending.val)]
         : [];
   if (!vals.length) return flds;
-  flds[listField.nm] = listField.multi ? vals : vals[0];
+  const stored = normalizeOptsStored(listField, listField.multi ? vals : vals[0]);
+  if (stored === undefined) return flds;
+  flds[listField.nm] = stored;
   const defs = defaultsFromFirstOpt(listField, vals);
   for (const ff of valueFields) {
     let raw = defs[ff.nm];
