@@ -2,6 +2,7 @@
 
 A personal health tracking app for supplements, food, water, activity, and daily notes. Runs entirely in the browser — no account required. Data lives in your browser's local storage and can be synced to Google Drive.
 
+**Ecosystem (all four tools):** [docs/ECOSYSTEM.md](docs/ECOSYSTEM.md) · **User guide:** [docs/USER_GUIDE.md](docs/USER_GUIDE.md) · **Spec standard:** [docs/PRODUCT_SPEC_STANDARD.md](docs/PRODUCT_SPEC_STANDARD.md)  
 **Refactor plan:** see [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for phased architecture work, invariants, and acceptance criteria.  
 **Developers:** Edit `src/app.js`, bump **`src/version.js`** on every release, run `npm run build`, then `npm test`. Settings → About shows the deployed version. See [ARCHITECTURE.md](ARCHITECTURE.md). Daily log dual-writer rules: [docs/DAILY_LOG_DUAL_WRITER.md](docs/DAILY_LOG_DUAL_WRITER.md).  
 **Sibling `oura_loader` repo:** hub [INTEGRATION](../oura_loader/docs/INTEGRATION.md) · [`PRODUCT_SPEC`](../oura_loader/PRODUCT_SPEC.md) · [spec cheat sheet](../oura_loader/docs/spec-locations.md) · [daily log format v2 (MD)](../oura_loader/docs/daily-log-requirements-v2.md) — relative links work when `oura_loader` is cloned beside this repo.
@@ -28,6 +29,8 @@ Track your supplement schedule. Each group (Wake-up, Breakfast, Lunch, Bed, etc.
 - **Manage Supps** — add, edit, or reorder supplements
 - **Manage Timing** — define which supplement appears in which group and at what default quantity
 - **Manage Groups** — add, rename, reorder, or delete supplement groups
+- **Manage Units** — add, delete, or drag-reorder unit labels (e.g. mg, capsule)
+- **Search catalog** — log a supplement not shown on the main list (top search field on Supps tab)
 - **History** — view and edit all past supplement log entries
 
 ### Food
@@ -81,7 +84,7 @@ Configure the app behavior and integrations.
 - **Share on Export** — on iPhone/iPad, Export uses the Share sheet (single `.md` export avoids bogus extra files from the share title).
 - **Drive Folder IDs** — set the Google Drive folder IDs for Daily Logs and backups. Copy only the ID from the folder URL (the part after `/folders/` and before any `?`)
 - **About** — shows deployed build version (bump `src/version.js` each release).
-- **Help** — links to this README
+- **Help** — links to [USER_GUIDE](docs/USER_GUIDE.md) on GitHub
 - **Backup Now** — save a full JSON backup of all your data (logs + config) to `DT_Backup_YYYY-MM-DD.json` on Drive
 - **Restore from Backup** — instructions for restoring from a backup
 - **Clear logs before today** — removes log entries before today; keeps catalog, schedule, and settings

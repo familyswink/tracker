@@ -1,9 +1,9 @@
 # Daily Tracker — Product Requirements
 
-**Status:** Implemented (2026.05.20.15+)  
-**Last updated:** 2026-05-20 (round 5 — export schema, backup-on-save, note wiki, Phase 3 commit)  
+**Status:** Implemented (2026.05.20.19+)  
+**Last updated:** 2026-06-12 (Manage Timing sort, overlay date/time, tab restore, catalog search, qty step, staging fix)  
 
-Related: [REFACTOR_SPEC.md](../REFACTOR_SPEC.md), [DAILY_LOG_DUAL_WRITER.md](DAILY_LOG_DUAL_WRITER.md)
+Related: [USER_GUIDE.md](USER_GUIDE.md), [ECOSYSTEM.md](ECOSYSTEM.md), [PRODUCT_SPEC_STANDARD.md](PRODUCT_SPEC_STANDARD.md), [REFACTOR_SPEC.md](../REFACTOR_SPEC.md), [DAILY_LOG_DUAL_WRITER.md](DAILY_LOG_DUAL_WRITER.md)
 
 ---
 
@@ -55,7 +55,7 @@ Single-file export is a **new combined artifact**; Oura is out of scope for that
 
 ### Settings UX
 
-- **Auto-sync on Save** toggle may be **removed** or **always on** — product default: **always auto-sync** after log commits; confirm during implementation if toggle remains as override.
+- **Auto-sync on Save** toggle remains in Settings (default **on**). When on, log commits trigger Drive sync for affected days.
 
 ### Sync scope after each auto-sync
 
@@ -129,6 +129,39 @@ Each `t: "number"` field in Manage → Entry type:
 
 ---
 
+## REQ-10: Supplement catalog search and staging
+
+- **Search catalog** on Supps tab lists all catalog supplements; off-schedule picks open qty overlay and can log immediately without enabling on main list.
+- Bottom **Save** clears staged supplement checkboxes (`_supSt`, `_supAdhoc`) in place after successful commit.
+
+---
+
+## REQ-11: Per-supplement quantity step
+
+- **Manage Supplements → Edit → Qty step (+/−)** sets overlay increment (e.g. 500 for mg doses). Default behavior unchanged when blank.
+
+---
+
+## REQ-12: Overlay date/time and tab restore
+
+- Overlays inject a tappable date/time bar; opening date/time from an overlay **pushes** on top (does not discard the form).
+- **closeAllOv** restores the tab active when the overlay stack opened.
+- Other overlay save does **not** clear custom `S.gdt` (only bottom Save / global save lifecycle).
+
+---
+
+## REQ-13: Manage Timing sort order
+
+- **Manage Timing** list sorted by supplement **group order**, then **A–Z** by supplement name within group.
+
+---
+
+## Runtime configuration (summary)
+
+See [ECOSYSTEM.md § Tool 1](ECOSYSTEM.md#tool-1--daily-tracker) for the full settings table (`localStorage` `dt6`, `S.cfg`, Drive IDs, tab visibility, `S.gdt`, `S.flSave`).
+
+---
+
 ## Implementation notes
 
 1. **Export single file:** build Tracker-only concatenation for range; never call Oura compose.
@@ -143,3 +176,4 @@ Each `t: "number"` field in Manage → Entry type:
 |------|--------|
 | 2026-05-20 | Round 4: Log has Sync (unchanged) + Export (enhanced); multi export = Oura; single = fresh no Oura; auto-sync all saves; multi-select first-default rule |
 | 2026-05-20 | Round 5: flat export keys; note wiki; backup-on-save; Phase 3 `commitGlobalSave`; SW fresh bundle fetch |
+| 2026-06-12 | REQ-10–13: catalog search, qty step, overlay date/time, tab restore, Manage Timing sort, staging clear fix |
