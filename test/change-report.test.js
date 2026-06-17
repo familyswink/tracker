@@ -7,6 +7,7 @@ import {
   diffDay,
   diffSupplementMid,
   formatChangeLogTime,
+  isStoppedGraceActive,
   pairSupplementLogs,
   prevCalendarDay,
 } from '../src/domain/change-report.js';
@@ -84,11 +85,25 @@ describe('change-report supplements (Model 1)', () => {
   it('forgot to log today marks stopped row with yesterday time', () => {
     const S = stateWithMagnesium();
     S.sl = [{ id: '1', sid: 'sch-b', dt: isoLocal('2026-06-01', 10, 0), qty: 2, sk: false }];
-    const rows = diffDay(S, '2026-06-01', '2026-06-02', 4);
+    const rows = diffDay(S, '2026-06-01', '2026-06-02', 4, new Date(2026, 5, 2, 14, 0, 0));
     assert.equal(rows.length, 1);
     assert.equal(rows[0].was, '2 capsule');
     assert.equal(rows[0].now, '—');
     assert.match(rows[0].time, /Jun 1/);
+  });
+
+  it('stopped row hidden until dose window passes on today', () => {
+    const S = stateWithMagnesium();
+    S.sl = [{ id: '1', sid: 'sch-b', dt: isoLocal('2026-05-18', 10, 0), qty: 2, sk: false }];
+    const noon = new Date(2026, 4, 19, 12, 0, 0);
+    assert.equal(isStoppedGraceActive('2026-05-19', 10 * 60, 4, noon), true);
+    const rowsGrace = diffSupplementMid(S, 'mag1', '2026-05-18', '2026-05-19', 4, noon);
+    assert.equal(rowsGrace.length, 0);
+    const twoPm = new Date(2026, 4, 19, 14, 0, 0);
+    assert.equal(isStoppedGraceActive('2026-05-19', 10 * 60, 4, twoPm), false);
+    const rowsMiss = diffSupplementMid(S, 'mag1', '2026-05-18', '2026-05-19', 4, twoPm);
+    assert.equal(rowsMiss.length, 1);
+    assert.equal(rowsMiss[0].now, '—');
   });
 
   it('no log yesterday or today produces no rows', () => {

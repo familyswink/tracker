@@ -18,6 +18,8 @@ import {
   stepFieldHelpText,
   withEmptyNumberOption,
   NUMBER_SELECT_EMPTY,
+  fieldUseWheel,
+  pendingListVals,
 } from '../src/domain/activity-field.js';
 
 describe('numberFieldSpec', () => {
@@ -156,6 +158,27 @@ describe('card Save flds', () => {
     assert.equal(flds.Duration, 10);
   });
 
+  it('single-select ignores stale multi pending vals', () => {
+    const profile = actListCardProfile({
+      inline: true,
+      flds: [
+        { nm: 'Activity', t: 'opts', multi: false, opts: [{ v: 'Warm Shower' }, { v: 'Cold Plunge' }] },
+      ],
+    });
+    const flds = buildCardActivityFlds(profile, {
+      fieldNm: 'Activity',
+      val: 'Cold Plunge',
+      multi: true,
+      vals: ['Warm Shower'],
+    });
+    assert.equal(flds.Activity, 'Cold Plunge');
+  });
+
+  it('pendingListVals uses field schema not stale pending.multi', () => {
+    const lf = { nm: 'Activity', t: 'opts', multi: false, opts: [{ v: 'A' }, { v: 'B' }] };
+    assert.deepEqual(pendingListVals(lf, { fieldNm: 'Activity', val: 'B', multi: true, vals: ['A'] }), ['B']);
+  });
+
   it('omits null default fields', () => {
     const profile = actListCardProfile({
       inline: true,
@@ -173,6 +196,13 @@ describe('card Save flds', () => {
   it('defaultsFromFirstOpt picks first selected', () => {
     const lf = a.flds[0];
     assert.deepEqual(defaultsFromFirstOpt(lf, ['Sauna', 'Cold Plunge']), { Duration: 15, Temperature: 170 });
+  });
+});
+
+describe('fieldUseWheel', () => {
+  it('defaults to wheel on for number fields', () => {
+    assert.equal(fieldUseWheel({ t: 'number', u: 'minutes' }), true);
+    assert.equal(fieldUseWheel({ t: 'number', wheel: false }), false);
   });
 });
 

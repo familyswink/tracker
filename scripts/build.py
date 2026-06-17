@@ -73,6 +73,7 @@ global.DT = {{
   YAML_JOURNAL_FENCE_MARKER,
   numberFieldSpec,
   shouldUseNumberSelect,
+  fieldUseWheel,
   coalesceNumberValue,
   actListCardProfile,
   optsChosenValues,

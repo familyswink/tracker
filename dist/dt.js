@@ -788,6 +788,11 @@ function withEmptyNumberOption(opts) {
   return [NUMBER_SELECT_EMPTY, ...(opts || [])];
 }
 
+/** Number fields use scroll wheel by default; set wheel: false for manual entry. */
+function fieldUseWheel(f) {
+  return !!(f && f.t === 'number' && f.wheel !== false);
+}
+
 function shouldUseNumberSelect(spec, f) {
   if (spec.colon || (f && isColonStepField(f))) {
     return colonSelectOptions(f).length >= 1 && colonSelectOptions(f).length <= 300;
@@ -901,17 +906,28 @@ function defaultsFromFirstOpt(listField, selectedVals) {
   return { ...opt.defaults };
 }
 
+/** Resolve list choices from pending state (uses field schema, not stale pending.multi). */
+function pendingListVals(listField, pending) {
+  if (!listField || !pending || pending.fieldNm !== listField.nm) return [];
+  if (listField.multi) {
+    if (Array.isArray(pending.vals)) return pending.vals.map(String).filter(Boolean);
+    if (pending.val !== undefined && pending.val !== null && String(pending.val) !== '') {
+      return [String(pending.val)];
+    }
+    return [];
+  }
+  if (pending.val !== undefined && pending.val !== null && String(pending.val) !== '') {
+    return [String(pending.val)];
+  }
+  return [];
+}
+
 /** Build flds for card Save; null/undefined numeric defaults are omitted. */
 function buildCardActivityFlds(profile, pending) {
   const flds = {};
   if (!profile?.listField || !pending) return flds;
   const { listField, valueFields } = profile;
-  const vals =
-    pending.multi && Array.isArray(pending.vals)
-      ? pending.vals.map(String).filter(Boolean)
-      : pending.val !== undefined && pending.val !== null && String(pending.val) !== ''
-        ? [String(pending.val)]
-        : [];
+  const vals = pendingListVals(listField, pending);
   if (!vals.length) return flds;
   const stored = normalizeOptsStored(listField, listField.multi ? vals : vals[0]);
   if (stored === undefined) return flds;
@@ -1509,6 +1525,23 @@ function ymdToSortMs(ymd, iso) {
   return base.getTime();
 }
 
+/** Clock time (minutes) when a prior-day dose is considered missed on the comparison day. */
+function doseDeadlineMinutesOnDay(prevTimeMin, windowHours) {
+  const wh = Number(windowHours) > 0 ? Number(windowHours) : 4;
+  if (prevTimeMin == null) return null;
+  return prevTimeMin + wh * 60;
+}
+
+/** Hide "stopped" rows on today until the prior dose time + change window has passed. */
+function isStoppedGraceActive(comparisonYmd, prevTimeMin, windowHours, asOf = new Date()) {
+  const today = localDateYMD(asOf);
+  if (comparisonYmd !== today) return false;
+  const deadline = doseDeadlineMinutesOnDay(prevTimeMin, windowHours);
+  if (deadline == null) return false;
+  const nowMin = asOf.getHours() * 60 + asOf.getMinutes();
+  return nowMin < deadline;
+}
+
 /** Sort rows by comparison date, then clock time on that day. */
 function sortChangeReportRows(rows) {
   return [...rows].sort((a, b) => {
@@ -1527,7 +1560,7 @@ function totalLogQty(logs) {
 }
 
 /** @returns {Array<{ date, item, was, now, time }>} */
-function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
+function diffSupplementMid(state, mid, prevYmd, ymd, windowHours, asOf = new Date()) {
   const prevLogs = collectSupplementLogs(state, prevYmd, mid);
   const currLogs = collectSupplementLogs(state, ymd, mid);
   if (!prevLogs.length && !currLogs.length) return [];
@@ -1544,6 +1577,7 @@ function diffSupplementMid(state, mid, prevYmd, ymd, windowHours) {
   for (const p of pairSupplementLogs(prevLogs, currLogs, windowHours)) {
     if (p.kind === 'same') continue;
     if (p.kind === 'stopped') {
+      if (isStoppedGraceActive(ymd, p.prev.timeMin, windowHours, asOf)) continue;
       rows.push({
         date: ymd,
         item,
@@ -1667,14 +1701,14 @@ function diffOtherActivity(state, aid, prevYmd, ymd) {
   return rows;
 }
 
-function diffDay(state, prevYmd, ymd, windowHours) {
+function diffDay(state, prevYmd, ymd, windowHours, asOf = new Date()) {
   const rows = [];
   const wh = Number(windowHours) > 0 ? Number(windowHours) : 4;
 
   for (const m of state.sm || []) {
     if (!isTrackChangeSupp(m)) continue;
     if (m.name === 'Water') continue;
-    rows.push(...diffSupplementMid(state, m.id, prevYmd, ymd, wh));
+    rows.push(...diffSupplementMid(state, m.id, prevYmd, ymd, wh, asOf));
   }
 
   for (const f of state.fd || []) {
@@ -1695,13 +1729,14 @@ function diffDay(state, prevYmd, ymd, windowHours) {
 }
 
 /** Only rows where something changed (no quiet days). */
-function buildChangeReport(state, startYmd, endYmd, windowHours) {
+function buildChangeReport(state, startYmd, endYmd, windowHours, asOf = new Date()) {
   const days = datesInRangeInclusive(startYmd, endYmd);
   const wh = Number(windowHours) > 0 ? Number(windowHours) : 4;
+  const asOfDate = asOf instanceof Date && !isNaN(asOf.getTime()) ? asOf : new Date();
   const rows = [];
   for (const date of days) {
     const prev = prevCalendarDay(date);
-    rows.push(...diffDay(state, prev, date, wh));
+    rows.push(...diffDay(state, prev, date, wh, asOfDate));
   }
   return sortChangeReportRows(rows);
 }
@@ -1776,6 +1811,7 @@ global.DT = {
   YAML_JOURNAL_FENCE_MARKER,
   numberFieldSpec,
   shouldUseNumberSelect,
+  fieldUseWheel,
   coalesceNumberValue,
   actListCardProfile,
   optsChosenValues,

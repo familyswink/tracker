@@ -161,6 +161,11 @@ export function withEmptyNumberOption(opts) {
   return [NUMBER_SELECT_EMPTY, ...(opts || [])];
 }
 
+/** Number fields use scroll wheel by default; set wheel: false for manual entry. */
+export function fieldUseWheel(f) {
+  return !!(f && f.t === 'number' && f.wheel !== false);
+}
+
 export function shouldUseNumberSelect(spec, f) {
   if (spec.colon || (f && isColonStepField(f))) {
     return colonSelectOptions(f).length >= 1 && colonSelectOptions(f).length <= 300;
@@ -274,17 +279,28 @@ export function defaultsFromFirstOpt(listField, selectedVals) {
   return { ...opt.defaults };
 }
 
+/** Resolve list choices from pending state (uses field schema, not stale pending.multi). */
+export function pendingListVals(listField, pending) {
+  if (!listField || !pending || pending.fieldNm !== listField.nm) return [];
+  if (listField.multi) {
+    if (Array.isArray(pending.vals)) return pending.vals.map(String).filter(Boolean);
+    if (pending.val !== undefined && pending.val !== null && String(pending.val) !== '') {
+      return [String(pending.val)];
+    }
+    return [];
+  }
+  if (pending.val !== undefined && pending.val !== null && String(pending.val) !== '') {
+    return [String(pending.val)];
+  }
+  return [];
+}
+
 /** Build flds for card Save; null/undefined numeric defaults are omitted. */
 export function buildCardActivityFlds(profile, pending) {
   const flds = {};
   if (!profile?.listField || !pending) return flds;
   const { listField, valueFields } = profile;
-  const vals =
-    pending.multi && Array.isArray(pending.vals)
-      ? pending.vals.map(String).filter(Boolean)
-      : pending.val !== undefined && pending.val !== null && String(pending.val) !== ''
-        ? [String(pending.val)]
-        : [];
+  const vals = pendingListVals(listField, pending);
   if (!vals.length) return flds;
   const stored = normalizeOptsStored(listField, listField.multi ? vals : vals[0]);
   if (stored === undefined) return flds;
