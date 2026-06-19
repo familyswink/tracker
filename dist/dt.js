@@ -788,6 +788,32 @@ function withEmptyNumberOption(opts) {
   return [NUMBER_SELECT_EMPTY, ...(opts || [])];
 }
 
+/** List field nm accidentally set to a choice label (legacy bug). */
+function listFieldLooksMisnamed(f) {
+  if (!f || f.t !== 'opts') return false;
+  const choices = new Set((f.opts || []).map((o) => String(o.v)));
+  return choices.has(String(f.nm));
+}
+
+/** Stable storage key for a List field — never a choice label. */
+function resolveListFieldKey(typeNm, listOrdinal, listRowsCount, opts, preferred) {
+  const choices = new Set((opts || []).map((o) => String(o.v)));
+  const pref = String(preferred || '').trim();
+  if (listRowsCount === 1) {
+    if (pref && !choices.has(pref)) return pref;
+    return typeNm;
+  }
+  if (pref && !choices.has(pref)) return pref;
+  return listOrdinal === 1 ? typeNm : `${typeNm} (${listOrdinal})`;
+}
+
+/** Label shown when logging; hides misnamed internal keys. */
+function listFieldDisplayLabel(f, actNm) {
+  if (!f || f.t !== 'opts') return f?.nm || '';
+  if (listFieldLooksMisnamed(f)) return actNm || 'Choose';
+  return f.nm;
+}
+
 /** Number fields use scroll wheel by default; set wheel: false for manual entry. */
 function fieldUseWheel(f) {
   return !!(f && f.t === 'number' && f.wheel !== false);
@@ -1342,6 +1368,7 @@ function pruneExportPayload(payload) {
  */
 
 
+
 function prevCalendarDay(ymd) {
   const p = String(ymd).split('-').map((x) => parseInt(x, 10));
   const d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
@@ -1671,7 +1698,13 @@ function otherEntryLabel(state, entry) {
   const parts = [type];
   for (const [k, v] of Object.entries(entry.flds || {})) {
     if (v === '' || v == null || (Array.isArray(v) && !v.length)) continue;
-    parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    const fld = (act?.flds || []).find((x) => x.nm === k);
+    if (fld?.t === 'opts') {
+      const disp = formatOptsFieldDisplay(fld, v);
+      if (disp) parts.push(disp);
+    } else {
+      parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    }
   }
   if (entry.nt && String(entry.nt).trim()) parts.push('notes: ' + entry.nt.trim());
   return parts.join(' — ');
@@ -1812,6 +1845,10 @@ global.DT = {
   numberFieldSpec,
   shouldUseNumberSelect,
   fieldUseWheel,
+  pendingListVals,
+  listFieldLooksMisnamed,
+  listFieldDisplayLabel,
+  resolveListFieldKey,
   coalesceNumberValue,
   actListCardProfile,
   optsChosenValues,

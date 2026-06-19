@@ -161,6 +161,32 @@ export function withEmptyNumberOption(opts) {
   return [NUMBER_SELECT_EMPTY, ...(opts || [])];
 }
 
+/** List field nm accidentally set to a choice label (legacy bug). */
+export function listFieldLooksMisnamed(f) {
+  if (!f || f.t !== 'opts') return false;
+  const choices = new Set((f.opts || []).map((o) => String(o.v)));
+  return choices.has(String(f.nm));
+}
+
+/** Stable storage key for a List field — never a choice label. */
+export function resolveListFieldKey(typeNm, listOrdinal, listRowsCount, opts, preferred) {
+  const choices = new Set((opts || []).map((o) => String(o.v)));
+  const pref = String(preferred || '').trim();
+  if (listRowsCount === 1) {
+    if (pref && !choices.has(pref)) return pref;
+    return typeNm;
+  }
+  if (pref && !choices.has(pref)) return pref;
+  return listOrdinal === 1 ? typeNm : `${typeNm} (${listOrdinal})`;
+}
+
+/** Label shown when logging; hides misnamed internal keys. */
+export function listFieldDisplayLabel(f, actNm) {
+  if (!f || f.t !== 'opts') return f?.nm || '';
+  if (listFieldLooksMisnamed(f)) return actNm || 'Choose';
+  return f.nm;
+}
+
 /** Number fields use scroll wheel by default; set wheel: false for manual entry. */
 export function fieldUseWheel(f) {
   return !!(f && f.t === 'number' && f.wheel !== false);

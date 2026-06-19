@@ -5,6 +5,7 @@
  */
 
 import { isoToLocalYMD, localDateYMD, onLogDay } from '../core/date.js';
+import { formatOptsFieldDisplay } from './activity-field.js';
 
 export function prevCalendarDay(ymd) {
   const p = String(ymd).split('-').map((x) => parseInt(x, 10));
@@ -335,7 +336,13 @@ function otherEntryLabel(state, entry) {
   const parts = [type];
   for (const [k, v] of Object.entries(entry.flds || {})) {
     if (v === '' || v == null || (Array.isArray(v) && !v.length)) continue;
-    parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    const fld = (act?.flds || []).find((x) => x.nm === k);
+    if (fld?.t === 'opts') {
+      const disp = formatOptsFieldDisplay(fld, v);
+      if (disp) parts.push(disp);
+    } else {
+      parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    }
   }
   if (entry.nt && String(entry.nt).trim()) parts.push('notes: ' + entry.nt.trim());
   return parts.join(' — ');

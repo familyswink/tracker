@@ -20,6 +20,9 @@ import {
   NUMBER_SELECT_EMPTY,
   fieldUseWheel,
   pendingListVals,
+  listFieldLooksMisnamed,
+  listFieldDisplayLabel,
+  resolveListFieldKey,
 } from '../src/domain/activity-field.js';
 
 describe('numberFieldSpec', () => {
@@ -203,6 +206,26 @@ describe('fieldUseWheel', () => {
   it('defaults to wheel on for number fields', () => {
     assert.equal(fieldUseWheel({ t: 'number', u: 'minutes' }), true);
     assert.equal(fieldUseWheel({ t: 'number', wheel: false }), false);
+  });
+});
+
+describe('list field naming', () => {
+  const opts = [{ v: 'Cold Plunge' }, { v: 'Pool Plunge' }, { v: 'Sauna' }];
+
+  it('detects misnamed list field (nm matches a choice)', () => {
+    assert.equal(listFieldLooksMisnamed({ t: 'opts', nm: 'Pool Plunge', opts }), true);
+    assert.equal(listFieldLooksMisnamed({ t: 'opts', nm: 'Fire & Ice', opts }), false);
+  });
+
+  it('resolveListFieldKey never uses a choice label', () => {
+    assert.equal(resolveListFieldKey('Fire & Ice', 1, 1, opts, 'Pool Plunge'), 'Fire & Ice');
+    assert.equal(resolveListFieldKey('Fire & Ice', 1, 1, opts, ''), 'Fire & Ice');
+    assert.equal(resolveListFieldKey('Fire & Ice', 1, 1, opts, 'Pick one'), 'Pick one');
+  });
+
+  it('listFieldDisplayLabel hides misnamed keys', () => {
+    assert.equal(listFieldDisplayLabel({ t: 'opts', nm: 'Pool Plunge', opts }, 'Fire & Ice'), 'Fire & Ice');
+    assert.equal(listFieldDisplayLabel({ t: 'opts', nm: 'Activity', opts }, 'Fire & Ice'), 'Activity');
   });
 });
 

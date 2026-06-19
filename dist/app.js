@@ -1,5 +1,5 @@
 /* Daily Tracker — dist/app.js (generated; npm run build) */
-const APP_VERSION='2026.05.20.25';
+const APP_VERSION='2026.05.20.26';
 /* Daily Tracker — journal + domain (dual-writer, Phase 2) */
 (function (global) {
 'use strict';
@@ -790,6 +790,32 @@ function withEmptyNumberOption(opts) {
   return [NUMBER_SELECT_EMPTY, ...(opts || [])];
 }
 
+/** List field nm accidentally set to a choice label (legacy bug). */
+function listFieldLooksMisnamed(f) {
+  if (!f || f.t !== 'opts') return false;
+  const choices = new Set((f.opts || []).map((o) => String(o.v)));
+  return choices.has(String(f.nm));
+}
+
+/** Stable storage key for a List field — never a choice label. */
+function resolveListFieldKey(typeNm, listOrdinal, listRowsCount, opts, preferred) {
+  const choices = new Set((opts || []).map((o) => String(o.v)));
+  const pref = String(preferred || '').trim();
+  if (listRowsCount === 1) {
+    if (pref && !choices.has(pref)) return pref;
+    return typeNm;
+  }
+  if (pref && !choices.has(pref)) return pref;
+  return listOrdinal === 1 ? typeNm : `${typeNm} (${listOrdinal})`;
+}
+
+/** Label shown when logging; hides misnamed internal keys. */
+function listFieldDisplayLabel(f, actNm) {
+  if (!f || f.t !== 'opts') return f?.nm || '';
+  if (listFieldLooksMisnamed(f)) return actNm || 'Choose';
+  return f.nm;
+}
+
 /** Number fields use scroll wheel by default; set wheel: false for manual entry. */
 function fieldUseWheel(f) {
   return !!(f && f.t === 'number' && f.wheel !== false);
@@ -1344,6 +1370,7 @@ function pruneExportPayload(payload) {
  */
 
 
+
 function prevCalendarDay(ymd) {
   const p = String(ymd).split('-').map((x) => parseInt(x, 10));
   const d = new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
@@ -1673,7 +1700,13 @@ function otherEntryLabel(state, entry) {
   const parts = [type];
   for (const [k, v] of Object.entries(entry.flds || {})) {
     if (v === '' || v == null || (Array.isArray(v) && !v.length)) continue;
-    parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    const fld = (act?.flds || []).find((x) => x.nm === k);
+    if (fld?.t === 'opts') {
+      const disp = formatOptsFieldDisplay(fld, v);
+      if (disp) parts.push(disp);
+    } else {
+      parts.push(k + ': ' + (Array.isArray(v) ? v.join(', ') : String(v)));
+    }
   }
   if (entry.nt && String(entry.nt).trim()) parts.push('notes: ' + entry.nt.trim());
   return parts.join(' — ');
@@ -1814,6 +1847,10 @@ global.DT = {
   numberFieldSpec,
   shouldUseNumberSelect,
   fieldUseWheel,
+  pendingListVals,
+  listFieldLooksMisnamed,
+  listFieldDisplayLabel,
+  resolveListFieldKey,
   coalesceNumberValue,
   actListCardProfile,
   optsChosenValues,
@@ -2128,8 +2165,40 @@ function resolveAdhocSid(mid){
 const LOG_DATA_CUTOFF='2026-05-18';
 const LOG_DATA_BAD_DAY='2026-05-19';
 function logEntryDay(e){return DT.logEntryDay(e);}
+function migrateActivityListFieldNames(){
+  if(S.cfg&&S.cfg._actListNmMigrate20260520)return;
+  let changed=false;
+  const looksMisnamed=typeof DT!=='undefined'&&DT.listFieldLooksMisnamed?DT.listFieldLooksMisnamed:(f=>{
+    if(!f||f.t!=='opts')return false;
+    const choices=new Set((f.opts||[]).map(o=>String(o.v)));
+    return choices.has(String(f.nm));
+  });
+  for(const act of S.acts||[]){
+    const listFlds=(act.flds||[]).filter(f=>f.t==='opts');
+    listFlds.forEach((lf,i)=>{
+      if(!looksMisnamed(lf))return;
+      const newNm=listFlds.length===1?act.nm:(i===0?act.nm:act.nm+' ('+(i+1)+')');
+      if(newNm===lf.nm)return;
+      const oldNm=lf.nm;
+      lf.nm=newNm;
+      for(const entry of S.al||[]){
+        if(entry.aid!==act.id||!entry.flds||!(oldNm in entry.flds))continue;
+        entry.flds[newNm]=entry.flds[oldNm];
+        delete entry.flds[oldNm];
+      }
+      changed=true;
+    });
+  }
+  if(!S.cfg)S.cfg={autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}};
+  S.cfg._actListNmMigrate20260520=true;
+  if(changed)sv();else sv();
+}
+
 function migrateStoredLogsOnce(){
-  if(S.cfg&&S.cfg._logMigrate20260520)return;
+  if(S.cfg&&S.cfg._logMigrate20260520){
+    migrateActivityListFieldNames();
+    return;
+  }
   const fixDt=iso=>{
     if(isoToLocalYMD(iso)===LOG_DATA_BAD_DAY)return dateAndTimeToISO(LOG_DATA_CUTOFF,isoToTimeLocal(iso));
     return iso;
@@ -2145,6 +2214,7 @@ function migrateStoredLogsOnce(){
   if(!S.cfg)S.cfg={autoSync:false,shareOnSave:true,driveIds:{...DRIVE_IDS}};
   S.cfg._logMigrate20260520=true;
   sv();
+  migrateActivityListFieldNames();
 }
 
 function purgeLogsBeforeToday(){
@@ -3030,14 +3100,19 @@ function formatOptsFldDisplay(f,v){
   if(!f.multi)return picked[0];
   return picked.join(', ');
 }
-function normalizeOptsFldStored(f,v){
-  if(typeof DT!=='undefined'&&DT.normalizeOptsStored)return DT.normalizeOptsStored(f,v);
-  const picked=optsChosenArray(f,v);
-  if(!picked.length)return undefined;
-  return f.multi?picked:picked[0];
+function otherFldHistoryPart(a,k,v){
+  const fld=a?.flds?.find(x=>x.nm===k);
+  if(fld?.t==='opts'){
+    const vs=formatOptsFldDisplay(fld,v);
+    return vs||'';
+  }
+  const disp=Array.isArray(v)?v.join(', '):String(v);
+  return k+': '+disp;
 }
-
-// OTHER
+function listFieldUiLabel(f,actNm){
+  if(typeof DT!=='undefined'&&DT.listFieldDisplayLabel)return DT.listFieldDisplayLabel(f,actNm);
+  return f?.nm||'';
+}
 function actQuickField(a){
   if(a.inline===false)return null;
   if(!a.flds||a.flds.length!==1)return null;
@@ -3146,7 +3221,7 @@ function rA(){
     }else{
       const le=todayAL.length?todayAL[todayAL.length-1]:null;
       card.className='ac';card.onclick=()=>oAE(a.id,null);
-      let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];const disp=f.t==='opts'?formatOptsFldDisplay(f,v):null;if(f.t==='opts')return disp?'<div class="ach">'+escHTML(f.nm)+': '+escHTML(disp)+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+(f.multi?' · multi ':' ')+'('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
+      let fh=le?a.flds.map(f=>{const v=le.flds[f.nm];const disp=f.t==='opts'?formatOptsFldDisplay(f,v):null;if(f.t==='opts')return disp?'<div class="ach">'+escHTML(disp)+'</div>':'';return(v!==undefined&&v!=='')? '<div class="ach">'+escHTML(f.nm)+': '+escHTML(String(v))+(f.u&&f.t==='number'?' '+escHTML(f.u):'')+'</div>':''}).join(''):a.flds.filter(f=>f.t!=='text').map(f=>f.t==='opts'?'<div class="ach">'+escHTML(f.nm)+(f.multi?' · multi ':' ')+'('+(f.opts||[]).length+' choices)</div>':'<div class="ach">'+escHTML(f.nm)+(f.u?' ('+escHTML(f.u)+')':'')+'</div>').join('');
       card.innerHTML='<div><div class="an">'+escHTML(a.nm)+'</div>'+(todayAL.length?'<div class="as2">'+todayAL.length+' logged today'+(le?' \xb7 last '+f12(le.dt):'')+'</div>':'')+'</div><div class="af">'+fh+'</div>';
     }
     c.appendChild(card);
@@ -3188,7 +3263,8 @@ function oAE(aid,logId){
     const val=ex&&ex.flds?ex.flds[f.nm]:init[f.nm];const div=document.createElement('div');div.className='fld';
     if(f.t==='opts'){
       const slug=f.nm.replace(/\s/g,'_');const opts=f.opts||[];
-      const ttl=document.createElement('div');ttl.className='fl';ttl.textContent=f.nm+(f.multi?' · tap all that apply':'');
+      const ttl=document.createElement('div');ttl.className='fl';
+      ttl.textContent=listFieldUiLabel(f,a.nm)+(f.multi?' · tap all that apply':'');
       const outer=document.createElement('div');outer.className='bwg';outer.id='pickBox-'+slug;
       const hid=document.createElement('input');hid.type='hidden';hid.id='pickVal-'+slug;
       const picked=optsChosenArray(f,val);
@@ -3384,11 +3460,23 @@ function appendEatOptsMultiCheckbox(row,f){
   lab.appendChild(cb);lab.appendChild(document.createTextNode('Allow multiple selections'));
   row.appendChild(lab);
 }
+function appendEatListNmRow(row,f){
+  const wrap=document.createElement('div');wrap.className='fld eat-list-nm-wrap';wrap.style.marginTop='6px';
+  const lab=document.createElement('div');lab.className='fl';lab.style.fontSize='8px';lab.textContent='Field label when logging (blank = type name)';
+  const inp=document.createElement('input');inp.type='text';inp.className='eat-list-nm';inp.placeholder='e.g. Activity';
+  const choiceSet=new Set((f?.opts||[]).map(o=>String(o.v)));
+  const nm=f?.nm||'';
+  inp.value=choiceSet.has(String(nm))?'':nm;
+  wrap.appendChild(lab);wrap.appendChild(inp);row.appendChild(wrap);
+}
 function addFldRow(f){
   const list=document.getElementById('eatFldList');if(list.children.length>=5){shT('Max 5 fields');return;}
   const t=f?.t||'number';
   const row=document.createElement('div');row.className='fld-type-row';
-  if(t==='opts'&&f?.nm)row.dataset.listKey=f.nm;
+  if(t==='opts'&&f?.nm){
+    const choiceSet=new Set((f.opts||[]).map(o=>String(o.v)));
+    row.dataset.listKey=choiceSet.has(String(f.nm))?'':f.nm;
+  }
   if(t!=='opts'){
     const wrap=document.createElement('div');wrap.className='eat-fld-nm-wrap';
     const nmInp=document.createElement('input');nmInp.type='text';nmInp.className='eat-fld-nm';nmInp.placeholder='Field name (e.g. Duration)';nmInp.value=f?.nm||'';
@@ -3406,18 +3494,18 @@ function addFldRow(f){
     row.appendChild(di);
     appendEatNumberExtras(row,f);
   }else if(t==='opts'){
-    row.appendChild(mkEatOptsWrap(f));appendEatOptsMultiCheckbox(row,f);
+    row.appendChild(mkEatOptsWrap(f));appendEatOptsMultiCheckbox(row,f);appendEatListNmRow(row,f);
   }
   list.appendChild(row);document.getElementById('eatAddFld').style.display=list.children.length>=5?'none':'block';
 }
 function setFT(btn,t){
   const row=btn.closest('.fld-type-row');
   row.querySelectorAll('.ftb').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');
-  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.fr2')?.remove();row.querySelector('.eat-wheel-row')?.remove();row.querySelector('.ssb')?.remove();row.querySelector('.eat-opts-wrap')?.remove();row.querySelector('.eat-multi-row')?.remove();
+  row.querySelector('.fld-u')?.remove();row.querySelector('.fld-def')?.remove();row.querySelector('.fr2')?.remove();row.querySelector('.eat-wheel-row')?.remove();row.querySelector('.ssb')?.remove();row.querySelector('.eat-list-nm-wrap')?.remove();row.querySelector('.eat-opts-wrap')?.remove();row.querySelector('.eat-multi-row')?.remove();
   if(t==='opts'){
     row.querySelector('.eat-fld-nm-wrap')?.remove();
     delete row.dataset.listKey;
-    row.appendChild(mkEatOptsWrap(null));appendEatOptsMultiCheckbox(row,null);
+    row.appendChild(mkEatOptsWrap(null));appendEatOptsMultiCheckbox(row,null);appendEatListNmRow(row,null);
     return;
   }
   if(!row.querySelector('input.eat-fld-nm')){
@@ -3469,11 +3557,19 @@ function cfEAT(){
       });
       if(!opts.length){
         if(firstEmptyInp){firstEmptyInp.classList.add('eat-miss-err');firstEmptyInp.scrollIntoView({behavior:'smooth',block:'nearest'});}
-        const fieldLabel=(row.dataset.listKey&&row.dataset.listKey.trim())||nm;
-        shT('List field "'+fieldLabel+'" needs at least one choice with a label');return;
+        shT('List field needs at least one choice with a label');return;
       }
+      const customListNm=(row.querySelector('.eat-list-nm')?.value||'').trim();
       const persisted=(row.dataset.listKey&&row.dataset.listKey.trim())||'';
-      const fieldKey=persisted||(listRowsCount===1?nm:(listOrdinal===1?nm:nm+' ('+listOrdinal+')'));
+      const preferred=customListNm||persisted;
+      const resolveKey=typeof DT!=='undefined'&&DT.resolveListFieldKey?DT.resolveListFieldKey:(typeNm,ord,cnt,op,pref)=>{
+        const choices=new Set((op||[]).map(o=>String(o.v)));
+        const p=String(pref||'').trim();
+        if(cnt===1)return p&&!choices.has(p)?p:typeNm;
+        if(p&&!choices.has(p))return p;
+        return ord===1?typeNm:typeNm+' ('+ord+')';
+      };
+      const fieldKey=resolveKey(nm,listOrdinal,listRowsCount,opts,preferred);
       const multiOn=!!row.querySelector('.eat-opt-multi')?.checked;
       const listDef={nm:fieldKey,t:'opts',opts};
       if(multiOn)listDef.multi=true;
@@ -3673,11 +3769,9 @@ function decorateHistoryRows(type,rows){
       const a=S.acts.find(x=>x.id===e.aid);
       const fs=Object.entries(e.flds||{})
         .filter(([k,v])=>v!==''&&v!==undefined&&!(Array.isArray(v)&&!v.length))
-        .map(([k,v])=>{
-          const fld=a?.flds?.find(x=>x.nm===k);
-          const vs=fld?.t==='opts'?formatOptsFldDisplay(fld,v):null;
-          return k+':'+(vs||(Array.isArray(v)?formatOptsFldDisplay({multi:true},v):String(v)));
-        }).join(' ');
+        .map(([k,v])=>otherFldHistoryPart(a,k,v))
+        .filter(Boolean)
+        .join(' · ');
       return{...e,_lb:(a?.nm||'?')+(fs?' - '+fs:''),_fn:"oAEbyLId('"+e.id+"')"};
     });
   }
