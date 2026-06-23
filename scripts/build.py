@@ -34,6 +34,8 @@ def main():
         read_stripped("src/domain/note-wiki.js"),
         read_stripped("src/domain/export-schema.js"),
         read_stripped("src/domain/change-report.js"),
+        read_stripped("src/domain/period-export.js"),
+        read_stripped("src/domain/supp-history.js"),
     ]
     domain_body = "\n".join(parts)
     journal_part = f"""/* Daily Tracker — journal + domain (dual-writer, Phase 2) */
@@ -135,6 +137,15 @@ global.DT = {{
   isTrackChangeFood,
   isTrackChangeAct,
   isTrackChangeWater,
+  shouldCheckPeriodExports,
+  periodBoundaryExports,
+  datesInCalendarMonth,
+  datesInQuarter,
+  datesInYear,
+  MONTH_EXPORT_NAMES,
+  slEntryMid,
+  validateBulkChangeSelection,
+  validateTemplateOnePerDay,
 }};
 }})(typeof globalThis !== 'undefined' ? globalThis : window);
 """

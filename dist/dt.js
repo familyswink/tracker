@@ -1811,6 +1811,173 @@ function formatChangeReportCsv(rows) {
   return lines.join('\n');
 }
 
+/**
+ * Calendar period exports (month / quarter / year combined daily logs).
+ */
+
+
+const MONTH_EXPORT_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function calendarMonthKey(y, m) {
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+function quarterNumber(month1) {
+  return Math.floor((month1 - 1) / 3) + 1;
+}
+
+function datesInCalendarMonth(y, m) {
+  const out = [];
+  const dt = new Date(y, m - 1, 1);
+  while (dt.getMonth() === m - 1) {
+    out.push(localDateYMD(dt));
+    dt.setDate(dt.getDate() + 1);
+  }
+  return out;
+}
+
+function datesInQuarter(y, q) {
+  const startMonth = (q - 1) * 3 + 1;
+  return [0, 1, 2].flatMap((i) => datesInCalendarMonth(y, startMonth + i));
+}
+
+function datesInYear(y) {
+  const out = [];
+  for (let m = 1; m <= 12; m++) out.push(...datesInCalendarMonth(y, m));
+  return out;
+}
+
+/** True when save day crossed month, quarter, or year vs previous save. */
+function shouldCheckPeriodExports(prevSaveYmd, saveYmd) {
+  if (!saveYmd) return false;
+  if (!prevSaveYmd) return true;
+  if (saveYmd.slice(0, 7) !== prevSaveYmd.slice(0, 7)) return true;
+  const [y, mo] = saveYmd.split('-').map(Number);
+  const [py, pm] = prevSaveYmd.split('-').map(Number);
+  if (quarterNumber(mo) !== quarterNumber(pm) || y !== py) return true;
+  if (saveYmd.slice(0, 4) !== prevSaveYmd.slice(0, 4)) return true;
+  return false;
+}
+
+/**
+ * Export jobs for periods completed before saveYmd (first save in new month/quarter/year).
+ * @param {string} saveYmd
+ * @param {{ months?: string[], quarters?: string[], years?: string[] }} done
+ */
+function periodBoundaryExports(saveYmd, done = {}) {
+  const [y, mo] = saveYmd.split('-').map(Number);
+  const doneMonths = new Set(done.months || []);
+  const doneQuarters = new Set(done.quarters || []);
+  const doneYears = new Set(done.years || []);
+  const out = [];
+
+  const prevM = mo === 1 ? { y: y - 1, m: 12 } : { y, m: mo - 1 };
+  const mKey = calendarMonthKey(prevM.y, prevM.m);
+  if (!doneMonths.has(mKey)) {
+    out.push({
+      kind: 'month',
+      key: mKey,
+      filename: `${prevM.y}_${MONTH_EXPORT_NAMES[prevM.m - 1]}.md`,
+      dates: datesInCalendarMonth(prevM.y, prevM.m),
+    });
+  }
+
+  if ([1, 4, 7, 10].includes(mo)) {
+    const prevQ = mo === 1 ? 4 : quarterNumber(mo) - 1;
+    const prevQY = mo === 1 ? y - 1 : y;
+    const qKey = `${prevQY}-Q${prevQ}`;
+    if (!doneQuarters.has(qKey)) {
+      out.push({
+        kind: 'quarter',
+        key: qKey,
+        filename: `${prevQY}_Q${prevQ}.md`,
+        dates: datesInQuarter(prevQY, prevQ),
+      });
+    }
+  }
+
+  if (mo === 1) {
+    const prevY = y - 1;
+    const yKey = String(prevY);
+    if (!doneYears.has(yKey)) {
+      out.push({
+        kind: 'year',
+        key: yKey,
+        filename: `${prevY}.md`,
+        dates: datesInYear(prevY),
+      });
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Supplement history bulk actions (Change / Add).
+ */
+
+
+
+function slEntryMid(state, entry) {
+  if (!entry || entry.sid === undefined) return null;
+  const sc = (state.sch || []).find((x) => x.id === entry.sid);
+  return sc?.mid || null;
+}
+
+function isSuppDoseLog(entry) {
+  return !!(entry && entry.sid !== undefined);
+}
+
+/** Selected dose logs must share one catalog mid. */
+function validateBulkChangeSelection(state, entries) {
+  const doses = entries.filter(isSuppDoseLog);
+  if (!doses.length) return { ok: false, error: 'Select supplement dose entries only (not notes).' };
+  const mids = new Set(doses.map((e) => slEntryMid(state, e)).filter(Boolean));
+  if (mids.size !== 1) return { ok: false, error: 'Select entries for one supplement only.' };
+  return { ok: true, mid: [...mids][0], entries: doses };
+}
+
+/**
+ * Reference supplement must have exactly one dose log per calendar day in range.
+ * @returns {{ ok: true, templateLogs: object[] } | { ok: false, error: string }}
+ */
+function validateTemplateOnePerDay(state, refMid, startYmd, endYmd, isWaterMid) {
+  if (!refMid) return { ok: false, error: 'Pick a reference supplement.' };
+  const days = datesInRangeInclusive(startYmd, endYmd);
+  if (!days.length) return { ok: false, error: 'Pick a valid date range.' };
+
+  const templateLogs = [];
+  for (const day of days) {
+    const dayLogs = (state.sl || []).filter((e) => {
+      if (!onLogDay(e.dt, day)) return false;
+      if (slEntryMid(state, e) !== refMid) return false;
+      if (isWaterMid && isWaterMid(refMid)) return false;
+      return true;
+    });
+    if (dayLogs.length !== 1) {
+      return {
+        ok: false,
+        error: `Reference must have exactly 1 log per day (${day}: found ${dayLogs.length}).`,
+      };
+    }
+    templateLogs.push(dayLogs[0]);
+  }
+  return { ok: true, templateLogs };
+}
+
 global.DT = {
   now,
   td,
@@ -1906,5 +2073,14 @@ global.DT = {
   isTrackChangeFood,
   isTrackChangeAct,
   isTrackChangeWater,
+  shouldCheckPeriodExports,
+  periodBoundaryExports,
+  datesInCalendarMonth,
+  datesInQuarter,
+  datesInYear,
+  MONTH_EXPORT_NAMES,
+  slEntryMid,
+  validateBulkChangeSelection,
+  validateTemplateOnePerDay,
 };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

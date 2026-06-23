@@ -386,7 +386,11 @@ async function runQueuedAutoSync(){
 function commitLogChange(dt){
   markMod(dt);
   const ok=sv();
-  if(ok)queueAutoSync([isoToLocalYMD(dt||now())]);
+  if(ok){
+    const saveYmd=isoToLocalYMD(dt||now());
+    queueAutoSync([saveYmd]);
+    void runPeriodExportsIfNeeded(saveYmd);
+  }
   return ok;
 }
 function tabVisible(id){return typeof DT!=='undefined'&&DT.isTabVisible?DT.isTabVisible(S.cfg.tabs,id):S.cfg.tabs?.[id]!==false;}
@@ -645,6 +649,10 @@ function finishHistoryEditOverlay(){
   closeAllOv();
   return false;
 }
+function cancelHistoryEditOverlay(){
+  if(historyOvOpen()&&_ovStack.length>1)popOv();
+  else closeAllOv();
+}
 function oOv(id){openOvRoot(id);}
 function cOv(id){if(_ovStack[_ovStack.length-1]===id)popOv();else closeAllOv();}
 
@@ -682,7 +690,7 @@ function rW(){
 }
 function oWE(id){_cWLId=id;const e=id?S.wl.find(x=>x.id===id):null;document.getElementById('weT').textContent=id?'Edit Water':'Log Water';document.getElementById('weQ').value=e?e.qty:16;document.getElementById('weNt').value=e?(e.nt||''):'';document.getElementById('weDl').style.display=id?'block':'none';openHistoryEditOverlay('ovWE');}
 function aWQ(d){const el=document.getElementById('weQ');el.value=Math.max(0,parseFloat(el.value||0)+d);}
-function cfWE(){const qty=parseFloat(document.getElementById('weQ').value)||0;const nt=document.getElementById('weNt').value;if(_cWLId){const e=S.wl.find(x=>x.id===_cWLId);if(e){e.qty=qty;e.nt=nt;commitLogChange(e.dt);}}else{const dt=gEDt();S.wl.push({id:uid(),dt,la:now(),qty,nt});commitLogChange(dt);}finishHistoryEditOverlay();rW();document.getElementById('weQ').value=16;document.getElementById('weNt').value='';}
+function cfWE(){const qty=parseFloat(document.getElementById('weQ').value)||0;const nt=document.getElementById('weNt').value;if(_cWLId){const e=S.wl.find(x=>x.id===_cWLId);if(e){const prevDay=isoToLocalYMD(e.dt);const newDt=resolveSaveDt(e.dt);e.qty=qty;e.nt=nt;e.dt=newDt;if(prevDay!==isoToLocalYMD(newDt))markMod(prevDay);commitLogChange(newDt);}}else{const dt=resolveSaveDt(null);S.wl.push({id:uid(),dt,la:now(),qty,nt});commitLogChange(dt);}clearGdtAfterSave();finishHistoryEditOverlay();rW();document.getElementById('weQ').value=16;document.getElementById('weNt').value='';}
 function dWE(){const e=S.wl.find(x=>x.id===_cWLId);S.wl=S.wl.filter(x=>x.id!==_cWLId);if(e)commitLogChange(e.dt);else sv();finishHistoryEditOverlay();rW();}
 function oMWB(){document.getElementById('wBF').innerHTML=S.wb.map((v,i)=>'<div class="fld"><div class="fl">Button '+(i+1)+' oz</div><input type="number" id="wb'+i+'" value="'+v+'" step="1" min="0"></div>').join('');openOvRoot('ovMWB');}
 function svWB(){S.wb=[0,1,2,3,4].map(i=>parseFloat(document.getElementById('wb'+i).value)||0);sv();closeAllOv();rW();}
@@ -778,7 +786,7 @@ function oSEAdhoc(mid,logNow){
 }
 function commitAdhocSuppLog(mid,qty,nt,sk){
   const m=S.sm.find(x=>x.id===mid);if(!m)return false;
-  const dt=gEDt();
+  const dt=resolveSaveDt(null);
   const sid=resolveAdhocSid(mid);
   if(isWaterSup(sid)||isWaterMid(mid)){
     S.wl.push({id:uid(),dt,la:now(),qty,nt:nt||'via supplement catalog'});
@@ -787,7 +795,7 @@ function commitAdhocSuppLog(mid,qty,nt,sk){
   }
   delete _supAdhoc[mid];
   const ok=commitLogChange(dt);
-  if(ok)rS();
+  if(ok){clearGdtAfterSave();rS();}
   return ok;
 }
 
@@ -836,9 +844,9 @@ function cfSE(){
   }
   const sid=document.getElementById('ovSE').dataset.sid;const logId=document.getElementById('ovSE').dataset.logId;
   const qty=parseFloat(document.getElementById('seQ').value)||0;const nt=document.getElementById('seNt').value;const sk=qty===0;
-  if(logId){const e=S.sl.find(x=>x.id===logId);if(e){e.qty=qty;e.nt=nt;e.sk=sk;commitLogChange(e.dt);}}
+  if(logId){const e=S.sl.find(x=>x.id===logId);if(e){const prevDay=isoToLocalYMD(e.dt);const newDt=resolveSaveDt(e.dt);e.qty=qty;e.nt=nt;e.sk=sk;e.dt=newDt;if(prevDay!==isoToLocalYMD(newDt))markMod(prevDay);commitLogChange(newDt);}}
   else{_supSt[sid]={qty,nt,sk};}
-  finishHistoryEditOverlay();rS();document.getElementById('seNt').value='';
+  clearGdtAfterSave();finishHistoryEditOverlay();rS();document.getElementById('seNt').value='';
 }
 function dSE(){
   const mid=document.getElementById('ovSE').dataset.mid;
@@ -1200,6 +1208,30 @@ function listFieldUiLabel(f,actNm){
   if(typeof DT!=='undefined'&&DT.listFieldDisplayLabel)return DT.listFieldDisplayLabel(f,actNm);
   return f?.nm||'';
 }
+function normalizeOptsFldStored(f,v){
+  if(typeof DT!=='undefined'&&DT.normalizeOptsStored)return DT.normalizeOptsStored(f,v);
+  const picked=optsChosenArray(f,v);
+  if(!picked.length)return undefined;
+  return f?.multi?picked:picked[0];
+}
+/** Use modified date/time when orange bar is set; else keep existing or now. */
+function resolveSaveDt(existingDt){
+  if(S.gdt)return gEDt();
+  if(existingDt!=null&&existingDt!=='')return existingDt;
+  return gEDt();
+}
+function clearGdtAfterSave(){
+  if(!S.gdt)return;
+  S.gdt=null;
+  sv();
+  rH();
+}
+function slEntryMidFromLog(e){
+  if(typeof DT!=='undefined'&&DT.slEntryMid)return DT.slEntryMid(S,e);
+  if(!e||e.sid===undefined)return null;
+  const sc=S.sch.find(x=>x.id===e.sid);
+  return sc?.mid||null;
+}
 function actQuickField(a){
   if(a.inline===false)return null;
   if(!a.flds||a.flds.length!==1)return null;
@@ -1401,14 +1433,14 @@ function cfAE(){const a=S.acts.find(x=>x.id===_cATId);if(!a)return;
       if(!vs.length){shT('Select at least one: '+f.nm);return;}
     }
   }
-  const dt=gEDt();const nt=document.getElementById('aeNt').value;const flds={};
+  const nt=document.getElementById('aeNt').value;const flds={};
 a.flds.forEach(f=>{
   if(f.t==='number'){
     const n=readNumberFieldValue(f);
     if(n!==undefined)flds[f.nm]=n;
   }else if(f.t==='opts'){const slug=f.nm.replace(/\s/g,'_');const outer=document.getElementById('pickBox-'+slug);let raw;if(f.multi){raw=[...outer.querySelectorAll('.bwo.sel')].map(x=>x.dataset.v||'').filter(Boolean);}else{const sel=outer?.querySelector('.bwo.sel');raw=sel?String(sel.dataset.v||''):'';}const n=normalizeOptsFldStored(f,raw);if(n!==undefined)flds[f.nm]=n;}else if(f.t==='yesno'){const ys=f.nm.replace(/\s/g,'_');const yy=document.getElementById('yn-y-'+ys);flds[f.nm]=yy&&yy.classList.contains('blg')?'Yes':'No';}else{const el=document.getElementById('af-'+f.nm.replace(/\s/g,'_'));if(el&&String(el.value||'').trim())flds[f.nm]=el.value;}
 });
-if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){e.dt=dt;e.flds=flds;e.nt=nt;commitLogChange(dt);}}else{S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}finishHistoryEditOverlay();rH();rA();document.getElementById('aeNt').value='';}
+if(_cALId){const e=S.al.find(x=>x.id===_cALId);if(e){const prevDay=isoToLocalYMD(e.dt);const newDt=resolveSaveDt(e.dt);e.dt=newDt;e.flds=flds;e.nt=nt;if(prevDay!==isoToLocalYMD(newDt))markMod(prevDay);commitLogChange(newDt);}}else{const dt=resolveSaveDt(null);S.al.push({id:uid(),aid:_cATId,dt,la:now(),flds,nt});commitLogChange(dt);}clearGdtAfterSave();finishHistoryEditOverlay();rH();rA();document.getElementById('aeNt').value='';}
 function dAE(){const e=S.al.find(x=>x.id===_cALId);S.al=S.al.filter(x=>x.id!==_cALId);if(e)commitLogChange(e.dt);else sv();finishHistoryEditOverlay();rH();rA();}
 function oMA(){rMAL();openOvRoot('ovMA');}
 function rMAL(){
@@ -1927,7 +1959,12 @@ function oH(type){
   _hFilterDay='';_hSearch='';
   _hDataAll=buildHistoryData(type);
   applyHDataFilter();
+  rHSuppBulkBtns();
   openOvRoot('ovH');
+}
+function rHSuppBulkBtns(){
+  const show=_hType==='supps';
+  ['hChgBtn','hAddBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=show?'':'none';});
 }
 function rHList(){
   const grp={};_hData.forEach(e=>{const d=logEntryDay(e);if(!grp[d])grp[d]=[];grp[d].push(e);});
@@ -1964,6 +2001,107 @@ function heRow(e,indent){
 function heToggleSel(id){if(_hSel.has(id))_hSel.delete(id);else _hSel.add(id);rHList();}
 function heRowBodyClick(id,pay){if(pay){try{eval(decodeURIComponent(escape(atob(pay))));}catch(x){}}else heToggleSel(id);}
 function exitHSel(){_hSel=new Set();}
+function selectedSuppDoseRows(){
+  const ids=[..._hSel];
+  return _hData.filter(e=>ids.includes(e.id)&&e.sid!==undefined);
+}
+function bulkSuppChange(){
+  if(_hType!=='supps')return;
+  if(!_hSel.size){shT('Select entries first');return;}
+  const rows=selectedSuppDoseRows();
+  const v=typeof DT!=='undefined'&&DT.validateBulkChangeSelection?DT.validateBulkChangeSelection(S,rows):null;
+  if(!v||!v.ok){shT(v?.error||'Invalid selection');return;}
+  const first=rows[0];
+  document.getElementById('bulkChgSub').textContent='Update '+rows.length+' entr'+(rows.length>1?'ies':'y')+'.';
+  document.getElementById('bulkChgQ').value=first.qty!=null?first.qty:1;
+  document.getElementById('bulkChgNt').value=first.nt||'';
+  openOvPush('ovBulkSuppChg');
+}
+function cfBulkSuppChg(){
+  const qty=parseFloat(document.getElementById('bulkChgQ').value);
+  if(!Number.isFinite(qty)||qty<0){shT('Enter a valid quantity');return;}
+  const nt=document.getElementById('bulkChgNt').value;
+  const rows=selectedSuppDoseRows();
+  const v=typeof DT!=='undefined'&&DT.validateBulkChangeSelection?DT.validateBulkChangeSelection(S,rows):null;
+  if(!v||!v.ok){shT(v?.error||'Invalid selection');return;}
+  const ids=rows.map(e=>e.id);
+  const affected=new Set();
+  rows.forEach(e=>affected.add(isoToLocalYMD(e.dt)));
+  const api=logStoreAPI();
+  const sk=qty===0;
+  const updated=api&&api.updateLogs?api.updateLogs(S,'supps',ids,{qty,nt,sk}):0;
+  if(!updated){shT('No entries updated');return;}
+  if(!sv())return;
+  affected.forEach(d=>queueAutoSync([d]));
+  void runPeriodExportsIfNeeded(td());
+  _hDataAll=buildHistoryData(_hType);
+  popOv();
+  _hSel=new Set();
+  applyHDataFilter();
+  rS();
+  shT('Updated '+updated+' entr'+(updated>1?'ies':'y'));
+}
+function pickBulkAddRefMid(){
+  const items=sortedSm().filter(m=>m.name!=='Water').map(m=>({v:m.id,label:m.name,sub:(m.mfr||'')+' \u00b7 '+(m.units||'')}));
+  openListPick({title:'Reference supplement (times)',items,emptyLabel:'\u2014 select \u2014',onSelect(mid){
+    document.getElementById('bulkAddRefMid').value=mid||'';
+    const m=mid?S.sm.find(x=>x.id===mid):null;
+    document.getElementById('bulkAddRefLbl').textContent=m?((m.mfr?m.mfr+' \u2014 ':'')+m.name):'\u2014 select \u2014';
+  }});
+}
+function pickBulkAddNewMid(){
+  const items=sortedSm().filter(m=>m.name!=='Water').map(m=>({v:m.id,label:m.name,sub:(m.mfr||'')+' \u00b7 '+(m.units||'')}));
+  openListPick({title:'Supplement to add',items,emptyLabel:'\u2014 select \u2014',onSelect(mid){
+    document.getElementById('bulkAddNewMid').value=mid||'';
+    const m=mid?S.sm.find(x=>x.id===mid):null;
+    document.getElementById('bulkAddNewLbl').textContent=m?((m.mfr?m.mfr+' \u2014 ':'')+m.name):'\u2014 select \u2014';
+  }});
+}
+function bulkSuppAdd(){
+  if(_hType!=='supps')return;
+  document.getElementById('bulkAddRefMid').value='';
+  document.getElementById('bulkAddNewMid').value='';
+  document.getElementById('bulkAddRefLbl').textContent='\u2014 select \u2014';
+  document.getElementById('bulkAddNewLbl').textContent='\u2014 select \u2014';
+  document.getElementById('bulkAddQ').value=1;
+  document.getElementById('bulkAddNt').value='';
+  const today=td();
+  document.getElementById('bulkAddFrom').value=today;
+  document.getElementById('bulkAddTo').value=today;
+  openOvPush('ovBulkSuppAdd');
+}
+function cfBulkSuppAdd(){
+  const refMid=document.getElementById('bulkAddRefMid').value;
+  const newMid=document.getElementById('bulkAddNewMid').value;
+  const start=document.getElementById('bulkAddFrom').value;
+  const end=document.getElementById('bulkAddTo').value;
+  const qty=parseFloat(document.getElementById('bulkAddQ').value);
+  const nt=document.getElementById('bulkAddNt').value||'';
+  if(!refMid||!newMid){shT('Pick reference and new supplement');return;}
+  if(!start||!end||start>end){shT('Pick a valid date range');return;}
+  if(!Number.isFinite(qty)||qty<0){shT('Enter a valid quantity');return;}
+  const validate=typeof DT!=='undefined'&&DT.validateTemplateOnePerDay?DT.validateTemplateOnePerDay:null;
+  const v=validate?validate(S,refMid,start,end,isWaterMid):null;
+  if(!v||!v.ok){shT(v?.error||'Invalid reference');return;}
+  const sid=resolveAdhocSid(newMid);
+  const affected=new Set();
+  const ts=now();
+  for(const tpl of v.templateLogs){
+    const row={id:uid(),sid,dt:tpl.dt,la:ts,qty,nt,sk:qty===0};
+    S.sl.push(row);
+    affected.add(isoToLocalYMD(tpl.dt));
+    markMod(tpl.dt);
+  }
+  if(!sv())return;
+  affected.forEach(d=>queueAutoSync([d]));
+  void runPeriodExportsIfNeeded(td());
+  _hDataAll=buildHistoryData(_hType);
+  popOv();
+  _hSel=new Set();
+  applyHDataFilter();
+  rS();
+  shT('Added '+v.templateLogs.length+' entr'+(v.templateLogs.length>1?'ies':'y'));
+}
 function bulkDel(){if(!_hSel.size){shT('Select entries first');return;}if(!confirm('Delete '+_hSel.size+' selected entr'+(_hSel.size>1?'ies':'y')+'?'))return;const ids=[..._hSel];const affected=new Set();_hData.filter(e=>ids.includes(e.id)).forEach(e=>affected.add(isoToLocalYMD(e.dt)));const api=logStoreAPI();if(api&&api.removeLogIds)api.removeLogIds(S,_hType,ids);sv();queueAutoSync([...affected]);_hDataAll=_hDataAll.filter(x=>!ids.includes(x.id));_hSel=new Set();applyHDataFilter();rW();rS();rF();rA();rN();shT('Deleted');}
 function bulkDT(){
   if(!_hSel.size){shT('Select entries first');return;}
@@ -2216,6 +2354,7 @@ function gDriveCheckHash(){
     setTimeout(()=>{
       const dates=_modDates.size?[..._modDates]:[td()];
       syncDrive(dates).then(ok=>{if(ok)clearExportDirty();}).catch(e=>{console.warn('sync',e);setDS('Sync error: '+e.message,'err');});
+      flushPendingPeriodExports();
     },400);
   }else if(pending==='backup'){
     shT('Google connected — backing up…');
@@ -2262,6 +2401,53 @@ async function driveWrite(filename,content,folderId){
     if(!cr.ok){const t=await cr.text();throw new Error('Upload failed: '+cr.status+' '+t);}
     return true;
   }catch(e){console.error('driveWrite',e);setDS('Drive error: '+e.message,'err');return false;}
+}
+function ensurePeriodExportCfg(){
+  if(!S.cfg.periodExportsDone)S.cfg.periodExportsDone={months:[],quarters:[],years:[]};
+  if(!Array.isArray(S.cfg.pendingPeriodExports))S.cfg.pendingPeriodExports=[];
+}
+function markPeriodExportDone(job){
+  ensurePeriodExportCfg();
+  const d=S.cfg.periodExportsDone;
+  if(job.kind==='month'&&!d.months.includes(job.key))d.months.push(job.key);
+  if(job.kind==='quarter'&&!d.quarters.includes(job.key))d.quarters.push(job.key);
+  if(job.kind==='year'&&!d.years.includes(job.key))d.years.push(job.key);
+}
+function queuePeriodExportJobs(jobs){
+  ensurePeriodExportCfg();
+  const pending=S.cfg.pendingPeriodExports;
+  for(const j of jobs||[]){
+    if(pending.some(p=>p.key===j.key))continue;
+    pending.push({kind:j.kind,key:j.key,filename:j.filename,dates:j.dates});
+  }
+}
+async function flushPendingPeriodExports(){
+  ensurePeriodExportCfg();
+  if(!S.cfg.pendingPeriodExports.length)return;
+  if(!S.cfg.driveIds?.dailyLogs)return;
+  if(!gDriveTokenValid())return;
+  const remaining=[];
+  for(const job of S.cfg.pendingPeriodExports){
+    const text=gCombinedTrackerLogRange(job.dates);
+    const ok=await driveWrite(job.filename,text,S.cfg.driveIds.dailyLogs);
+    if(ok){markPeriodExportDone(job);shT('Exported '+job.filename);}
+    else remaining.push(job);
+  }
+  S.cfg.pendingPeriodExports=remaining;
+  sv();
+}
+async function runPeriodExportsIfNeeded(saveYmd){
+  if(!saveYmd)return;
+  const prev=S.cfg.lastSaveYmd||null;
+  if(typeof DT!=='undefined'&&DT.shouldCheckPeriodExports&&DT.periodBoundaryExports){
+    if(DT.shouldCheckPeriodExports(prev,saveYmd)){
+      const jobs=DT.periodBoundaryExports(saveYmd,S.cfg.periodExportsDone||{});
+      queuePeriodExportJobs(jobs);
+    }
+  }
+  S.cfg.lastSaveYmd=saveYmd;
+  sv();
+  await flushPendingPeriodExports();
 }
 async function syncDrive(datesList){
   const ids=S.cfg.driveIds||{};
@@ -2861,8 +3047,10 @@ async function svAll(){
     afterSuccess:async staged=>{
       shT('Saved');
       if(staged.hadCommits)queueAutoSync([staged.batchDay]);
+      void runPeriodExportsIfNeeded(staged.batchDay||td());
       if(S.cfg.autoSync!==false&&!gDriveTokenValid()&&S.cfg.driveIds?.dailyLogs)gDriveAuth('sync');
       await ensureDailyBackupAfterSave();
+      await flushPendingPeriodExports();
     }
   });
   if(!result.ok){
